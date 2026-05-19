@@ -153,6 +153,7 @@ class PolicyCompiler:
         "tenant_id", "actor_id", "role", "action", "resource_type", "resource_id",
         "composition_id", "snapshot_id", "worker_id", "stage", "event_type",
         "partition_key", "epoch_number", "schema_name", "schema_version",
+        "connector_id", "connector_trust_tier", "sandbox_policy",
     }
 
     @classmethod

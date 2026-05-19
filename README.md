@@ -2,8 +2,8 @@
 
 ## Deterministic Semantic Execution Kernel
 
-[![Tests](https://img.shields.io/badge/tests-569%2F569%20passing-brightgreen)](#testing)
-[![Spec](https://img.shields.io/badge/spec-v1.3.0-blue)](docs/PI-RUNTIME-SPEC-v1.3.md)
+[![Tests](https://img.shields.io/badge/tests-624%2F624%20passing-brightgreen)](#testing)
+[![Spec](https://img.shields.io/badge/spec-v1.4.0-blue)](docs/PI-RUNTIME-SPEC-v1.4.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
 
@@ -21,7 +21,7 @@ PI Platform is a **4-layer deterministic execution kernel** designed for enterpr
 - **Multi-tenant isolation** — Absolute boundary enforcement between tenants
 - **Capability marketplace** — Audited extensions with trust-zone enforcement
 
-The architecture is formalized in the [PI Runtime Specification v1.3](docs/PI-RUNTIME-SPEC-v1.3.md), which serves as the single source of truth for all runtime behavior.
+The architecture is formalized in the [PI Runtime Specification v1.4](docs/PI-RUNTIME-SPEC-v1.4.md), which serves as the single source of truth for all runtime behavior.
 
 ---
 
@@ -115,15 +115,17 @@ pi-platform/
 │   ├── pi_semantic_radius/          — Layer 2: Blast radius
 │   ├── pi_interoperability_layer/   — Layer 1–2: Execution fabric, mesh, receipts
 │   ├── pi_extension_governor/       — Layer 3: Manifests, policy, trust zones
-│   └── pi_console/                  — Layer 4: FastAPI proxy + boundary schemas
+│   ├── pi_console/                  — Layer 4: FastAPI proxy + boundary schemas
+│   └── pi_connector_fabric/         — Governed ingestion + topology + digital twin import
 ├── pi-console-frontend/             — Layer 4: Next.js 15 + React Flow dashboard
 ├── tests/
 │   ├── unit/                        — Per-module unit tests
 │   ├── integration/                 — Cross-runtime integration tests
-│   ├── conformance/                 — PI Runtime Spec conformance (86 tests)
+│   ├── conformance/                 — PI Runtime Spec conformance (141 tests)
 │   └── console/                     — Boundary enforcement tests (17 tests)
 ├── docs/
-│   ├── PI-RUNTIME-SPEC-v1.3.md      — Formal execution kernel specification (current)
+│   ├── PI-RUNTIME-SPEC-v1.4.md      — Formal execution kernel specification (current)
+│   ├── PI-RUNTIME-SPEC-v1.3.md      — Event fabric specification
 │   ├── PI-RUNTIME-SPEC-v1.2.md      — Production runtime specification
 │   ├── PI-RUNTIME-SPEC-v1.1.md      — Digital twin specification
 │   └── PI-RUNTIME-SPEC-v1.0.md      — Initial platform specification
@@ -168,9 +170,9 @@ Every rule maps to a specific file and class in the reference implementation (Se
 ### Full Platform Test Suite
 
 ```bash
-make test          # Run all tests (569 passing, 2 skipped)
+make test          # Run all tests (624 passing, 2 skipped)
 make test-core     # Core runtime tests only
-make test-conformance  # Runtime spec conformance (86 tests)
+make test-conformance  # Runtime spec conformance (141 tests)
 make test-console  # Console boundary tests (17 tests)
 ```
 
