@@ -1,10 +1,10 @@
-# PI Runtime Specification v1.0
+# PI Runtime Specification v1.4
 ## Deterministic Semantic Execution Kernel — Protocol Reference
 
-**Version:** 1.2.0  
+**Version:** 1.4.0  
 **Date:** 2026-05-19  
-**Status:** FINAL (Production Hardening)  
-**Scope:** Layers 1–4 + Production Runtime of the PI Platform  
+**Status:** FINAL (Connector Fabric)  
+**Scope:** Layers 1–4 + Production Runtime + Event Fabric + Connector Fabric of the PI Platform  
 
 ---
 
@@ -1512,6 +1512,53 @@ append-only SQLite storage:
 
 ---
 
+---
+
+## 18. HyperFrames Video Extensions (v1.4)
+
+### 18.1 DocumentationHyperFrameRenderer
+
+Deterministic architecture documentation video generator.
+
+Frame sequences produced from structured platform data:
+- **Platform Architecture** — layer-by-layer reveal with components and invariants
+- **Governance Invariants** — card-by-card invariant verification
+- **Connector Catalog** — marketplace connector listing with capabilities
+- **Test Dashboard** — suite result breakdown per module
+
+All sequences are deterministic: identical inputs produce identical sequence hashes.
+
+### 18.2 InfrastructureReplayHyperFrameRenderer
+
+Deterministic infrastructure replay video generator.
+
+Frame sequences produced from real platform execution:
+- **Connector Ingestion** — receipt timeline with cryptographic verification
+- **Topology Construction** — step-by-step artifact-to-graph building
+- **Drift Evolution** — multi-snapshot drift comparison
+- **Blast Radius Propagation** — per-hop BFS reachability reveal
+- **Governance Audit Trail** — decision-by-decision policy log
+
+### 18.3 Frame Encoding
+
+Both renderers produce `HyperFrameSequence` with:
+- `HyperFrame` instances containing base64-encoded PNG data
+- SHA-256 `frame_hash` per frame
+- SHA-256 `sequence_hash` for the entire sequence
+- Deterministic MP4 encoding via `imageio-ffmpeg` (optional dependency)
+
+Fallback: stdlib-only PNG renderer (no matplotlib/Pillow required for tests).
+
+### 18.4 Determinism Guarantees
+
+- Identical inputs → identical frame hashes
+- Identical inputs → identical sequence hashes
+- Identical inputs → identical MP4 file hashes (when encoded)
+- No randomness in layout, color, or timing
+- Dark theme palette is hardcoded, not computed
+
+---
+
 ## 19. Versioning & Maintenance
 
 ### 19.1 Version History
@@ -1521,6 +1568,8 @@ append-only SQLite storage:
 | 1.0.0 | 2026-05-18 | Initial PI Platform spec | 409 |
 | 1.1.0 | 2026-05-19 | Digital Twin Foundation (5 phases) | 460 |
 | 1.2.0 | 2026-06-01 | Production Hardening (storage, API, security, telemetry, deployment) | 520 |
+| 1.3.0 | 2026-05-18 | Deterministic Event Fabric (bus, schema evolution, replay, governance) | 586 |
+| 1.4.0 | 2026-05-19 | Governed Connector Fabric (SDK, 7 connectors, marketplace, topology, import) | 641 |
 
 ### 19.2 Maintenance Rules
 
