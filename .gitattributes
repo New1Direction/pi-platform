@@ -1,0 +1,17 @@
+* text=auto
+*.py text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.tsx text eol=lf
+*.ts text eol=lf
+*.css text eol=lf
+*.js text eol=lf
+
+# Declare files that will always have LF line endings on checkout.
+*.py linguist-language=Python
+*.tsx linguist-language=TypeScript
