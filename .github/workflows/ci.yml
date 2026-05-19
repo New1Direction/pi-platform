@@ -1,0 +1,91 @@
+name: CI — Test, Lint, Conformance
+
+on:
+  push:
+    branches: [main, develop]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  test-core:
+    name: Core Runtimes Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev,all]"
+      - name: Run core tests
+        run: PYTHONPATH=src python -m pytest tests/unit -q --tb=short
+
+  test-conformance:
+    name: Runtime Spec Conformance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev,all]"
+      - name: Run conformance tests
+        run: PYTHONPATH=src python -m pytest tests/conformance -v --tb=short
+
+  test-console:
+    name: Console Boundary Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev,all]"
+      - name: Run console tests
+        run: PYTHONPATH=src python -m pytest tests/console -v --tb=short
+
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: pip install uv
+      - name: Install dev tools
+        run: uv pip install --system ruff mypy -e ".[dev,all]"
+      - name: Ruff check
+        run: ruff check src tests
+      - name: Ruff format check
+        run: ruff format --check src tests
+      - name: Mypy type check
+        run: mypy src --ignore-missing-imports
+
+  integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        run: pip install uv
+      - name: Install dependencies
+        run: uv pip install --system -e ".[dev,all]"
+      - name: Run integration tests
+        run: PYTHONPATH=src python -m pytest tests/integration -v --tb=short
