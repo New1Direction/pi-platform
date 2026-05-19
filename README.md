@@ -2,8 +2,8 @@
 
 ## Deterministic Semantic Execution Kernel
 
-[![Tests](https://img.shields.io/badge/tests-520%2F520%20passing-brightgreen)](#testing)
-[![Spec](https://img.shields.io/badge/spec-v1.2.0-blue)](docs/PI-RUNTIME-SPEC-v1.1.md)
+[![Tests](https://img.shields.io/badge/tests-569%2F569%20passing-brightgreen)](#testing)
+[![Spec](https://img.shields.io/badge/spec-v1.3.0-blue)](docs/PI-RUNTIME-SPEC-v1.3.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
 
@@ -21,7 +21,7 @@ PI Platform is a **4-layer deterministic execution kernel** designed for enterpr
 - **Multi-tenant isolation** — Absolute boundary enforcement between tenants
 - **Capability marketplace** — Audited extensions with trust-zone enforcement
 
-The architecture is formalized in the [PI Runtime Specification v1.0](docs/PI-RUNTIME-SPEC-v1.0.md), which serves as the single source of truth for all runtime behavior.
+The architecture is formalized in the [PI Runtime Specification v1.3](docs/PI-RUNTIME-SPEC-v1.3.md), which serves as the single source of truth for all runtime behavior.
 
 ---
 
@@ -31,7 +31,7 @@ The architecture is formalized in the [PI Runtime Specification v1.0](docs/PI-RU
 ┌───────────────────────────────────────────────────────────────────────┐
 │  LAYER 4: PI CONSOLE                                                  │
 │  Human interface boundary. Natural language permitted ONLY here.      │
-│  Outputs: ExplicitCompositionRequest JSON (frozen, SHA-256 hashed)    │
+│  Outputs: ExplicitCompositionRequest JSON (frozen, SHA-256 hashed)  │
 └──────────────────┬────────────────────────────────────────────────────┘
                    │ ExplicitCompositionRequest
 ┌──────────────────▼────────────────────────────────────────────────────┐
@@ -51,6 +51,15 @@ The architecture is formalized in the [PI Runtime Specification v1.0](docs/PI-RU
 │  LAYER 1: MULTI-TENANT CONTROL PLANE                                  │
 │  Tenant registry with quota enforcement, scoped policy engine         │
 │  Execution log, compliance reporting, tenant-scoped audit trail       │
+└──────────────────┬────────────────────────────────────────────────────┘
+                   │
+┌──────────────────▼────────────────────────────────────────────────────┐
+│  FOUNDATION: DETERMINISTIC EVENT FABRIC & RUNTIME EVOLUTION           │
+│  Append-only EventBus with cryptographic chaining & ordered partitions  │
+│  Schema evolution registry with explicit migration DAGs               │
+│  Cross-version replay engine with runtime compatibility fences          │
+│  Distributed ordering guarantees & monotonic checkpoint coordination    │
+│  Governance compiler: declarative policy DSL with static validation   │
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -111,10 +120,13 @@ pi-platform/
 ├── tests/
 │   ├── unit/                        — Per-module unit tests
 │   ├── integration/                 — Cross-runtime integration tests
-│   ├── conformance/                 — PI Runtime Spec conformance (26 tests)
+│   ├── conformance/                 — PI Runtime Spec conformance (86 tests)
 │   └── console/                     — Boundary enforcement tests (17 tests)
 ├── docs/
-│   ├── PI-RUNTIME-SPEC-v1.0.md      — Formal execution kernel specification
+│   ├── PI-RUNTIME-SPEC-v1.3.md      — Formal execution kernel specification (current)
+│   ├── PI-RUNTIME-SPEC-v1.2.md      — Production runtime specification
+│   ├── PI-RUNTIME-SPEC-v1.1.md      — Digital twin specification
+│   └── PI-RUNTIME-SPEC-v1.0.md      — Initial platform specification
 │   ├── assets/diagrams.html         — Interactive SVG architecture diagrams
 │   ├── architecture/                — Layer-by-layer architecture guides
 │   ├── api-reference.md             — OpenAPI tool schemas and examples
@@ -156,9 +168,9 @@ Every rule maps to a specific file and class in the reference implementation (Se
 ### Full Platform Test Suite
 
 ```bash
-make test          # Run all tests (409 passing)
+make test          # Run all tests (569 passing, 2 skipped)
 make test-core     # Core runtime tests only
-make test-conformance  # Runtime spec conformance (26 tests)
+make test-conformance  # Runtime spec conformance (86 tests)
 make test-console  # Console boundary tests (17 tests)
 ```
 
