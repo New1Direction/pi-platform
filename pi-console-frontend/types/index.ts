@@ -1,0 +1,116 @@
+export interface CompositionNode {
+  node_id: string;
+  runtime: string;
+  operation: string;
+  artifacts: Record<string, unknown>[];
+  required_schema_version: string;
+  bounds: Record<string, number>;
+  dependencies: string[];
+}
+
+export interface CompositionEdge {
+  source: string;
+  target: string;
+  edge_type: "SEQUENTIAL" | "PARALLEL" | "CONDITIONAL" | "FAN_OUT" | "FAN_IN";
+  condition?: string;
+}
+
+export interface ExplicitCompositionRequest {
+  request_id: string;
+  tenant_id: string;
+  console_session_id: string;
+  created_at: string;
+  nodes: CompositionNode[];
+  edges: CompositionEdge[];
+  global_policy_ref: string;
+  global_schema_version: string;
+  global_bounds: Record<string, number>;
+  simulation_only: boolean;
+  approved_by_user: boolean;
+  approval_timestamp?: string;
+  strict: boolean;
+  request_hash: string;
+}
+
+export interface SimulationReport {
+  report_id: string;
+  request_id: string;
+  tenant_id: string;
+  dag_valid: boolean;
+  dag_errors: string[];
+  bounds_respected: boolean;
+  bounds_violations: string[];
+  policy_violations: string[];
+  estimated_blast_radius: Record<string, unknown>;
+  execution_plan: string[];
+  risk_level: "NONE" | "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+  risk_details: string[];
+  replay_safe: boolean;
+  replay_verification_hash: string;
+  report_hash: string;
+  generated_at: string;
+}
+
+export interface SimulateCompositionResponse {
+  report: SimulationReport;
+  can_execute: boolean;
+}
+
+export interface MarketplaceCapability {
+  capability_id: string;
+  runtime: string;
+  operation: string;
+  description: string;
+  schema_version: string;
+  trust_tier: "UNVERIFIED" | "VERIFIED" | "AUDITED" | "GOVERNED";
+  compatibility_tags: string[];
+  deterministic_bounds: Record<string, number>;
+}
+
+export interface CompatibilityNode {
+  capability_id: string;
+  runtime: string;
+  trust_tier: string;
+}
+
+export interface CompatibilityEdge {
+  source_capability: string;
+  target_capability: string;
+  compatible: boolean;
+  reason: string;
+}
+
+export interface ExecutionReplayEvent {
+  sequence_number: number;
+  event_type: string;
+  emitted_by: string;
+  emitted_at: string;
+  event_hash: string;
+  previous_hash: string;
+  payload_summary: Record<string, unknown>;
+}
+
+export interface AuditLogEntry {
+  entry_id: string;
+  timestamp: string;
+  tenant_id: string;
+  console_session_id: string;
+  request_id: string;
+  action: string;
+  structured_request: Record<string, unknown>;
+  response_status: string;
+  user_ip: string;
+}
+
+export interface TenantQuotaStatus {
+  tenant_id: string;
+  compositions_submitted: number;
+  compositions_executed: number;
+  simulations_run: number;
+  max_compositions_per_hour: number;
+  max_simulations_per_hour: number;
+  max_nodes_per_composition: number;
+  current_hour_compositions: number;
+  current_hour_simulations: number;
+  quota_exceeded: boolean;
+}
