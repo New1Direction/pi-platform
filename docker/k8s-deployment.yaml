@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pi-core
+  labels:
+    app: pi-core
+    version: "1.2.0-prod"
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: pi-core
+  template:
+    metadata:
+      labels:
+        app: pi-core
+        version: "1.2.0-prod"
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: pi-core
+          image: pi-platform:1.2.0-prod
+          ports:
+            - containerPort: 8000
+              name: http
+          env:
+            - name: PI_ENV
+              value: "production"
+            - name: PI_STORAGE_PATH
+              value: "/data/pi_production.db"
+            - name: PI_LOG_LEVEL
+              value: "INFO"
+            - name: PI_SECRET_JWT
+              valueFrom:
+                secretKeyRef:
+                  name: pi-secrets
+                  key: jwt-secret
+            - name: PI_SECRET_REQUEST_SIGNING
+              valueFrom:
+                secretKeyRef:
+                  name: pi-secrets
+                  key: request-signing-secret
+          volumeMounts:
+            - name: pi-data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /v1/health/ready
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 500m
+              memory: 256Mi
+            limits:
+              cpu: 2000m
+              memory: 1Gi
+      volumes:
+        - name: pi-data
+          persistentVolumeClaim:
+            claimName: pi-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pi-core
+  labels:
+    app: pi-core
+spec:
+  selector:
+    app: pi-core
+  ports:
+    - port: 80
+      targetPort: 8000
+      name: http
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pi-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: pi-secrets
+type: Opaque
+stringData:
+  jwt-secret: "REPLACE_WITH_PRODUCTION_JWT_SECRET"
+  request-signing-secret: "REPLACE_WITH_PRODUCTION_SIGNING_SECRET"

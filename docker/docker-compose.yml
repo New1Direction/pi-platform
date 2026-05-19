@@ -1,0 +1,67 @@
+# PI Platform — Production Docker Compose
+# Deterministic, governance-first deployment.
+# All services are immutable; state lives only in SQLite WAL.
+
+version: "3.8"
+
+services:
+  pi-core:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+    image: pi-platform:1.2.0-prod
+    container_name: pi-core
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - PI_ENV=production
+      - PI_STORAGE_PATH=/data/pi_production.db
+      - PI_LOG_LEVEL=INFO
+      - PI_SECRET_JWT=${PI_SECRET_JWT:-dev-jwt-secret-please-rotate}
+      - PI_SECRET_REQUEST_SIGNING=${PI_SECRET_REQUEST_SIGNING:-dev-signing-secret-please-rotate}
+    volumes:
+      - pi-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/v1/health/ready"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # Optional: lightweight Prometheus metrics scraper
+  pi-metrics:
+    image: prom/prometheus:v2.53.0
+    container_name: pi-metrics
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--storage.tsdb.retention.time=7d'
+      - '--web.enable-lifecycle'
+    depends_on:
+      - pi-core
+    profiles:
+      - metrics
+
+volumes:
+  pi-data:
+    driver: local
+
+networks:
+  default:
+    name: pi-platform

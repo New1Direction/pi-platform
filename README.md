@@ -2,8 +2,8 @@
 
 ## Deterministic Semantic Execution Kernel
 
-[![Tests](https://img.shields.io/badge/tests-409%2F409%20passing-brightgreen)](#testing)
-[![Spec](https://img.shields.io/badge/spec-v1.0.0-blue)](docs/PI-RUNTIME-SPEC-v1.0.md)
+[![Tests](https://img.shields.io/badge/tests-520%2F520%20passing-brightgreen)](#testing)
+[![Spec](https://img.shields.io/badge/spec-v1.2.0-blue)](docs/PI-RUNTIME-SPEC-v1.1.md)
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
 
@@ -227,6 +227,84 @@ Every worker execution produces an `ExecutionReceipt`, chained to the previous r
 Workers are assigned to shards via `SHA-256(worker_id)[:8] mod shard_count`. Same worker + same shard count = same assignment, every time, on every machine.
 
 ---
+
+## Production Deployment
+
+### Quick Start (Docker Compose)
+
+```bash
+git clone https://github.com/New1Direction/pi-platform.git
+cd pi-platform
+
+# Set production secrets
+export PI_SECRET_JWT=$(openssl rand -hex 32)
+export PI_SECRET_REQUEST_SIGNING=$(openssl rand -hex 32)
+
+docker-compose -f docker/docker-compose.yml up --build
+```
+
+The API will be available at `http://localhost:8000/v1/`. Health check at `/v1/health/ready`.
+
+### Kubernetes
+
+```bash
+kubectl apply -f docker/k8s-deployment.yaml
+kubectl create secret generic pi-secrets \
+  --from-literal=jwt-secret=$(openssl rand -hex 32) \
+  --from-literal=request-signing-secret=$(openssl rand -hex 32)
+```
+
+### API Authentication
+
+Every request requires:
+- `Authorization: Bearer <jwt_token>`
+- `X-Tenant-ID: <tenant_id>`
+- Optional: `X-Correlation-ID: <trace_id>`
+
+Example:
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+     -H "X-Tenant-ID: tenant_001" \
+     -H "Content-Type: application/json" \
+     http://localhost:8000/v1/health
+```
+
+### Production Features
+
+| Feature | Status |
+|---------|--------|
+| Persistent SQLite append-only storage | ✅ WAL mode, hash-chained |
+| JWT authentication | ✅ HMAC-SHA256, deterministic claims |
+| Request signing (anti-replay) | ✅ HMAC-SHA256, 300s tolerance |
+| RBAC (admin/operator/viewer/api_key) | ✅ Hardcoded, deterministic |
+| Rate limiting (sliding window) | ✅ Per-tenant + per-actor |
+| Audit logging (hash-chained) | ✅ Every API action |
+| Prometheus metrics | ✅ Counter / Gauge / Histogram |
+| Structured logging (JSON) | ✅ Correlation ID propagation |
+| Distributed tracing (custom) | ✅ Immutable spans |
+| Health / readiness probes | ✅ 200 healthy / 503 degraded |
+| Docker multi-stage build | ✅ Non-root user |
+| Kubernetes manifests | ✅ Deployment + PVC + Secret |
+| Append-only DB triggers | ✅ UPDATE/DELETE blocked |
+| Tenant isolation (DB level) | ✅ Composite indexes |
+| Backup (single-file SQLite) | ✅ WAL checkpoint + copy |
+
+### Security Model
+
+- **Fail-closed:** Every new endpoint defaults to deny
+- **Immutable history:** Snapshots, receipts, and audit logs cannot be modified
+- **Deterministic auth:** No probabilistic session generation
+- **Least privilege:** Container runs as non-root `piuser`
+- **Secret rotation:** `SecretManager.rotate_secret()` generates cryptographically safe values
+
+### Monitoring Stack
+
+Enable Prometheus metrics sidecar:
+```bash
+docker-compose -f docker/docker-compose.yml --profile metrics up
+```
+
+Metrics endpoint: `http://localhost:8000/v1/metrics` (Prometheus format)
 
 ## License
 
