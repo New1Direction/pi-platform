@@ -262,6 +262,87 @@ def test_collaboration_templates_goal_mapping():
         (
             "Check database migration indices and mock test coverage",
             ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"]
+        ),
+        # 20 New Playbooks Tests
+        (
+            "Perform web application vulnerability scanning & auto-remediation",
+            ["PiWebVulnScanner", "PiSelfHealingPatchAgent", "PiDeploymentSafetyGuard"]
+        ),
+        (
+            "Configure cloud cost optimization and identify idle resource leaks",
+            ["PiCloudCostAnalyzer", "PiIdleResourceSentry", "PiBudgetAnomalyGuard"]
+        ),
+        (
+            "Ensure api security & rate limiting is audited",
+            ["PiAPIRateLimitSentry", "PiApiAuthHardcodedTokenSentry", "PiEndpointAbuseGuard"]
+        ),
+        (
+            "Audit database query optimization speed",
+            ["PiSlowQueryDetector", "PiSQLInjectionSentry", "PiIndexRecommendationEngine"]
+        ),
+        (
+            "Check container image security layers",
+            ["PiDockerImageScanner", "PiDockerComposeSecuritySentry", "PiContainerEscapeDetector"]
+        ),
+        (
+            "Audit our ci/cd pipeline integrity settings",
+            ["PiGithubActionsUnpinnedVersion", "PiGitSecretLeakSentry", "PiPipelineIntegrityAuditor"]
+        ),
+        (
+            "Inspect frontend supply chain vulnerability vectors",
+            ["PiNPMDependencyVulnScanner", "PiGitSecScanner", "PiTreeShakingOptimizer"]
+        ),
+        (
+            "Run llm output sanitization validators",
+            ["PiLLMOutputSanitizer", "PiLLMHallucinationDetector", "PiLLMPromptEgressLeakDetector"]
+        ),
+        (
+            "Audit data privacy compliance models",
+            ["PiDataFlowPrivacyMapper", "PiSensitiveDataScanner", "PiAutomatedAnonymizer"]
+        ),
+        (
+            "Monitor logging & observability anomaly parameters",
+            ["PiSensitiveLogLeakSentry", "PiGitSecretEntropyLeakSentry", "PiStructuredLoggingEnforcer"]
+        ),
+        (
+            "Check access control & privilege escalation routes",
+            ["PiIAMOverPermissionSentry", "PiAccessControlShadow", "PiLeastPrivilegeRemediator"]
+        ),
+        (
+            "Audit documentation & code comment consistency",
+            ["PiDocsOutdatedChecker", "PiReadmeValidator", "PiAutoDocsGenerator"]
+        ),
+        (
+            "Review performance profiling targets",
+            ["PiMemoryLeakDetector", "PiHotPathAllocationAuditor", "PiBottleneckOptimizer"]
+        ),
+        (
+            "Scan mobile app security policies",
+            ["PiMobilePermissionSentry", "PiAppDataLeakDetector", "PiRuntimeHardeningGuard"]
+        ),
+        (
+            "Run network traffic analysis sentries",
+            ["PiNetworkTrafficSentry", "PiDDoSPatternDetector", "PiTrafficOptimizer"]
+        ),
+        (
+            "Validate backup & disaster recovery protocols",
+            ["PiBackupIntegritySentry", "PiRecoveryTimeAuditor", "PiAutomatedRestoreTester"]
+        ),
+        (
+            "Ensure accessibility & wcag compliance limits are met",
+            ["PiAccessibilityScanner", "PiContrastRatioAuditor", "PiAutoRemediationEngine"]
+        ),
+        (
+            "Run secrets management & rotation checks",
+            ["PiHardcodedSecretDetector", "PiGitSecretLeakSentry", "PiAutomatedRotationEngine"]
+        ),
+        (
+            "Audit iac security & drift variations",
+            ["PiTerraformDriftDetector", "PiTerraformStateCredentialSentry", "PiInfrastructureComplianceAuditor"]
+        ),
+        (
+            "Review frontend performance & core web vitals speed metrics",
+            ["PiLighthouseAuditor", "PiBundleSizeSentry", "PiCoreWebVitalsOptimizer"]
         )
     ]
 

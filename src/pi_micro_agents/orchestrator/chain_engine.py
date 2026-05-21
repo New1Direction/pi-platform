@@ -46,7 +46,28 @@ class AgentChainCompiler:
             "solana cpi": ["PiRustSolanaAccountDataValidation", "PiRustSolanaCPIInstructionSentry", "PiRustSolanaOwnerVerificationGuard"],
             "solana cpi security": ["PiRustSolanaAccountDataValidation", "PiRustSolanaCPIInstructionSentry", "PiRustSolanaOwnerVerificationGuard"],
             "database migration": ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"],
-            "qa validation": ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"]
+            "qa validation": ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"],
+            # 20 New Playbooks Integration
+            "web application vulnerability scanning": ["PiWebVulnScanner", "PiSelfHealingPatchAgent", "PiDeploymentSafetyGuard"],
+            "cloud cost optimization": ["PiCloudCostAnalyzer", "PiIdleResourceSentry", "PiBudgetAnomalyGuard"],
+            "api security & rate limiting": ["PiAPIRateLimitSentry", "PiApiAuthHardcodedTokenSentry", "PiEndpointAbuseGuard"],
+            "database query optimization": ["PiSlowQueryDetector", "PiSQLInjectionSentry", "PiIndexRecommendationEngine"],
+            "container image security": ["PiDockerImageScanner", "PiDockerComposeSecuritySentry", "PiContainerEscapeDetector"],
+            "ci/cd pipeline integrity": ["PiGithubActionsUnpinnedVersion", "PiGitSecretLeakSentry", "PiPipelineIntegrityAuditor"],
+            "frontend supply chain": ["PiNPMDependencyVulnScanner", "PiGitSecScanner", "PiTreeShakingOptimizer"],
+            "llm output sanitization": ["PiLLMOutputSanitizer", "PiLLMHallucinationDetector", "PiLLMPromptEgressLeakDetector"],
+            "data privacy compliance": ["PiDataFlowPrivacyMapper", "PiSensitiveDataScanner", "PiAutomatedAnonymizer"],
+            "logging & observability anomaly": ["PiSensitiveLogLeakSentry", "PiGitSecretEntropyLeakSentry", "PiStructuredLoggingEnforcer"],
+            "access control & privilege escalation": ["PiIAMOverPermissionSentry", "PiAccessControlShadow", "PiLeastPrivilegeRemediator"],
+            "documentation & code comment consistency": ["PiDocsOutdatedChecker", "PiReadmeValidator", "PiAutoDocsGenerator"],
+            "performance profiling": ["PiMemoryLeakDetector", "PiHotPathAllocationAuditor", "PiBottleneckOptimizer"],
+            "mobile app security": ["PiMobilePermissionSentry", "PiAppDataLeakDetector", "PiRuntimeHardeningGuard"],
+            "network traffic analysis": ["PiNetworkTrafficSentry", "PiDDoSPatternDetector", "PiTrafficOptimizer"],
+            "backup & disaster recovery": ["PiBackupIntegritySentry", "PiRecoveryTimeAuditor", "PiAutomatedRestoreTester"],
+            "accessibility & wcag compliance": ["PiAccessibilityScanner", "PiContrastRatioAuditor", "PiAutoRemediationEngine"],
+            "secrets management & rotation": ["PiHardcodedSecretDetector", "PiGitSecretLeakSentry", "PiAutomatedRotationEngine"],
+            "iac security & drift": ["PiTerraformDriftDetector", "PiTerraformStateCredentialSentry", "PiInfrastructureComplianceAuditor"],
+            "frontend performance & core web vitals": ["PiLighthouseAuditor", "PiBundleSizeSentry", "PiCoreWebVitalsOptimizer"]
         }
 
         for keyword, chain_names in collaboration_templates.items():
@@ -430,6 +451,9 @@ class ChainExecutionEngine:
         }
 
     def _resolve_output_class(self, agent_name: str) -> Type[BaseModel] | None:
+        from pi_micro_agents.pi_web_vuln_scanner import WebVulnOutput
+        from pi_micro_agents.pi_deployment_safety_guard import DeploymentSafetyOutput
+        from pi_micro_agents.pi_pipeline_integrity_auditor import PipelineIntegrityOutput
         from pi_micro_agents.orchestrator.consensus import (
             AccessControlOutput,
             ArbitrageOutput,
@@ -559,6 +583,9 @@ class ChainExecutionEngine:
             "PiUncontrolledRecursionSentry": RecursionOutput,
             "PiMagicNumberScanner": MagicNumberOutput,
             "PiErrorHandlingCatchAllGuard": ErrorCatchOutput,
-            "PiSemanticCommitMessageLinter": CommitLinterOutput
+            "PiSemanticCommitMessageLinter": CommitLinterOutput,
+            "PiWebVulnScanner": WebVulnOutput,
+            "PiDeploymentSafetyGuard": DeploymentSafetyOutput,
+            "PiPipelineIntegrityAuditor": PipelineIntegrityOutput
         }
         return mapping.get(agent_name)

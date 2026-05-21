@@ -236,9 +236,11 @@ def get_verdict(agent_name: str, d: Dict[str, Any]) -> Any:
         "PiDepreciationScanner", "PiDeadCodePruner", "PiMockDataTaintingSentry",
         "PiReadmeValidator", "PiChangelogAuditor", "PiAstDepthGuard",
         "PiUncontrolledRecursionSentry", "PiMagicNumberScanner", "PiErrorHandlingCatchAllGuard",
-        "PiSemanticCommitMessageLinter"
+        "PiSemanticCommitMessageLinter", "PiWebVulnScanner", "PiPipelineIntegrityAuditor"
     ]:
         return d.get("is_secure")
+    elif agent_name == "PiDeploymentSafetyGuard":
+        return d.get("deployment_allowed")
 
     return None
 
