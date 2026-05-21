@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pi_semantic_validator.policy import ArchitecturePolicy
 from pi_semantic_validator.models import (
     DependencyGraph,
     GovernanceViolation,
@@ -24,6 +23,7 @@ from pi_semantic_validator.models import (
     WorkerResponse,
     WorkerStatus,
 )
+from pi_semantic_validator.policy import ArchitecturePolicy
 from pi_semantic_validator.violations import ViolationBuilder
 
 
@@ -88,7 +88,7 @@ class LayerValidationPass:
         # 2. Forbidden imports / backend-frontend inversion via graph edges
         #    We treat upstream -> downstream as an import/call direction.
         max_graph_iter = min(len(graphs), bounds.max_edges_per_graph)
-        for gidx, graph in enumerate(graphs[:max_graph_iter]):
+        for _gidx, graph in enumerate(graphs[:max_graph_iter]):
             max_edge_iter = min(len(graph.edges), bounds.max_edges_per_graph)
             for eidx, edge in enumerate(graph.edges[:max_edge_iter]):
                 up_layer = policy.get_layer_for_endpoint(edge.upstream_endpoint)
@@ -147,7 +147,7 @@ class LayerValidationPass:
 
         # 3. Backend/frontend inversion: if a frontend layer endpoint is
         #    downstream of a backend layer endpoint, that is inversion.
-        for gidx, graph in enumerate(graphs[:max_graph_iter]):
+        for _gidx, graph in enumerate(graphs[:max_graph_iter]):
             max_edge_iter = min(len(graph.edges), bounds.max_edges_per_graph)
             for eidx, edge in enumerate(graph.edges[:max_edge_iter]):
                 up_layer = policy.get_layer_for_endpoint(edge.upstream_endpoint)

@@ -12,13 +12,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 from pydantic import BaseModel, Field
 
-from pi_interoperability_layer.blast_radius import TopologyGraph, TopologyNode, TopologyEdge
-from pi_interoperability_layer.workers.pi_observability_diff_worker import SemanticDriftReport, SemanticDelta, DeltaType
-
+from pi_interoperability_layer.blast_radius import TopologyGraph
+from pi_interoperability_layer.workers.pi_observability_diff_worker import DeltaType, SemanticDelta, SemanticDriftReport
 
 # ──────────────────────────────
 #  Propagation Primitives
@@ -257,7 +256,7 @@ class DriftPropagationEngine:
 
     def _max_risk_level(self, levels: List[str]) -> str:
         order = {"NONE": 0, "INFO": 1, "LOW": 2, "MEDIUM": 3, "HIGH": 4, "CRITICAL": 5}
-        max_level = max(levels, key=lambda l: order.get(l, 0))
+        max_level = max(levels, key=lambda lvl: order.get(lvl, 0))
         return max_level
 
     def _propagated_risk_level(

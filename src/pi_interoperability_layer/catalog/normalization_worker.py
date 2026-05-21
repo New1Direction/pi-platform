@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 from pi_extension_governor.manifest import ExtensionManifest
 from pi_extension_governor.normalizer import SemanticOutputNormalizer

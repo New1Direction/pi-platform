@@ -18,26 +18,31 @@ from pi_extension_governor.manifest import (
     CapabilityClass,
     ExtensionManifest,
     ExtensionStatus,
-    TrustZone,
 )
 from pi_extension_governor.policy import ExtensionGovernancePolicy
-
 from pi_interoperability_layer.capability.graph import ExtensionCompatibilityGraph
 from pi_interoperability_layer.capability.registry import (
-    SemanticCapabilityRegistry,
     RegistryEntryStatus,
     RegistryFingerprints,
+    SemanticCapabilityRegistry,
     TrustScore,
     TrustScoringBasis,
-)
-
-from pi_interoperability_layer.catalog.ingest_worker import (
-    CatalogIngestReceipt,
-    PackageCatalogIngestWorker,
 )
 from pi_interoperability_layer.catalog.classifier_worker import (
     CapabilityClassificationResult,
     CapabilityClassifierWorker,
+)
+from pi_interoperability_layer.catalog.dependency_expansion_worker import (
+    DependencyExpansionReceipt,
+    DependencyGraphExpansionWorker,
+)
+from pi_interoperability_layer.catalog.ingest_worker import (
+    CatalogIngestReceipt,
+    PackageCatalogIngestWorker,
+)
+from pi_interoperability_layer.catalog.normalization_worker import (
+    PackageNormalizationReceipt,
+    PackageNormalizationWorker,
 )
 from pi_interoperability_layer.catalog.policy_gate_worker import (
     PackagePolicyGateResult,
@@ -46,14 +51,6 @@ from pi_interoperability_layer.catalog.policy_gate_worker import (
 from pi_interoperability_layer.catalog.sandbox_worker import (
     SandboxValidationReceipt,
     SandboxValidationWorker,
-)
-from pi_interoperability_layer.catalog.normalization_worker import (
-    PackageNormalizationReceipt,
-    PackageNormalizationWorker,
-)
-from pi_interoperability_layer.catalog.dependency_expansion_worker import (
-    DependencyExpansionReceipt,
-    DependencyGraphExpansionWorker,
 )
 
 

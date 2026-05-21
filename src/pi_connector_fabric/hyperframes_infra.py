@@ -9,26 +9,20 @@ All deterministic. No probabilistic layout. Dark theme. Base64 PNG frames.
 
 from __future__ import annotations
 
-import base64
-import hashlib
-import io
-import json
 from typing import Any, Dict, List, Optional, Tuple
 
+from pi_connector_fabric.replay.import_pipeline import DigitalTwinImport
+from pi_connector_fabric.sdk.core import IngestionReceipt
+from pi_connector_fabric.topology.engine import (
+    RiskPropagationTopology,
+    UnifiedTopologyGraph,
+)
+from pi_event_fabric.governance.compiler import GovernanceDecision
 from pi_interoperability_layer.hyperframes import (
     HyperFrame,
     HyperFrameSequence,
     RenderConfig,
 )
-from pi_connector_fabric.sdk.core import IngestionReceipt, NormalizedArtifact
-from pi_connector_fabric.topology.engine import (
-    RiskPropagationTopology,
-    TopologyEdge,
-    TopologyNode,
-    UnifiedTopologyGraph,
-)
-from pi_connector_fabric.replay.import_pipeline import DigitalTwinImport
-from pi_event_fabric.governance.compiler import GovernanceDecision
 
 
 class InfrastructureReplayHyperFrameRenderer:
@@ -63,7 +57,7 @@ class InfrastructureReplayHyperFrameRenderer:
             "",
             f"Total Receipts: {len(receipts)}",
             f"Total Artifacts: {sum(r.artifact_count for r in receipts)}",
-            f"Connectors: {len(set(r.connector_id for r in receipts))}",
+            f"Connectors: {len({r.connector_id for r in receipts})}",
             "",
             "All ingestion is read-only.",
             "All artifacts are immutable.",
@@ -158,7 +152,7 @@ class InfrastructureReplayHyperFrameRenderer:
                 f"Total edges: {len(running_graph._edges)}",
             ]
             # Show sample nodes
-            sample_nodes = [n for n in running_graph.get_nodes()][:max_nodes_display]
+            sample_nodes = list(running_graph.get_nodes())[:max_nodes_display]
             if sample_nodes:
                 lines.append("")
                 lines.append("Nodes:")
@@ -174,7 +168,7 @@ class InfrastructureReplayHyperFrameRenderer:
             f"Total nodes: {len(running_graph._nodes)}",
             f"Total edges: {len(running_graph._edges)}",
             f"Graph hash:  {final_hash[:32]}...",
-            f"Systems:     {', '.join(sorted(set(n.system for n in running_graph.get_nodes())))}",
+            f"Systems:     {', '.join(sorted({n.system for n in running_graph.get_nodes()}))}",
             "",
             "Deterministic. Replay-safe. Tenant-isolated.",
         ]))

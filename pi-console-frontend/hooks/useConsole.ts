@@ -11,6 +11,9 @@ import {
   CompatibilityEdge,
   AuditLogEntry,
   TenantQuotaStatus,
+  TraceListItem,
+  TraceDetailResponse,
+  LedgerSummaryResponse,
 } from "@/types";
 import {
   simulateComposition,
@@ -22,6 +25,9 @@ import {
   getTenantQuota,
   createSession,
   setTenantId,
+  getLedgerTraces,
+  getLedgerTraceDetail,
+  getLedgerSummary,
 } from "@/lib/api";
 
 export type ConsoleMode = "chat" | "builder" | "replay" | "audit" | "registry" | "compliance";
@@ -41,6 +47,10 @@ export interface ConsoleState {
   chatMessages: { role: "user" | "assistant"; text: string }[];
   loading: boolean;
   error: string | null;
+  ledgerTraces: TraceListItem[];
+  ledgerTotalCount: number;
+  ledgerSummary: LedgerSummaryResponse | null;
+  selectedTrace: TraceDetailResponse | null;
 }
 
 export function useConsole(tenantId: string, llmEnabled = false) {
@@ -59,6 +69,10 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     chatMessages: [],
     loading: false,
     error: null,
+    ledgerTraces: [],
+    ledgerTotalCount: 0,
+    ledgerSummary: null,
+    selectedTrace: null,
   });
 
   const setMode = useCallback((mode: ConsoleMode) => {
@@ -100,7 +114,7 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
       const res = await simulateComposition(state.composition);
-      setState((s) => ({ ...s, simulationReport: res.report, loading: false }));
+      setState((s) => ({ ...s, simulationReport: { ...res.report, can_execute: res.can_execute }, loading: false }));
     } catch (e: any) {
       setState((s) => ({ ...s, error: e.message, loading: false }));
     }
@@ -182,6 +196,43 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     }
   }, []);
 
+  const loadLedgerTraces = useCallback(async (
+    limit = 50,
+    offset = 0,
+    nodeName?: string,
+    success?: boolean,
+    routedAgent?: string,
+    search?: string,
+    minRisk?: number
+  ) => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    try {
+      const res = await getLedgerTraces(limit, offset, nodeName, success, routedAgent, search, minRisk);
+      setState((s) => ({ ...s, ledgerTraces: res.traces, ledgerTotalCount: res.total_count, loading: false }));
+    } catch (e: any) {
+      setState((s) => ({ ...s, error: e.message, loading: false }));
+    }
+  }, []);
+
+  const loadLedgerTraceDetail = useCallback(async (traceId: string) => {
+    setState((s) => ({ ...s, loading: true, error: null }));
+    try {
+      const res = await getLedgerTraceDetail(traceId);
+      setState((s) => ({ ...s, selectedTrace: res, loading: false }));
+    } catch (e: any) {
+      setState((s) => ({ ...s, error: e.message, loading: false }));
+    }
+  }, []);
+
+  const loadLedgerSummary = useCallback(async () => {
+    try {
+      const res = await getLedgerSummary();
+      setState((s) => ({ ...s, ledgerSummary: res }));
+    } catch (e: any) {
+      setState((s) => ({ ...s, error: e.message }));
+    }
+  }, []);
+
   return {
     state,
     setMode,
@@ -193,5 +244,8 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     loadCapabilities,
     loadAuditLog,
     loadQuota,
+    loadLedgerTraces,
+    loadLedgerTraceDetail,
+    loadLedgerSummary,
   };
 }

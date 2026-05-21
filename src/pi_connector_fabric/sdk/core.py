@@ -12,11 +12,10 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum, auto
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple
-
+from typing import Any, Dict, List, Tuple
 
 # ──────────────────────────────
 #  Ingestion Contracts

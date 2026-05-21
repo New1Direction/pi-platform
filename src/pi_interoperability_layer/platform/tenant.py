@@ -19,7 +19,6 @@ from pydantic import BaseModel, Field
 
 from pi_extension_governor.manifest import CapabilityClass, TrustZone
 
-
 # ── Tenant Model ─────────────────────────────────────────────────
 
 class TenantStatus(str, Enum):

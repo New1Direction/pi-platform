@@ -1,7 +1,8 @@
 """Capabilities router: marketplace + compatibility graph."""
 
+
 from fastapi import APIRouter, Request
-from typing import Optional
+
 from pi_console.schemas import (
     GetCompatibilityGraphRequest,
     GetCompatibilityGraphResponse,

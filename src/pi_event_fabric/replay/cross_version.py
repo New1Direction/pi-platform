@@ -24,16 +24,11 @@ from pi_event_fabric.bus.core import (
     DomainEvent,
     EventBusStorage,
     EventReplayEngine,
-    EventType,
 )
 from pi_event_fabric.schema.evolution import (
     ArtifactSchema,
-    CompatibilityLevel,
-    CompatibilityValidator,
-    MigrationStep,
     SchemaRegistry,
 )
-
 
 # ──────────────────────────────
 #  Versioned Replay Context

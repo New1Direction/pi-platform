@@ -20,8 +20,7 @@ import os
 import secrets
 import string
 import time
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional
 
 
 class SecurityError(Exception):
@@ -37,7 +36,7 @@ class AuthorizationError(SecurityError):
     pass
 
 
-class RateLimitExceeded(SecurityError):
+class RateLimitExceededError(SecurityError):
     pass
 
 

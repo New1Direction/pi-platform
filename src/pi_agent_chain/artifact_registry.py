@@ -10,15 +10,12 @@ import hashlib
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
 from pydantic import BaseModel, Field
 
 from pi_agent_chain.models import (
-    DependencyGraph,
     EpistemicState,
-    SemanticIRTrace,
-    SynthesizedSpec,
 )
 
 

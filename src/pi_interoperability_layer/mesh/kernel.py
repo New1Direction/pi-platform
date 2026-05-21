@@ -8,8 +8,7 @@ No inference. No LLM calls. No probabilistic routing.
 
 from __future__ import annotations
 
-import uuid
-from typing import Any, Dict, List, Optional, Type
+from typing import Dict, List, Optional, Type
 
 from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus
 from pi_interoperability_layer.mesh.receipts import (

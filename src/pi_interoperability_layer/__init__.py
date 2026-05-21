@@ -9,6 +9,48 @@ No inference. No LLM calls. No probabilistic scoring.
 Infrastructure-grade determinism only.
 """
 
+from pi_interoperability_layer.blast_radius import (
+    BlastRadiusEngine,
+    BlastRadiusReport,
+    BlastRadiusScore,
+    TopologyEdge,
+    TopologyGraph,
+    TopologyNode,
+)
+from pi_interoperability_layer.capability.graph import (
+    CompatibilityCheck,
+    CompatibilityEdge,
+    CompatibilityType,
+    CompatibilityVerdict,
+    ExtensionCompatibilityGraph,
+)
+from pi_interoperability_layer.capability.indexing import (
+    IndexEntry,
+    SemanticIndexWorker,
+    SemanticQueryWorker,
+)
+from pi_interoperability_layer.capability.ingestion import (
+    GovernedIngestionPipeline,
+    IngestionPhase,
+    IngestionReceipt,
+    IngestionStep,
+)
+from pi_interoperability_layer.capability.registry import (
+    RegistryEntry,
+    RegistryEntryStatus,
+    RegistryFingerprints,
+    SemanticCapabilityRegistry,
+    TrustScore,
+    TrustScoringBasis,
+)
+from pi_interoperability_layer.cicd import (
+    ArtifactVerificationResult,
+    GitHubActionsWorkflow,
+    PolicyEnforcementHook,
+    PRGateConfig,
+    PRGateResult,
+    ReplayValidationGate,
+)
 from pi_interoperability_layer.contracts import (
     ArtifactContract,
     ArtifactFingerprint,
@@ -19,86 +61,44 @@ from pi_interoperability_layer.contracts import (
     canonical_json,
     compute_fingerprint,
 )
-from pi_interoperability_layer.schema_registry import (
-    CompatibilityResult,
-    SchemaValidator,
-    load_registry,
-    save_registry,
-    load_evolution_log,
-    save_evolution_log,
-    schema_identity_hash,
-)
 from pi_interoperability_layer.execution import (
     EventRecord,
-    ReplayLedger,
     ExecutionEngine,
+    ReplayLedger,
     canonical_event_payload,
 )
 from pi_interoperability_layer.interfaces import (
-    WorkerInputEnvelope,
-    WorkerOutputEnvelope,
-    RuntimeMessage,
     ProvenanceChain,
     ReplaySafeRouter,
-)
-from pi_interoperability_layer.blast_radius import (
-    TopologyNode,
-    TopologyEdge,
-    TopologyGraph,
-    BlastRadiusScore,
-    BlastRadiusReport,
-    BlastRadiusEngine,
-)
-from pi_interoperability_layer.cicd import (
-    GitHubActionsWorkflow,
-    PRGateConfig,
-    PRGateResult,
-    ArtifactVerificationResult,
-    ReplayValidationGate,
-    PolicyEnforcementHook,
-)
-from pi_interoperability_layer.registry import (
-    SnapshotRegistry,
-    SnapshotRecord,
-    SnapshotMetadata,
-    ReplayBundle,
-    RetentionPolicy,
+    RuntimeMessage,
+    WorkerInputEnvelope,
+    WorkerOutputEnvelope,
 )
 from pi_interoperability_layer.queries import (
     SemanticQueryEngine,
     SemanticQueryResult,
 )
+from pi_interoperability_layer.registry import (
+    ReplayBundle,
+    RetentionPolicy,
+    SnapshotMetadata,
+    SnapshotRecord,
+    SnapshotRegistry,
+)
+from pi_interoperability_layer.schema_registry import (
+    CompatibilityResult,
+    SchemaValidator,
+    load_evolution_log,
+    load_registry,
+    save_evolution_log,
+    save_registry,
+    schema_identity_hash,
+)
 from pi_interoperability_layer.visualization import (
-    render_validation_html,
     render_diff_heatmap,
-    render_topology_graph,
     render_governance_dashboard,
-)
-from pi_interoperability_layer.capability.registry import (
-    SemanticCapabilityRegistry,
-    RegistryEntry,
-    RegistryEntryStatus,
-    RegistryFingerprints,
-    TrustScore,
-    TrustScoringBasis,
-)
-from pi_interoperability_layer.capability.graph import (
-    ExtensionCompatibilityGraph,
-    CompatibilityEdge,
-    CompatibilityType,
-    CompatibilityCheck,
-    CompatibilityVerdict,
-)
-from pi_interoperability_layer.capability.ingestion import (
-    GovernedIngestionPipeline,
-    IngestionReceipt,
-    IngestionStep,
-    IngestionPhase,
-)
-from pi_interoperability_layer.capability.indexing import (
-    SemanticIndexWorker,
-    SemanticQueryWorker,
-    IndexEntry,
+    render_topology_graph,
+    render_validation_html,
 )
 
 __version__ = "0.3.0"

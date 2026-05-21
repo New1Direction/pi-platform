@@ -9,10 +9,9 @@ No recursive spawning. No self-modification. No LLM calls.
 from __future__ import annotations
 
 import hashlib
-import json
 import time
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
 

@@ -10,18 +10,10 @@ No inference. No LLM calls. No probabilistic scoring.
 
 from __future__ import annotations
 
-import hashlib
-import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, List, Optional
 
-from pi_semantic_diff.models import (
-    AuthInvariant,
-    DependencyGraph,
-    SemanticDiffReport,
-    SemanticIRTrace,
-)
 from pi_semantic_diff.deltas import (
     compute_auth_deltas,
     compute_dependency_deltas,
@@ -30,6 +22,12 @@ from pi_semantic_diff.deltas import (
     compute_replay_surface_deltas,
     compute_semantic_delta_score,
     compute_structural_delta_score,
+)
+from pi_semantic_diff.models import (
+    AuthInvariant,
+    DependencyGraph,
+    SemanticDiffReport,
+    SemanticIRTrace,
 )
 
 

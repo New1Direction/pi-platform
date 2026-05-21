@@ -7,7 +7,7 @@ constraints, indexes into InfrastructureStateArtifact + DependencyGraphArtifact.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Tuple
+from typing import Any, List, Tuple
 
 from pi_connector_fabric.sdk.core import (
     ArtifactNormalizer,

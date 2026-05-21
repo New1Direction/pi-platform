@@ -12,8 +12,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Dict, List, Optional, Set, Tuple
 
-from pi_extension_governor.manifest import CapabilityClass, TrustZone
-from pi_extension_governor.manifest import ExtensionManifest
+from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest, TrustZone
 
 
 class CompatibilityType(Enum):

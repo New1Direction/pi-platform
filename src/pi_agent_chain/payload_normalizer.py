@@ -15,8 +15,6 @@ import json
 import re
 import xml.etree.ElementTree as ET
 import zlib
-from collections import defaultdict
-from io import BytesIO
 from typing import Any, Dict, List, Optional, Tuple
 
 from pi_agent_chain.models import (

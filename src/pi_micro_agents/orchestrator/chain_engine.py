@@ -24,6 +24,41 @@ class AgentChainCompiler:
 
     @classmethod
     def compile_chain(cls, goal: str, context: Dict[str, Any]) -> List[AgentRoute]:
+        # 0. Check predefined collaboration templates
+        g_lower = goal.lower()
+        collaboration_templates = {
+            "cross-chain yield": ["PiOracleDivergenceAudit", "PiGasGuzzlerDetector", "PiPublisherDispatch"],
+            "gas optimization": ["PiOracleDivergenceAudit", "PiGasGuzzlerDetector", "PiPublisherDispatch"],
+            "contract resilience": ["PiReentrancySentry", "PiAssemblyLethalWeapons", "PiArithmeticAuditor"],
+            "fuzzing": ["PiReentrancySentry", "PiAssemblyLethalWeapons", "PiArithmeticAuditor"],
+            "privilege drift": ["PiAccessControlShadow", "PiApiAuthHardcodedTokenSentry", "PiZeroTrustExecutionDomain"],
+            "gateway audit": ["PiAccessControlShadow", "PiApiAuthHardcodedTokenSentry", "PiZeroTrustExecutionDomain"],
+            "vault compliance": ["PiERC4626VaultGuard", "PiStorageLayoutDrift", "PiToPrdValidator"],
+            "erc4626": ["PiERC4626VaultGuard", "PiStorageLayoutDrift", "PiToPrdValidator"],
+            "container ingress": ["PiNginxReverseProxyHeaderSentry", "PiDockerComposeSecuritySentry", "PiDockerSocketPrivilegeSentry"],
+            "proxy defender": ["PiNginxReverseProxyHeaderSentry", "PiDockerComposeSecuritySentry", "PiDockerSocketPrivilegeSentry"],
+            "hallucination": ["PiLLMHallucinationDetector", "PiPromptLeakBuster", "PiLLMPromptEgressLeakDetector"],
+            "leak buster": ["PiLLMHallucinationDetector", "PiPromptLeakBuster", "PiLLMPromptEgressLeakDetector"],
+            "ci/cd release": ["PiGithubActionsUnpinnedVersion", "PiGitSafetyGuardrail", "PiChangelogAuditor"],
+            "dependency alignment": ["PiGithubActionsUnpinnedVersion", "PiGitSafetyGuardrail", "PiChangelogAuditor"],
+            "zk-circuit soundness": ["PiZKNonPrimeFieldRangeSentry", "PiZKSignalUnconstrainedConstraint", "PiZKUnusedConstraintVariables"],
+            "zk auditing": ["PiZKNonPrimeFieldRangeSentry", "PiZKSignalUnconstrainedConstraint", "PiZKUnusedConstraintVariables"],
+            "solana cpi": ["PiRustSolanaAccountDataValidation", "PiRustSolanaCPIInstructionSentry", "PiRustSolanaOwnerVerificationGuard"],
+            "solana cpi security": ["PiRustSolanaAccountDataValidation", "PiRustSolanaCPIInstructionSentry", "PiRustSolanaOwnerVerificationGuard"],
+            "database migration": ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"],
+            "qa validation": ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"]
+        }
+
+        for keyword, chain_names in collaboration_templates.items():
+            if keyword in g_lower:
+                routes = []
+                for name in chain_names:
+                    route = cls._resolve_single_agent(name)
+                    if route:
+                        routes.append(route)
+                if len(routes) == len(chain_names):
+                    return routes
+
         # 1. Check if an explicit chain is passed via context
         chain_list = context.get("chain") or context.get("agent_chain")
         if chain_list and isinstance(chain_list, list):

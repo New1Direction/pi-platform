@@ -1,6 +1,7 @@
 """Replay router: get_execution_replay."""
 
 from fastapi import APIRouter, Request
+
 from pi_console.schemas import GetExecutionReplayRequest, GetExecutionReplayResponse
 from pi_console.services import CoreAdapter
 

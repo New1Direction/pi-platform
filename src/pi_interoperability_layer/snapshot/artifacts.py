@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field
 
-from pi_interoperability_layer.snapshot.clock import canonical_timestamp, TimestampMarker
+from pi_interoperability_layer.snapshot.clock import TimestampMarker
 
 
 class SnapshotType(str, Enum):
@@ -160,7 +160,7 @@ class SnapshotChain(BaseModel):
 
     def verify_chain(self) -> bool:
         """Verify hash continuity across the entire chain."""
-        for i in range(1, len(self.snapshot_hashes)):
+        for _i in range(1, len(self.snapshot_hashes)):
             # Intra-chain validation: each artifact's previous_hash should match prior artifact_hash
             # Note: The artifacts themselves store previous_snapshot_hash; we can only verify
             # that the chain ids/hashes are consistent if we have the actual artifacts.

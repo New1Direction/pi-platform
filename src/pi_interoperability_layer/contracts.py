@@ -19,7 +19,6 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
-
 # ──────────────────────────────
 #  Schema Version Primitive
 # ──────────────────────────────

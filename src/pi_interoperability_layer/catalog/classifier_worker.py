@@ -9,7 +9,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest
 
@@ -93,7 +93,7 @@ class CapabilityClassifierWorker:
     def classify(self, manifest: ExtensionManifest) -> CapabilityClassificationResult:
         """Classify a manifest into a CapabilityClass with evidence."""
         evidence: List[ClassificationEvidence] = []
-        scores: Dict[CapabilityClass, int] = {c: 0 for c in CapabilityClass}
+        scores: Dict[CapabilityClass, int] = dict.fromkeys(CapabilityClass, 0)
 
         # Keyword matching
         text = (manifest.description + " " + " ".join(manifest.metadata.get("keywords", []))).lower()

@@ -9,18 +9,18 @@ exported state files that are provided as input.
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Tuple
 
 from pi_connector_fabric.sdk.core import (
+    ArtifactNormalizer,
     BaseConnectorWorker,
     ConnectorCapabilityClass,
     ConnectorManifest,
     ConnectorSandboxPolicy,
     IngestionReceipt,
     NormalizedArtifact,
-    ArtifactNormalizer,
 )
-from datetime import datetime, timezone
 
 
 class KubernetesConnector(BaseConnectorWorker):
@@ -61,7 +61,7 @@ class KubernetesConnector(BaseConnectorWorker):
         **kwargs: Any,
     ) -> Tuple[List[NormalizedArtifact], IngestionReceipt]:
         """Ingest K8s cluster state into canonical artifacts.
-        
+
         Expects k8s_state in kwargs from the config or external data source.
         """
         start = datetime.now(timezone.utc).isoformat()

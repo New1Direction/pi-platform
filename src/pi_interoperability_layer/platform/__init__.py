@@ -5,18 +5,6 @@ Layer 2: Shard-Coordinated Deterministic Execution Fabric
 Layer 3: Capability Economy / Marketplace
 """
 
-from pi_interoperability_layer.platform.tenant import (
-    ResourceQuota,
-    Tenant,
-    TenantExecutionLog,
-    TenantExecutionRecord,
-    TenantPolicyEngine,
-    TenantPolicyRule,
-    TenantRegistry,
-    TenantRegistryEntry,
-    TenantStatus,
-    TenantTier,
-)
 from pi_interoperability_layer.platform.execution_fabric import (
     DeterministicExecutionFabric,
     ExecutionAuditLog,
@@ -36,6 +24,18 @@ from pi_interoperability_layer.platform.marketplace import (
     CompositionResult,
     MarketCapabilityListing,
     TrustTier,
+)
+from pi_interoperability_layer.platform.tenant import (
+    ResourceQuota,
+    Tenant,
+    TenantExecutionLog,
+    TenantExecutionRecord,
+    TenantPolicyEngine,
+    TenantPolicyRule,
+    TenantRegistry,
+    TenantRegistryEntry,
+    TenantStatus,
+    TenantTier,
 )
 
 __all__ = [

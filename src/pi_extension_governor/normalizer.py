@@ -7,7 +7,7 @@ No arbitrary schemas allowed into the mesh.
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 from pi_extension_governor.manifest import ExtensionManifest
 

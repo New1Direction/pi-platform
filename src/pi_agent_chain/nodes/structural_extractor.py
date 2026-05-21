@@ -7,7 +7,7 @@ and header keys without ever invoking LLM tokens.
 from __future__ import annotations
 
 import json
-from typing import Dict, List, Optional
+from typing import List, Optional
 
 from pi_agent_chain.models import ExtractedProtocolSkeleton, NormalizedTrafficPacket
 

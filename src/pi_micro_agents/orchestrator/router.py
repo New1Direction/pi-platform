@@ -288,8 +288,6 @@ AgentRouter.register(
     ),
 )
 
-# Note: Route C (NicheCurationPipelineChain) is handled as a custom pipeline route in PiOrchestrator
-# but is still registered to match keywords sequential flow. We use a placeholder input envelope.
 AgentRouter.register(
     agent_name="NicheCurationPipelineChain",
     keywords=["curate niche", "niche curation", "newsletter curate", "substack publish", "curation pipeline"],
@@ -299,6 +297,18 @@ AgentRouter.register(
         substack_markdown_body="",
         x_thread_posts=[],
         draft_only=True,
+    ),
+)
+
+AgentRouter.register(
+    agent_name="PiPublisherDispatch",
+    keywords=["publish", "deploy", "dispatch", "commit"],
+    agent_class=PiPublisherDispatch,
+    input_factory=lambda goal, ctx: PublisherInput(
+        substack_title=ctx.get("substack_title", ctx.get("title", "Draft Publication")),
+        substack_markdown_body=ctx.get("substack_markdown_body", ctx.get("content", ctx.get("source_code", ""))),
+        x_thread_posts=ctx.get("x_thread_posts", []),
+        draft_only=ctx.get("draft_only", True),
     ),
 )
 

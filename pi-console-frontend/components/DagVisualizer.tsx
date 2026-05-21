@@ -33,8 +33,8 @@ const runtimeColor: Record<string, string> = {
 };
 
 export default function DagVisualizer({ capabilities, onChange, simulationValid }: DagVisualizerProps) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const [selectedRuntime, setSelectedRuntime] = useState<string>("pi-semantic-recon");
   const [selectedOperation, setSelectedOperation] = useState<string>("VALIDATE");
 
@@ -84,8 +84,8 @@ export default function DagVisualizer({ capabilities, onChange, simulationValid 
     if (!onChange) return;
     const compNodes: CompositionNode[] = nodes.map((n) => ({
       node_id: n.id,
-      runtime: n.data.runtime,
-      operation: n.data.operation,
+      runtime: (n.data.runtime as string) || "",
+      operation: (n.data.operation as string) || "",
       artifacts: [],
       required_schema_version: "1.0.0",
       bounds: {},
@@ -138,7 +138,7 @@ export default function DagVisualizer({ capabilities, onChange, simulationValid 
         >
           <Background color="#30363d" gap={16} />
           <Controls />
-          <MiniMap nodeColor={(n) => runtimeColor[n.data?.runtime] || "#30363d"} />
+          <MiniMap nodeColor={(n) => runtimeColor[n.data?.runtime as string] || "#30363d"} />
         </ReactFlow>
       </div>
     </div>

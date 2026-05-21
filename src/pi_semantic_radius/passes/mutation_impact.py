@@ -5,10 +5,10 @@ Deterministic pass that detects downstream mutation impact.
 
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
-from pi_semantic_radius.models import PassResult, TopologyGraph
 from pi_semantic_radius.engine import BlastRadiusEngine
+from pi_semantic_radius.models import PassResult, TopologyGraph
 
 
 class MutationImpactPass:

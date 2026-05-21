@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
-
-from pi_semantic_diff.models import SemanticDiffReport
+from typing import Any, Dict, List
 
 
 class DiffViolation:

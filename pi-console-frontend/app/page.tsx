@@ -128,14 +128,7 @@ export default function ConsolePage() {
 
         {state.mode === "replay" && (
           <div className="h-full min-h-[500px]">
-            <ReplayViewer
-              events={state.auditEntries.length > 0 ? [] : []}
-              integrityVerified={true}
-              totalEvents={0}
-            />
-            <p className="text-[var(--muted-foreground)] text-sm mt-4 px-4">
-              Replay viewer connects to ledger API. Use the API directly or integrate with Execution Replay endpoint.
-            </p>
+            <ReplayViewer />
           </div>
         )}
 

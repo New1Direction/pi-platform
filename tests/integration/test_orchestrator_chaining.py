@@ -220,4 +220,57 @@ def test_orchestrator_autonomous_fuzzing_and_reentrancy_chain_e2e(monkeypatch):
     assert receipts[1]["risk_score"] >= 80.0
 
 
+def test_collaboration_templates_goal_mapping():
+    """Verify that natural language goals trigger the 10 predefined dual-use collaboration templates."""
+    test_cases = [
+        (
+            "Optimize my cross-chain yield",
+            ["PiOracleDivergenceAudit", "PiGasGuzzlerDetector", "PiPublisherDispatch"]
+        ),
+        (
+            "Audit our smart contracts to ensure contract resilience",
+            ["PiReentrancySentry", "PiAssemblyLethalWeapons", "PiArithmeticAuditor"]
+        ),
+        (
+            "Detect privilege drift and token leakage in our environment",
+            ["PiAccessControlShadow", "PiApiAuthHardcodedTokenSentry", "PiZeroTrustExecutionDomain"]
+        ),
+        (
+            "Check vault compliance with standard interfaces",
+            ["PiERC4626VaultGuard", "PiStorageLayoutDrift", "PiToPrdValidator"]
+        ),
+        (
+            "Ensure the proxy defender protects our container gateways",
+            ["PiNginxReverseProxyHeaderSentry", "PiDockerComposeSecuritySentry", "PiDockerSocketPrivilegeSentry"]
+        ),
+        (
+            "Scan for LLM hallucination leakages",
+            ["PiLLMHallucinationDetector", "PiPromptLeakBuster", "PiLLMPromptEgressLeakDetector"]
+        ),
+        (
+            "Inspect the secure CI/CD release workflow for vulnerable versions",
+            ["PiGithubActionsUnpinnedVersion", "PiGitSafetyGuardrail", "PiChangelogAuditor"]
+        ),
+        (
+            "Perform ZK auditing on prime field and signal constraints",
+            ["PiZKNonPrimeFieldRangeSentry", "PiZKSignalUnconstrainedConstraint", "PiZKUnusedConstraintVariables"]
+        ),
+        (
+            "Scan Solana CPI instruction calls and validation",
+            ["PiRustSolanaAccountDataValidation", "PiRustSolanaCPIInstructionSentry", "PiRustSolanaOwnerVerificationGuard"]
+        ),
+        (
+            "Check database migration indices and mock test coverage",
+            ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"]
+        )
+    ]
+
+    for goal, expected_agents in test_cases:
+        routes = AgentChainCompiler.compile_chain(goal, {})
+        assert len(routes) == len(expected_agents), f"Failed for goal: {goal}"
+        actual_names = [r.agent_name for r in routes]
+        assert actual_names == expected_agents, f"Goal '{goal}' mapped to {actual_names} instead of {expected_agents}"
+
+
+
 

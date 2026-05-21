@@ -18,32 +18,23 @@ import json
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 from pi_console.schemas import (
     AuditLogEntry,
+    CompatibilityEdge,
+    CompatibilityNode,
     ConsoleSession,
     ExecutionReplayEvent,
     ExplicitCompositionRequest,
-    GetAuditLogRequest,
-    GetAuditLogResponse,
-    GetCompatibilityGraphRequest,
     GetCompatibilityGraphResponse,
-    GetExecutionReplayRequest,
     GetExecutionReplayResponse,
-    GetTenantQuotaStatusRequest,
-    GetTenantQuotaStatusResponse,
-    ListMarketplaceCapabilitiesRequest,
     ListMarketplaceCapabilitiesResponse,
     MarketplaceCapability,
-    SimulateCompositionRequest,
     SimulateCompositionResponse,
     SimulationReport,
-    SubmitCompositionRequest,
     SubmitCompositionResponse,
     TenantQuotaStatus,
-    CompatibilityNode,
-    CompatibilityEdge,
 )
 
 
@@ -197,7 +188,7 @@ class CoreAdapter:
 
     def simulate(self, request: ExplicitCompositionRequest) -> SimulateCompositionResponse:
         """Run deterministic simulation against the composition DAG."""
-        start = time.time()
+        time.time()
         report = SimulationReport(request_id=request.request_id, tenant_id=request.tenant_id)
 
         # 1. DAG validation

@@ -10,11 +10,9 @@ No emergent behavior. No decentralized planning.
 from __future__ import annotations
 
 import hashlib
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Set, Tuple
-
-from pi_interoperability_layer.mesh.receipts import ExecutionReceipt
 
 
 class ShardState(Enum):
@@ -94,10 +92,10 @@ class ShardCoordinator:
         self.partitioner = partitioner
         self.max_workers_per_shard = max_workers_per_shard
         self._shard_workers: Dict[str, Set[str]] = {sid: set() for sid in partitioner.shard_ids}
-        self._shard_states: Dict[str, ShardState] = {sid: ShardState.IDLE for sid in partitioner.shard_ids}
+        self._shard_states: Dict[str, ShardState] = dict.fromkeys(partitioner.shard_ids, ShardState.IDLE)
         self._phase_boundaries: List[PhaseBoundary] = []
         self._execution_log: List[str] = []
-        self._current_phase: Optional[ExecutionPhase] = None
+        self._current_phase: Optional[str] = None
 
     def register_workers(self, worker_ids: List[str]) -> Dict[str, ShardAssignment]:
         assignments = self.partitioner.assign_all(worker_ids)

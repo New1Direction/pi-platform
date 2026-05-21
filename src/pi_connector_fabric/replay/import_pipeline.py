@@ -15,13 +15,12 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List
 
-from pi_connector_fabric.sdk.core import NormalizedArtifact, IngestionReceipt
+from pi_connector_fabric.sdk.core import IngestionReceipt, NormalizedArtifact
 from pi_connector_fabric.topology.engine import (
     CrossSystemDependencyGraph,
     RiskPropagationTopology,
-    TopologyEdge,
     TopologyNode,
     UnifiedTopologyGraph,
 )
@@ -84,7 +83,7 @@ class DigitalTwinImport:
             "node_count": len(self._topology._nodes),
             "edge_count": len(self._topology._edges),
             "graph_hash": self._topology.graph_hash(),
-            "systems": sorted(set(n.system for n in self._topology._nodes.values())),
+            "systems": sorted({n.system for n in self._topology._nodes.values()}),
             "artifact_count": len(self._artifacts),
             "receipt_count": len(self._receipts),
             "snapshot_at": datetime.now(timezone.utc).isoformat(),
@@ -144,11 +143,11 @@ class DigitalTwinImport:
             "origin": origin_node,
             "tenant_id": self.tenant_id,
             "blast_radius": blast,
-            "affected_systems": sorted(set(
+            "affected_systems": sorted({
                 self._topology.get_node(n).system
                 for n in blast["reachable_nodes"]
                 if self._topology.get_node(n)
-            )),
+            }),
             "reconstruction_at": datetime.now(timezone.utc).isoformat(),
         }
 

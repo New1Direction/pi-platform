@@ -6,12 +6,10 @@ No recursive spawning. No LLM calls. No self-modification.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from typing import Any, Dict, List
 
 from pi_interoperability_layer.mesh.artifact_bus import ArtifactSlot
-from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
+from pi_interoperability_layer.mesh.worker_base import WorkerBase
 
 
 class SnapshotIngestWorker(WorkerBase):

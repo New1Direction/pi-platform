@@ -1,8 +1,8 @@
 """Composition router: simulate, submit, translate (chat mode)."""
 
-from fastapi import APIRouter, HTTPException, Request
-from datetime import datetime, timezone
 from pathlib import Path
+
+from fastapi import APIRouter, HTTPException, Request
 
 from pi_console.schemas import (
     AuditLogEntry,

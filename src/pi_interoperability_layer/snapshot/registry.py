@@ -11,19 +11,18 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
 from pi_interoperability_layer.snapshot.artifacts import (
-    HashChainBreakError,
     RetentionPolicy,
     SnapshotArtifact,
     SnapshotChain,
     SnapshotType,
 )
-from pi_interoperability_layer.snapshot.clock import canonical_timestamp, TimestampMarker
+from pi_interoperability_layer.snapshot.clock import TimestampMarker
 
 
 class SnapshotRegistry(BaseModel):
@@ -84,7 +83,7 @@ class SnapshotRegistry(BaseModel):
         if chain.head_snapshot_id:
             head_artifact = self._artifacts[chain.head_snapshot_id]
             if artifact.timestamp_marker < head_artifact.timestamp_marker:
-                raise ClockOrderViolation(
+                raise ClockOrderViolationError(
                     f"Snapshot ordering violation: {artifact.snapshot_id} timestamp "
                     f"precedes chain head {chain.head_snapshot_id}"
                 )
@@ -209,7 +208,7 @@ class SnapshotRegistry(BaseModel):
     def verify_integrity(self) -> Tuple[bool, List[str]]:
         """Verify registry integrity. Returns (ok, [error_messages])."""
         errors: List[str] = []
-        for key, chain in self._chains.items():
+        for _key, chain in self._chains.items():
             if len(chain.snapshot_ids) != len(chain.snapshot_hashes):
                 errors.append(f"Chain {chain.chain_id}: id/hash count mismatch")
             for snap_id in chain.snapshot_ids:
@@ -230,5 +229,5 @@ class SnapshotRegistry(BaseModel):
         )
 
 
-class ClockOrderViolation(Exception):
+class ClockOrderViolationError(Exception):
     """Raised when snapshot ordering is violated within a chain."""

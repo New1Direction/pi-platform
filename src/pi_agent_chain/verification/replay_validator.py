@@ -15,8 +15,7 @@ Canonicalization rules (deterministic noise removal):
 from __future__ import annotations
 
 import hashlib
-import json
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Set, Tuple
 
 from pi_agent_chain.models import (
     EpistemicState,
@@ -236,7 +235,7 @@ class ReplayValidator:
         if method in ("GET", "HEAD") and diff.endpoint_stable and diff.method_stable:
             # Compute drift without auth mutations
             auth_mutation_count = len(diff.auth_mutations)
-            total_paths = len(diff.added_fields) + len(diff.removed_fields) + len(diff.type_mutations)
+            len(diff.added_fields) + len(diff.removed_fields) + len(diff.type_mutations)
             # Recompute semantic delta excluding auth mutations
             non_auth_semantic = max(0, (len(diff.type_mutations) - auth_mutation_count) * 0.6)
             non_auth_drift = (diff.structural_delta_score * 0.4) + non_auth_semantic

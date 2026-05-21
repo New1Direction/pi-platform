@@ -23,8 +23,6 @@ from pi_agent_chain.governance.objective_tracker import ObjectiveTracker
 from pi_agent_chain.governance.schema_gate import SchemaGate
 from pi_agent_chain.governance.transition_gate import TransitionGate
 from pi_agent_chain.models import (
-    EpistemicState,
-    ExecutionTrace,
     GovernanceConfig,
     GovernanceViolation,
     RuntimeState,
