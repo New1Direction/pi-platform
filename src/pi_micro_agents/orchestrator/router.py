@@ -201,6 +201,16 @@ from pi_micro_agents.pi_semantic_commit_message_linter import PiSemanticCommitMe
 from pi_micro_agents.pi_web_vuln_scanner import PiWebVulnScanner, WebVulnInput
 from pi_micro_agents.pi_deployment_safety_guard import PiDeploymentSafetyGuard, DeploymentSafetyInput
 from pi_micro_agents.pi_pipeline_integrity_auditor import PiPipelineIntegrityAuditor, PipelineIntegrityInput
+from pi_micro_agents.pi_docker_image_scanner import PiDockerImageScanner, DockerImageInput
+from pi_micro_agents.pi_container_escape_detector import PiContainerEscapeDetector, ContainerEscapeInput
+from pi_micro_agents.pi_hardcoded_secret_detector import PiHardcodedSecretDetector, HardcodedSecretInput
+from pi_micro_agents.pi_automated_rotation_engine import PiAutomatedRotationEngine, RotationInput
+from pi_micro_agents.pi_llm_output_sanitizer import PiLLMOutputSanitizer, LLMOutputSanitizerInput
+from pi_micro_agents.pi_data_flow_privacy_mapper import PiDataFlowPrivacyMapper, PrivacyMapperInput
+from pi_micro_agents.pi_sensitive_data_scanner import PiSensitiveDataScanner, SensitiveDataInput
+from pi_micro_agents.pi_automated_anonymizer import PiAutomatedAnonymizer, AnonymizerInput
+from pi_micro_agents.pi_sensitive_log_leak_sentry import PiSensitiveLogLeakSentry, LogLeakInput
+from pi_micro_agents.pi_structured_logging_enforcer import PiStructuredLoggingEnforcer, StructuredLoggingInput
 
 
 
@@ -2293,14 +2303,20 @@ AgentRouter.register(
 AgentRouter.register(
     agent_name="PiDockerImageScanner",
     keywords=["docker image scanner", "image scan", "container image vuln", "base image vulnerability"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiDockerImageScanner,
+    input_factory=lambda goal, ctx: DockerImageInput(
+        file_path=ctx.get("file_path", "Dockerfile"),
+        dockerfile_content=ctx.get("dockerfile_content", ctx.get("content", goal)),
+    ),
 )
 AgentRouter.register(
     agent_name="PiContainerEscapeDetector",
     keywords=["container escape", "escape detector", "privilege escalation container", "runtime jailbreak"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiContainerEscapeDetector,
+    input_factory=lambda goal, ctx: ContainerEscapeInput(
+        file_path=ctx.get("file_path", "deployment.yaml"),
+        config_content=ctx.get("config_content", ctx.get("content", goal)),
+    ),
 )
 
 # Frontend Supply Chain Playbook
@@ -2321,42 +2337,62 @@ AgentRouter.register(
 AgentRouter.register(
     agent_name="PiLLMOutputSanitizer",
     keywords=["llm output", "output sanitizer", "egress filter llm", "response sanitization"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiLLMOutputSanitizer,
+    input_factory=lambda goal, ctx: LLMOutputSanitizerInput(
+        raw_output=ctx.get("raw_output", ctx.get("content", goal)),
+        system_prompt_reference=ctx.get("system_prompt_reference", ""),
+    ),
 )
 
 # Data Privacy Compliance Playbook
 AgentRouter.register(
     agent_name="PiDataFlowPrivacyMapper",
     keywords=["data flow privacy", "privacy mapper", "pii tracking", "data lifecycle mapping"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiDataFlowPrivacyMapper,
+    input_factory=lambda goal, ctx: PrivacyMapperInput(
+        data_sources=ctx.get("data_sources", ["email", "ssn"]),
+        data_destinations=ctx.get("data_destinations", ["public_endpoint", "stdout"]),
+        flow_connections=ctx.get("flow_connections", [{"from": "email", "to": "public_endpoint"}]),
+    ),
 )
 AgentRouter.register(
     agent_name="PiSensitiveDataScanner",
     keywords=["sensitive data scanner", "pii detector", "sensitive field", "credit card scanner"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiSensitiveDataScanner,
+    input_factory=lambda goal, ctx: SensitiveDataInput(
+        data_label=ctx.get("data_label", "input_stream"),
+        text_content=ctx.get("text_content", ctx.get("content", goal)),
+    ),
 )
 AgentRouter.register(
     agent_name="PiAutomatedAnonymizer",
     keywords=["automated anonymizer", "data masking", "pii redaction", "anonymization engine"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiAutomatedAnonymizer,
+    input_factory=lambda goal, ctx: AnonymizerInput(
+        raw_payload=ctx.get("raw_payload", ctx.get("content", goal)),
+        mask_character=ctx.get("mask_character", "*"),
+        hash_salt=ctx.get("hash_salt", "pi_salt"),
+    ),
 )
 
 # Logging & Observability Playbook
 AgentRouter.register(
     agent_name="PiSensitiveLogLeakSentry",
     keywords=["sensitive log leak", "log leak sentry", "pii log scanner", "log credential scan"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiSensitiveLogLeakSentry,
+    input_factory=lambda goal, ctx: LogLeakInput(
+        log_file_path=ctx.get("log_file_path", "app.log"),
+        log_content=ctx.get("log_content", ctx.get("content", goal)),
+    ),
 )
 AgentRouter.register(
     agent_name="PiStructuredLoggingEnforcer",
     keywords=["structured logging", "logging enforcer", "json logger", "log formatting audit"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiStructuredLoggingEnforcer,
+    input_factory=lambda goal, ctx: StructuredLoggingInput(
+        file_path=ctx.get("file_path", "logger.py"),
+        code_content=ctx.get("code_content", ctx.get("content", goal)),
+    ),
 )
 
 # Access Control Playbook
@@ -2485,14 +2521,21 @@ AgentRouter.register(
 AgentRouter.register(
     agent_name="PiHardcodedSecretDetector",
     keywords=["hardcoded secret detector", "embedded passwords check", "plain credentials scanner", "auth secret detector"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiHardcodedSecretDetector,
+    input_factory=lambda goal, ctx: HardcodedSecretInput(
+        file_path=ctx.get("file_path", "secrets_config.py"),
+        file_content=ctx.get("file_content", ctx.get("content", goal)),
+    ),
 )
 AgentRouter.register(
     agent_name="PiAutomatedRotationEngine",
     keywords=["automated rotation engine", "vault credential rotater", "kms key rotation automation", "secrets auto-rotation"],
-    agent_class=GenericStubAgent,
-    input_factory=lambda goal, ctx: GenericStubInput(goal=goal, content=ctx.get("content", ""))
+    agent_class=PiAutomatedRotationEngine,
+    input_factory=lambda goal, ctx: RotationInput(
+        credential_type=ctx.get("credential_type", "API_KEY"),
+        target_identifier=ctx.get("target_identifier", "default_key"),
+        current_value_snippet=ctx.get("current_value_snippet", ""),
+    ),
 )
 
 # IaC Playbook

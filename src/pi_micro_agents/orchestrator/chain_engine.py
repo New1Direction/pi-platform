@@ -454,6 +454,16 @@ class ChainExecutionEngine:
         from pi_micro_agents.pi_web_vuln_scanner import WebVulnOutput
         from pi_micro_agents.pi_deployment_safety_guard import DeploymentSafetyOutput
         from pi_micro_agents.pi_pipeline_integrity_auditor import PipelineIntegrityOutput
+        from pi_micro_agents.pi_docker_image_scanner import DockerImageOutput
+        from pi_micro_agents.pi_container_escape_detector import ContainerEscapeOutput
+        from pi_micro_agents.pi_hardcoded_secret_detector import HardcodedSecretOutput
+        from pi_micro_agents.pi_automated_rotation_engine import RotationOutput
+        from pi_micro_agents.pi_llm_output_sanitizer import LLMOutputSanitizerOutput
+        from pi_micro_agents.pi_data_flow_privacy_mapper import PrivacyMapperOutput
+        from pi_micro_agents.pi_sensitive_data_scanner import SensitiveDataOutput
+        from pi_micro_agents.pi_automated_anonymizer import AnonymizerOutput
+        from pi_micro_agents.pi_sensitive_log_leak_sentry import LogLeakOutput
+        from pi_micro_agents.pi_structured_logging_enforcer import StructuredLoggingOutput
         from pi_micro_agents.orchestrator.consensus import (
             AccessControlOutput,
             ArbitrageOutput,
@@ -586,6 +596,16 @@ class ChainExecutionEngine:
             "PiSemanticCommitMessageLinter": CommitLinterOutput,
             "PiWebVulnScanner": WebVulnOutput,
             "PiDeploymentSafetyGuard": DeploymentSafetyOutput,
-            "PiPipelineIntegrityAuditor": PipelineIntegrityOutput
+            "PiPipelineIntegrityAuditor": PipelineIntegrityOutput,
+            "PiDockerImageScanner": DockerImageOutput,
+            "PiContainerEscapeDetector": ContainerEscapeOutput,
+            "PiHardcodedSecretDetector": HardcodedSecretOutput,
+            "PiAutomatedRotationEngine": RotationOutput,
+            "PiLLMOutputSanitizer": LLMOutputSanitizerOutput,
+            "PiDataFlowPrivacyMapper": PrivacyMapperOutput,
+            "PiSensitiveDataScanner": SensitiveDataOutput,
+            "PiAutomatedAnonymizer": AnonymizerOutput,
+            "PiSensitiveLogLeakSentry": LogLeakOutput,
+            "PiStructuredLoggingEnforcer": StructuredLoggingOutput
         }
         return mapping.get(agent_name)

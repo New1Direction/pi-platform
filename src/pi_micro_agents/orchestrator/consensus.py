@@ -73,6 +73,16 @@ from pi_micro_agents.pi_uncontrolled_recursion_sentry import RecursionOutput
 from pi_micro_agents.pi_magic_number_scanner import MagicNumberOutput
 from pi_micro_agents.pi_error_handling_catch_all_guard import ErrorCatchOutput
 from pi_micro_agents.pi_semantic_commit_message_linter import CommitLinterOutput
+from pi_micro_agents.pi_docker_image_scanner import DockerImageOutput
+from pi_micro_agents.pi_container_escape_detector import ContainerEscapeOutput
+from pi_micro_agents.pi_hardcoded_secret_detector import HardcodedSecretOutput
+from pi_micro_agents.pi_automated_rotation_engine import RotationOutput
+from pi_micro_agents.pi_llm_output_sanitizer import LLMOutputSanitizerOutput
+from pi_micro_agents.pi_data_flow_privacy_mapper import PrivacyMapperOutput
+from pi_micro_agents.pi_sensitive_data_scanner import SensitiveDataOutput
+from pi_micro_agents.pi_automated_anonymizer import AnonymizerOutput
+from pi_micro_agents.pi_sensitive_log_leak_sentry import LogLeakOutput
+from pi_micro_agents.pi_structured_logging_enforcer import StructuredLoggingOutput
 
 
 # Consensus breaker imports
@@ -166,7 +176,9 @@ def perturb_input(inp: Any, index: int) -> Any:
     for attr in [
         "text_payload", "plan_content", "handoff_content", "prd_content", "spec_content",
         "log_content", "code_content", "interface_content", "test_code_content",
-        "data_content", "readme_content", "changelog_content", "commit_message"
+        "data_content", "readme_content", "changelog_content", "commit_message",
+        "dockerfile_content", "config_content", "file_content", "target_identifier",
+        "raw_output", "text_content", "raw_payload"
     ]:
         if hasattr(new_inp, attr) and isinstance(getattr(new_inp, attr), str):
             val = getattr(new_inp, attr)
@@ -236,11 +248,16 @@ def get_verdict(agent_name: str, d: Dict[str, Any]) -> Any:
         "PiDepreciationScanner", "PiDeadCodePruner", "PiMockDataTaintingSentry",
         "PiReadmeValidator", "PiChangelogAuditor", "PiAstDepthGuard",
         "PiUncontrolledRecursionSentry", "PiMagicNumberScanner", "PiErrorHandlingCatchAllGuard",
-        "PiSemanticCommitMessageLinter", "PiWebVulnScanner", "PiPipelineIntegrityAuditor"
+        "PiSemanticCommitMessageLinter", "PiWebVulnScanner", "PiPipelineIntegrityAuditor",
+        "PiDockerImageScanner", "PiContainerEscapeDetector", "PiHardcodedSecretDetector",
+        "PiLLMOutputSanitizer", "PiDataFlowPrivacyMapper", "PiSensitiveDataScanner",
+        "PiAutomatedAnonymizer", "PiSensitiveLogLeakSentry", "PiStructuredLoggingEnforcer"
     ]:
         return d.get("is_secure")
     elif agent_name == "PiDeploymentSafetyGuard":
         return d.get("deployment_allowed")
+    elif agent_name == "PiAutomatedRotationEngine":
+        return d.get("rotation_completed")
 
     return None
 
@@ -386,6 +403,26 @@ def run_with_consensus(
                 outputs.append(ErrorCatchOutput(**r))
             elif agent_name == "PiSemanticCommitMessageLinter":
                 outputs.append(CommitLinterOutput(**r))
+            elif agent_name == "PiDockerImageScanner":
+                outputs.append(DockerImageOutput(**r))
+            elif agent_name == "PiContainerEscapeDetector":
+                outputs.append(ContainerEscapeOutput(**r))
+            elif agent_name == "PiHardcodedSecretDetector":
+                outputs.append(HardcodedSecretOutput(**r))
+            elif agent_name == "PiAutomatedRotationEngine":
+                outputs.append(RotationOutput(**r))
+            elif agent_name == "PiLLMOutputSanitizer":
+                outputs.append(LLMOutputSanitizerOutput(**r))
+            elif agent_name == "PiDataFlowPrivacyMapper":
+                outputs.append(PrivacyMapperOutput(**r))
+            elif agent_name == "PiSensitiveDataScanner":
+                outputs.append(SensitiveDataOutput(**r))
+            elif agent_name == "PiAutomatedAnonymizer":
+                outputs.append(AnonymizerOutput(**r))
+            elif agent_name == "PiSensitiveLogLeakSentry":
+                outputs.append(LogLeakOutput(**r))
+            elif agent_name == "PiStructuredLoggingEnforcer":
+                outputs.append(StructuredLoggingOutput(**r))
             else:
                 outputs.append(r)
 
@@ -524,6 +561,26 @@ def run_with_consensus(
                 return agent_inst.check_error_handling(perturbed)
             elif agent_name == "PiSemanticCommitMessageLinter":
                 return agent_inst.audit_commit_message(perturbed)
+            elif agent_name == "PiDockerImageScanner":
+                return agent_inst.scan_docker_image(perturbed)
+            elif agent_name == "PiContainerEscapeDetector":
+                return agent_inst.scan_container_escape(perturbed)
+            elif agent_name == "PiHardcodedSecretDetector":
+                return agent_inst.scan_hardcoded_secrets(perturbed)
+            elif agent_name == "PiAutomatedRotationEngine":
+                return agent_inst.rotate_credential(perturbed)
+            elif agent_name == "PiLLMOutputSanitizer":
+                return agent_inst.sanitize_llm_output(perturbed)
+            elif agent_name == "PiDataFlowPrivacyMapper":
+                return agent_inst.map_data_privacy_flows(perturbed)
+            elif agent_name == "PiSensitiveDataScanner":
+                return agent_inst.scan_sensitive_data(perturbed)
+            elif agent_name == "PiAutomatedAnonymizer":
+                return agent_inst.anonymize_payload(perturbed)
+            elif agent_name == "PiSensitiveLogLeakSentry":
+                return agent_inst.audit_log_leaks(perturbed)
+            elif agent_name == "PiStructuredLoggingEnforcer":
+                return agent_inst.enforce_structured_logging(perturbed)
             raise ValueError(f"Unknown agent: {agent_name}")
 
         from pathlib import Path
@@ -776,6 +833,45 @@ def run_with_consensus(
             alerts.extend(majority_dict.get("flagged_hotspots", []))
             risk_score = majority_dict.get("risk_score", 0.0)
             summary = f"Completed hot-path allocation diagnostic scan on {input_envelope.file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiDockerImageScanner":
+            alerts.extend(majority_dict.get("detected_vulnerabilities", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed static container image safety scan on {input_envelope.file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiContainerEscapeDetector":
+            alerts.extend(majority_dict.get("escape_vectors", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed container escape vulnerabilities scan on {input_envelope.file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiHardcodedSecretDetector":
+            alerts.extend(majority_dict.get("flagged_secrets", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed hardcoded secrets scan on {input_envelope.file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiAutomatedRotationEngine":
+            risk_score = 0.0 if majority_dict.get("rotation_completed") else 80.0
+            summary = f"Credential rotation process executed for {input_envelope.target_identifier} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiLLMOutputSanitizer":
+            alerts.extend(majority_dict.get("detected_leaks", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed LLM output sanitization audit (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiDataFlowPrivacyMapper":
+            alerts.extend(majority_dict.get("unsecured_flows", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed data flow privacy analysis (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiSensitiveDataScanner":
+            alerts.extend(majority_dict.get("discovered_pii_elements", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed sensitive data and PII scan on {input_envelope.data_label} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiAutomatedAnonymizer":
+            risk_score = 0.0 if majority_dict.get("is_secure") else 80.0
+            summary = f"Automated payload anonymization completed (Consensus Passed). Fields scrubbed: {majority_dict.get('fields_scrubbed_count')}. Status: {majority_dict.get('status')}"
+        elif agent_name == "PiSensitiveLogLeakSentry":
+            alerts.extend(majority_dict.get("flagged_leaks", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed sensitive log leak audit on {input_envelope.log_file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiStructuredLoggingEnforcer":
+            alerts.extend(majority_dict.get("unstructured_statements", []))
+            compliance_score = majority_dict.get("compliance_score", 100.0)
+            risk_score = 100.0 - compliance_score
+            summary = f"Completed structured logging compliance audit on {input_envelope.file_path} (Consensus Passed). Compliance score: {compliance_score:.1f}. Status: {majority_dict.get('status')}"
 
 
         if risk_score >= 80.0 and os.getenv("PI_ORCHESTRATOR_STRICT_MODE") == "true":
