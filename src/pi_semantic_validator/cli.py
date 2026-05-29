@@ -79,8 +79,8 @@ def inspect_policy(policy: str) -> None:
     table2 = Table(title="Layers")
     table2.add_column("Layer ID", style="cyan")
     table2.add_column("Patterns", style="green")
-    for l in p.layers:
-        table2.add_row(l.layer_id, ", ".join(l.endpoint_patterns[:3]) + "...")
+    for layer in p.layers:
+        table2.add_row(layer.layer_id, ", ".join(layer.endpoint_patterns[:3]) + "...")
     console.print(table2)
 
     table3 = Table(title="Blast Radius Limits")

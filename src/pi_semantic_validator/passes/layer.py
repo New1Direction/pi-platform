@@ -173,9 +173,9 @@ class LayerValidationPass:
         # 4. Forbidden imports from policy forbidden_import_rules
         for fir in policy.forbidden_import_rules:
             layer = None
-            for l in policy.layers:
-                if l.layer_id == fir.layer_id:
-                    layer = l
+            for candidate_layer in policy.layers:
+                if candidate_layer.layer_id == fir.layer_id:
+                    layer = candidate_layer
                     break
             if layer is None:
                 continue

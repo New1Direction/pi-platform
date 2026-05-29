@@ -28,7 +28,7 @@ async def create_session(
     try:
         body_tenant = _safe_tenant_id(tenant_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     if header_tenant is None or body_tenant != header_tenant:
         raise HTTPException(
             status_code=403,

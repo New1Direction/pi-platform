@@ -140,7 +140,7 @@ class PiUninitializedStateSentry:
                 cleaned_func = re.sub(r"/\*.*?\*/", "", cleaned_func, flags=re.DOTALL)
                 init_blocks += " " + cleaned_func
 
-        for var_name, var_type, line_num in state_vars:
+        for var_name, _var_type, line_num in state_vars:
             # Simple check if variable name is assigned to inside constructor/initialize block (e.g. "var_name =")
             assignment_pattern = re.compile(r"\b" + re.escape(var_name) + r"\s*=")
             if not assignment_pattern.search(init_blocks) and not re.search(

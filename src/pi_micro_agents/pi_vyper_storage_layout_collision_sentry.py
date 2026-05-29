@@ -91,7 +91,7 @@ class PiVyperStorageLayoutCollisionSentry:
         # Check if any new variable is prefixed or placed in an unsafe layout pattern.
         # A common vulnerability pattern is appending variables in-between older declarations.
         # Here we look for state variables defined with names ending in '_upgrade' or '_v2' but not defined at the end of the state variables list.
-        for idx, (var_name, var_type, line_num) in enumerate(state_vars):
+        for idx, (var_name, _var_type, line_num) in enumerate(state_vars):
             if "_v2" in var_name or "_upgrade" in var_name or "new_" in var_name:
                 # If this upgraded variable is NOT at the end of the state variable declarations list, it causes slot collisions
                 if idx < len(state_vars) - 1:

@@ -146,7 +146,7 @@ def _compute_field_deltas(
                 if len(deltas) >= max_count:
                     return deltas
 
-    for key, mf in mod_map.items():
+    for key, _mf in mod_map.items():
         if key not in base_map:
             deltas.append(FieldDelta(field_path=key, delta_type="ADDED", severity="INFO"))
             if len(deltas) >= max_count:

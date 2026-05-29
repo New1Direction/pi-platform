@@ -60,7 +60,7 @@ class PiSolidityUnboundedLoopsInStateMutation:
                 body = code[start_idx : idx - 1]
                 func_blocks.append((name, args, body))
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Find loops (for or while)
             # e.g., for(uint i = 0; i < arr.length; i++) or for(uint i = 0; i < limit; i++)
             loops = re.findall(r"(for\s*\(.*?;(.*?);.*?\)|while\s*\(.*?\))", body)

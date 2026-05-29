@@ -212,7 +212,7 @@ class ArchitecturePolicy(BaseModel):
     @field_validator("layers")
     @classmethod
     def _unique_layer_ids(cls, v: List[LayerDefinition]) -> List[LayerDefinition]:
-        ids = [l.layer_id for l in v]
+        ids = [layer.layer_id for layer in v]
         if len(ids) != len(set(ids)):
             raise ValueError("Duplicate layer IDs")
         return v
@@ -223,7 +223,7 @@ class ArchitecturePolicy(BaseModel):
 
     @property
     def layer_ids(self) -> Set[str]:
-        return {l.layer_id for l in self.layers}
+        return {layer.layer_id for layer in self.layers}
 
     def compute_hash(self) -> str:
         payload = json.dumps(self.model_dump(), sort_keys=True, default=str)

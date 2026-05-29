@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import time
+from typing import TYPE_CHECKING
 
 import pytest
 from fastapi.testclient import TestClient
@@ -23,6 +24,9 @@ from pi_micro_agents.orchestrator.scheduler import (
     PiCognitiveExecutionScheduler,
     SchedulerTask,
 )
+
+if TYPE_CHECKING:
+    from pi_event_fabric.bus.core import DomainEvent
 
 # ────────────────────────────────────────────────────────
 #  1. Scheduler Tests

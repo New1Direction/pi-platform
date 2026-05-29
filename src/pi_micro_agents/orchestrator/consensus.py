@@ -148,14 +148,19 @@ def _find_output_model(agent_class, result_keys):
     """The agent module's pydantic model whose field set matches the Rust output."""
     import sys as _sys
 
-    from pydantic import BaseModel as _BM
+    from pydantic import BaseModel
 
     mod = _sys.modules.get(getattr(agent_class, "__module__", "") or "")
     if mod is None:
         return None
     want = set(result_keys)
     for v in vars(mod).values():
-        if isinstance(v, type) and issubclass(v, _BM) and v is not _BM and set(v.model_fields.keys()) == want:
+        if (
+            isinstance(v, type)
+            and issubclass(v, BaseModel)
+            and v is not BaseModel
+            and set(v.model_fields.keys()) == want
+        ):
             return v
     return None
 

@@ -20,7 +20,7 @@ async def get_audit_log(req: Request, body: GetAuditLogRequest) -> GetAuditLogRe
     try:
         body_tenant = _safe_tenant_id(body.tenant_id)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     if body_tenant != tenant_id:
         raise HTTPException(status_code=403, detail="Tenant mismatch")
     entries = audit_store.query(

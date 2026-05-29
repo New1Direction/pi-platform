@@ -122,7 +122,7 @@ class TestLedgerChainIntegrity:
         )
         ledger.append(ev)
         # Mutate the stored event (bypass frozen model via internal list)
-        ledger.events[0].event_hash
+        _ = ledger.events[0].event_hash
         tampered = ledger.events[0].model_copy(update={"payload": {"idx": 999}})
         ledger.events[0] = tampered
         assert not ledger.verify_integrity()

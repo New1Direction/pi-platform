@@ -50,10 +50,10 @@ class PiDeadCodePruner:
                     # Search for occurrences of this imported name in the rest of the file
                     # We look for word boundaries around imported_name
                     occurrences = 0
-                    for l_idx, l in enumerate(lines, start=1):
+                    for l_idx, current_line in enumerate(lines, start=1):
                         if l_idx == idx:
                             continue
-                        if re.search(r"\b" + re.escape(imported_name) + r"\b", l):
+                        if re.search(r"\b" + re.escape(imported_name) + r"\b", current_line):
                             occurrences += 1
                     if occurrences == 0:
                         unused_tokens.append(f"Line {idx}: Unused import '{imported_name}'")

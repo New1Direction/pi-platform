@@ -93,19 +93,19 @@ class MetricsRegistry:
     def counter(self, name: str, label_names: List[str], labels: Dict[str, str], value: int = 1) -> None:
         with self._lock:
             self._label_names[name] = label_names
-            key = tuple(labels.get(l, "") for l in label_names)
+            key = tuple(labels.get(label, "") for label in label_names)
             self._counters[name][key] += value
 
     def gauge(self, name: str, label_names: List[str], labels: Dict[str, str], value: float) -> None:
         with self._lock:
             self._label_names[name] = label_names
-            key = tuple(labels.get(l, "") for l in label_names)
+            key = tuple(labels.get(label, "") for label in label_names)
             self._gauges[name][key] = value
 
     def histogram(self, name: str, label_names: List[str], labels: Dict[str, str], value: float) -> None:
         with self._lock:
             self._label_names[name] = label_names
-            key = tuple(labels.get(l, "") for l in label_names)
+            key = tuple(labels.get(label, "") for label in label_names)
             self._histograms[name][key].append(value)
 
     def prometheus_format(self) -> str:
