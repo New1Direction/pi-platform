@@ -55,3 +55,20 @@ output/
 temp/
 tmp/
 .hypothesis/
+
+# SQLite databases and WAL files — never commit audit ledger or agent state
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ML model weights — use Git LFS or runtime download instead
+*.gguf
+*.bin
+*.pt
+*.safetensors
+
+# Rust-core PoC
+.venv-poc/
+rust/target/

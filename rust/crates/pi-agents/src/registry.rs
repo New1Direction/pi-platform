@@ -1,0 +1,124 @@
+//! Name -> agent dispatch table (auto-generated from ported agents).
+//!
+//! Each agent exposes `run_json(&str) -> Result<String, String>`, keyed by its
+//! original Python class name.
+
+use once_cell::sync::Lazy;
+use std::collections::BTreeMap;
+
+/// JSON-in, JSON-out agent entry point.
+pub type AgentFn = fn(&str) -> Result<String, String>;
+
+pub static REGISTRY: Lazy<BTreeMap<&'static str, AgentFn>> = Lazy::new(|| {
+    let mut m: BTreeMap<&'static str, AgentFn> = BTreeMap::new();
+    m.insert("PiAgentToolExecutionGuard", crate::agents::agent_tool_execution_guard::run_json as AgentFn);
+    m.insert("PiAPIOWASPScanner", crate::agents::api_owasp_scanner::run_json as AgentFn);
+    m.insert("PiAuditLogTamperDetector", crate::agents::audit_log_tamper_detector::run_json as AgentFn);
+    m.insert("PiAutomatedAnonymizer", crate::agents::automated_anonymizer::run_json as AgentFn);
+    m.insert("PiAutomatedRotationEngine", crate::agents::automated_rotation_engine::run_json as AgentFn);
+    m.insert("PiBackupIntegrityChecker", crate::agents::backup_integrity_checker::run_json as AgentFn);
+    m.insert("PiCavemanTokenCompressor", crate::agents::caveman_token_compressor::run_json as AgentFn);
+    m.insert("PiCertificateRotationWatcher", crate::agents::certificate_rotation_watcher::run_json as AgentFn);
+    m.insert("PiChangelogAuditor", crate::agents::changelog_auditor::run_json as AgentFn);
+    m.insert("PiCloudConfigAuditor", crate::agents::cloud_config_auditor::run_json as AgentFn);
+    m.insert("PiCodeSigningEnforcer", crate::agents::code_signing_enforcer::run_json as AgentFn);
+    m.insert("PiConstantTimeAuditor", crate::agents::constant_time_auditor::run_json as AgentFn);
+    m.insert("PiContainerEscapeDetector", crate::agents::container_escape_detector::run_json as AgentFn);
+    m.insert("PiDataFlowPrivacyMapper", crate::agents::data_flow_privacy_mapper::run_json as AgentFn);
+    m.insert("PiDataRetentionPolicyEnforcer", crate::agents::data_retention_policy_enforcer::run_json as AgentFn);
+    m.insert("PiDatabaseMigrationUnindexedSentry", crate::agents::database_migration_unindexed_sentry::run_json as AgentFn);
+    m.insert("PiDeadCodePruner", crate::agents::dead_code_pruner::run_json as AgentFn);
+    m.insert("PiDependencyVulnScanner", crate::agents::dependency_vuln_scanner::run_json as AgentFn);
+    m.insert("PiDeploymentSafetyGuard", crate::agents::deployment_safety_guard::run_json as AgentFn);
+    m.insert("PiDepreciationScanner", crate::agents::depreciation_scanner::run_json as AgentFn);
+    m.insert("PiDesignAnInterfaceValidator", crate::agents::design_an_interface_validator::run_json as AgentFn);
+    m.insert("PiDimensionalAnalysisSentry", crate::agents::dimensional_analysis_sentry::run_json as AgentFn);
+    m.insert("PiDockerSocketPrivilegeSentry", crate::agents::docker_socket_privilege_sentry::run_json as AgentFn);
+    m.insert("PiEncryptionComplianceChecker", crate::agents::encryption_compliance_checker::run_json as AgentFn);
+    m.insert("PiFirewallRuleAuditor", crate::agents::firewall_rule_auditor::run_json as AgentFn);
+    m.insert("PiGitSafetyGuardrail", crate::agents::git_safety_guardrail::run_json as AgentFn);
+    m.insert("PiGitSecretEntropyLeakSentry", crate::agents::git_secret_entropy_leak_sentry::run_json as AgentFn);
+    m.insert("PiGithubActionsUnpinnedVersion", crate::agents::github_actions_unpinned_version::run_json as AgentFn);
+    m.insert("PiGrillMeQuestionnaire", crate::agents::grill_me_questionnaire::run_json as AgentFn);
+    m.insert("PiGrpcWireProtocolInsecureSentry", crate::agents::grpc_wire_protocol_insecure_sentry::run_json as AgentFn);
+    m.insert("PiHandoffCheckpointSentry", crate::agents::handoff_checkpoint_sentry::run_json as AgentFn);
+    m.insert("PiHardcodedSecretDetector", crate::agents::hardcoded_secret_detector::run_json as AgentFn);
+    m.insert("PiHotPathAllocationAuditor", crate::agents::hot_path_allocation_auditor::run_json as AgentFn);
+    m.insert("PiIaCScanner", crate::agents::iac_scanner::run_json as AgentFn);
+    m.insert("PiApiAuthJWTNoneAlgorithmSentry", crate::agents::jwt_none_sentry::run_json as AgentFn);
+    m.insert("PiKubernetesSecurityAuditor", crate::agents::kubernetes_security_auditor::run_json as AgentFn);
+    m.insert("PiLLMBase64EncodingDeobfuscator", crate::agents::llm_base64_encoding_deobfuscator::run_json as AgentFn);
+    m.insert("PiLLMChainOfThoughtBypassSentry", crate::agents::llm_chain_of_thought_bypass_sentry::run_json as AgentFn);
+    m.insert("PiLLMContextWindowDriftSentry", crate::agents::llm_context_window_drift_sentry::run_json as AgentFn);
+    m.insert("PiLLMNegativeConstraintEvasion", crate::agents::llm_negative_constraint_evasion::run_json as AgentFn);
+    m.insert("PiLLMOutputSanitizer", crate::agents::llm_output_sanitizer::run_json as AgentFn);
+    m.insert("PiLLMPairwiseAdversarialValidator", crate::agents::llm_pairwise_adversarial_validator::run_json as AgentFn);
+    m.insert("PiLLMPromptEgressLeakDetector", crate::agents::llm_prompt_egress_leak_detector::run_json as AgentFn);
+    m.insert("PiLLMPromptInjectionSentry", crate::agents::llm_prompt_injection_sentry::run_json as AgentFn);
+    m.insert("PiLLMRecursiveRefinementJailbreak", crate::agents::llm_recursive_refinement_jailbreak::run_json as AgentFn);
+    m.insert("PiLLMSystemPromptHijackSentry", crate::agents::llm_system_prompt_hijack_sentry::run_json as AgentFn);
+    m.insert("PiMemoryZeroizeSentry", crate::agents::memory_zeroize_sentry::run_json as AgentFn);
+    m.insert("PiMisconfigPatternMatcher", crate::agents::misconfig_pattern_matcher::run_json as AgentFn);
+    m.insert("PiNginxReverseProxyHeaderSentry", crate::agents::nginx_reverse_proxy_header_sentry::run_json as AgentFn);
+    m.insert("PiPipelineIntegrityAuditor", crate::agents::pipeline_integrity_auditor::run_json as AgentFn);
+    m.insert("PiRBACPermissionMapper", crate::agents::rbac_permission_mapper::run_json as AgentFn);
+    m.insert("PiReadmeValidator", crate::agents::readme_validator::run_json as AgentFn);
+    m.insert("PiRequestRefactorPlanVerifier", crate::agents::request_refactor_plan_verifier::run_json as AgentFn);
+    m.insert("PiRuntimeAnomalySentry", crate::agents::runtime_anomaly_sentry::run_json as AgentFn);
+    m.insert("PiRustSolanaAccountDataValidation", crate::agents::rust_solana_account_data_validation::run_json as AgentFn);
+    m.insert("PiRustSolanaArithmeticOverflowCheck", crate::agents::rust_solana_arithmetic_overflow_check::run_json as AgentFn);
+    m.insert("PiRustSolanaBorshSerializationLeak", crate::agents::rust_solana_borsh_serialization_leak::run_json as AgentFn);
+    m.insert("PiRustSolanaCPIInstructionSentry", crate::agents::rust_solana_cpi_instruction_sentry::run_json as AgentFn);
+    m.insert("PiRustSolanaMissingSignerAssert", crate::agents::rust_solana_missing_signer_assert::run_json as AgentFn);
+    m.insert("PiRustSolanaOwnerVerificationGuard", crate::agents::rust_solana_owner_verification_guard::run_json as AgentFn);
+    m.insert("PiRustSolanaReentrancyCrossProgramSentry", crate::agents::rust_solana_reentrancy_cross_program_sentry::run_json as AgentFn);
+    m.insert("PiRustSolanaSysvarClockVerification", crate::agents::rust_solana_sysvar_clock_verification::run_json as AgentFn);
+    m.insert("PiSBOMValidator", crate::agents::sbom_validator::run_json as AgentFn);
+    m.insert("PiSecretsManagerCompletenessChecker", crate::agents::secrets_manager_completeness_checker::run_json as AgentFn);
+    m.insert("PiSemanticCommitMessageLinter", crate::agents::semantic_commit_message_linter::run_json as AgentFn);
+    m.insert("PiSemanticSchemaDynamicFieldCheck", crate::agents::semantic_schema_dynamic_field_check::run_json as AgentFn);
+    m.insert("PiSensitiveDataScanner", crate::agents::sensitive_data_scanner::run_json as AgentFn);
+    m.insert("PiSensitiveLogLeakSentry", crate::agents::sensitive_log_leak_sentry::run_json as AgentFn);
+    m.insert("PiSolidityArrayLengthMutationSentry", crate::agents::solidity_array_length_mutation_sentry::run_json as AgentFn);
+    m.insert("PiSolidityConstantPragmaValidation", crate::agents::solidity_constant_pragma_validation::run_json as AgentFn);
+    m.insert("PiSolidityDivideBeforeMultiplyAuditor", crate::agents::solidity_divide_before_multiply_auditor::run_json as AgentFn);
+    m.insert("PiSolidityERC20SafeApproveAuditor", crate::agents::solidity_erc20_safe_approve_auditor::run_json as AgentFn);
+    m.insert("PiSolidityInitializableGapSentry", crate::agents::solidity_initializable_gap_sentry::run_json as AgentFn);
+    m.insert("PiSolidityOwnerTimelockSentry", crate::agents::solidity_owner_timelock_sentry::run_json as AgentFn);
+    m.insert("PiSolidityReentrancyGuardOverlapSentry", crate::agents::solidity_reentrancy_guard_overlap_sentry::run_json as AgentFn);
+    m.insert("PiSoliditySelfdestructCodeEraseSentry", crate::agents::solidity_selfdestruct_code_erase_sentry::run_json as AgentFn);
+    m.insert("PiSolidityTxOriginCallCheckSentry", crate::agents::solidity_tx_origin_call_check_sentry::run_json as AgentFn);
+    m.insert("PiStructuredLoggingEnforcer", crate::agents::structured_logging_enforcer::run_json as AgentFn);
+    m.insert("PiSupplyChainIntegrityChecker", crate::agents::supply_chain_integrity_checker::run_json as AgentFn);
+    m.insert("PiTddAssertionCoverage", crate::agents::tdd_assertion_coverage::run_json as AgentFn);
+    m.insert("PiTddMockingSanityChecker", crate::agents::tdd_mocking_sanity_checker::run_json as AgentFn);
+    m.insert("PiTddTestFileVerifier", crate::agents::tdd_test_file_verifier::run_json as AgentFn);
+    m.insert("PiThreatModelGenerator", crate::agents::threat_model_generator::run_json as AgentFn);
+    m.insert("PiToIssuesBreakdown", crate::agents::to_issues_breakdown::run_json as AgentFn);
+    m.insert("PiToPrdValidator", crate::agents::to_prd_validator::run_json as AgentFn);
+    m.insert("PiTriageBugLabels", crate::agents::triage_bug_labels::run_json as AgentFn);
+    m.insert("PiTypeScriptWizardryCheck", crate::agents::typescript_wizardry_check::run_json as AgentFn);
+    m.insert("PiWebVulnScanner", crate::agents::web_vuln_scanner::run_json as AgentFn);
+    m.insert("PiZeroTrustVerifier", crate::agents::zero_trust_verifier::run_json as AgentFn);
+    m.insert("PiZKDivByZeroConstraintAuditor", crate::agents::zk_div_by_zero_constraint_auditor::run_json as AgentFn);
+    m.insert("PiZKNonPrimeFieldRangeSentry", crate::agents::zk_non_prime_field_range_sentry::run_json as AgentFn);
+    m.insert("PiZKProofForgingValidationSentry", crate::agents::zk_proof_forging_validation_sentry::run_json as AgentFn);
+    m.insert("PiZKPublicInputLeakageAuditor", crate::agents::zk_public_input_leakage_auditor::run_json as AgentFn);
+    m.insert("PiZKSignalShadowingSignalSentry", crate::agents::zk_signal_shadowing_signal_sentry::run_json as AgentFn);
+    m.insert("PiZKSignalUnconstrainedConstraint", crate::agents::zk_signal_unconstrained_constraint::run_json as AgentFn);
+    m.insert("PiZoomOutSystemExplainer", crate::agents::zoom_out_system_explainer::run_json as AgentFn);
+    m
+});
+
+/// Run a registered agent by name.
+pub fn run_agent(name: &str, input_json: &str) -> Result<String, String> {
+    match REGISTRY.get(name) {
+        Some(f) => f(input_json),
+        None => Err(format!("unknown agent: {name}")),
+    }
+}
+
+/// Sorted list of every registered agent name.
+pub fn list_agents() -> Vec<String> {
+    REGISTRY.keys().map(|s| s.to_string()).collect()
+}
