@@ -756,15 +756,15 @@ class TestExtensionGovernorReproducibility:
     def test_receipt_hash_is_reproducible_across_execution_timestamp(self) -> None:
         # Two fresh receipts with identical logical content but DIFFERENT
         # execution_timestamp / execution_duration_ms must hash identically.
-        common = dict(
-            receipt_id="rcpt_repro",
-            extension_id="ext_repro",
-            package_hash="pkg_hash_repro",
-            worker_contract_version="1.0.0",
-            output_hash="out_hash_repro",
-            deterministic_fingerprint="out_hash_repro",
-            replay_lineage=["ext_repro"],
-        )
+        common = {
+            "receipt_id": "rcpt_repro",
+            "extension_id": "ext_repro",
+            "package_hash": "pkg_hash_repro",
+            "worker_contract_version": "1.0.0",
+            "output_hash": "out_hash_repro",
+            "deterministic_fingerprint": "out_hash_repro",
+            "replay_lineage": ["ext_repro"],
+        }
         r1 = ExtensionExecutionReceipt(
             execution_timestamp=datetime(2020, 1, 1, tzinfo=timezone.utc),
             execution_duration_ms=100,
@@ -803,9 +803,7 @@ class TestExtensionGovernorReproducibility:
                     network_access=False,
                     trust_zone=TrustZone.GOVERNED_EXTENSION,
                 )
-                bundle = ExtensionBundle(
-                    bundle_id="receipt_repro_bundle", manifest=manifest, payload_hash="ph_repro"
-                )
+                bundle = ExtensionBundle(bundle_id="receipt_repro_bundle", manifest=manifest, payload_hash="ph_repro")
                 source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'k': 1}}"
                 result = governor.process_bundle(bundle, source, {})
                 assert result.admitted is True

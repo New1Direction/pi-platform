@@ -42,9 +42,7 @@ class ExtensionExecutionReceipt(BaseModel):
         reproduce the same hash across runs. All excluded fields are still
         stored/returned as metadata.
         """
-        payload = self.model_dump(
-            exclude={"receipt_hash", "execution_timestamp", "execution_duration_ms"}
-        )
+        payload = self.model_dump(exclude={"receipt_hash", "execution_timestamp", "execution_duration_ms"})
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
         return hashlib.sha256(canonical.encode()).hexdigest()
 

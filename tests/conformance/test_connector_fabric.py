@@ -1154,9 +1154,7 @@ class TestHashReproducibility:
     def _k8s_state():
         return {
             "pods": [{"metadata": {"namespace": "default", "name": "pod1", "labels": {"app": "web"}}}],
-            "services": [
-                {"metadata": {"namespace": "default", "name": "svc1"}, "spec": {"selector": {"app": "web"}}}
-            ],
+            "services": [{"metadata": {"namespace": "default", "name": "svc1"}, "spec": {"selector": {"app": "web"}}}],
         }
 
     def test_ingestion_receipt_hash_is_reproducible(self):
@@ -1185,20 +1183,20 @@ class TestHashReproducibility:
 
     def test_ingestion_receipt_hash_excludes_wall_clock(self):
         # Same logical receipt, different wall-clock timestamps -> same hash.
-        common = dict(
-            receipt_id="r1",
-            connector_id="c1",
-            connector_version="1.0.0",
-            tenant_id="t1",
-            actor_id="a1",
-            correlation_id="c1",
-            artifact_count=2,
-            artifact_hashes=("h1", "h2"),
-            fence_used=ConnectorExecutionFence.SANDBOXED_READ,
-            sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            error_count=0,
-            errors=(),
-        )
+        common = {
+            "receipt_id": "r1",
+            "connector_id": "c1",
+            "connector_version": "1.0.0",
+            "tenant_id": "t1",
+            "actor_id": "a1",
+            "correlation_id": "c1",
+            "artifact_count": 2,
+            "artifact_hashes": ("h1", "h2"),
+            "fence_used": ConnectorExecutionFence.SANDBOXED_READ,
+            "sandbox_policy": ConnectorSandboxPolicy.READ_ONLY,
+            "error_count": 0,
+            "errors": (),
+        }
         r1 = IngestionReceipt(
             ingestion_start="2026-01-01T00:00:00Z",
             ingestion_end="2026-01-01T00:00:01Z",

@@ -381,9 +381,7 @@ class TestSimulationReportReproducibility:
         assert report.compute_hash() == report.report_hash
         # Same logical content but a different wall-clock generated_at must hash
         # identically (generated_at is excluded from compute_hash).
-        nudged = report.model_copy(
-            update={"generated_at": datetime.fromisoformat("2000-01-01T00:00:00+00:00")}
-        )
+        nudged = report.model_copy(update={"generated_at": datetime.fromisoformat("2000-01-01T00:00:00+00:00")})
         assert nudged.compute_hash() == report.report_hash
 
         _ = SimulationReport  # keep import meaningful / referenced

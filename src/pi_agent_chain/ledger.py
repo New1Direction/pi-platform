@@ -149,10 +149,7 @@ class StateLedger:
         packet = self.get_state_packet(trace_id)
         canonical_packet = {
             "total_steps": packet["total_steps"],
-            "steps": [
-                {k: v for k, v in step.items() if k != "timestamp"}
-                for step in packet["steps"]
-            ],
+            "steps": [{k: v for k, v in step.items() if k != "timestamp"} for step in packet["steps"]],
         }
         canonical = json.dumps(canonical_packet, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode()).hexdigest()

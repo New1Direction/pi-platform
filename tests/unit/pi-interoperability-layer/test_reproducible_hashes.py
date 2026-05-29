@@ -16,7 +16,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest, TrustZone
-
 from pi_interoperability_layer.capability.registry import (
     RegistryEntry,
     RegistryFingerprints,

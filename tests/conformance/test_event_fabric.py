@@ -1180,6 +1180,7 @@ class TestDeterministicReplay:
 
     def test_consumer_checkpoint_hash_is_deterministic(self):
         """Re-consuming the same offsets yields the same checkpoint hash across runs."""
+
         def run():
             s, p = _fresh_storage()
             try:

@@ -282,9 +282,7 @@ class SemanticCapabilityRegistry:
                     errors.append(f"Self-referential chain link: {eid}")
                 predecessor = by_hash.get(prev)
                 if predecessor is not None and predecessor.extension_id != entry.extension_id:
-                    errors.append(
-                        f"Chain lineage mismatch: {eid} links to {predecessor.extension_id}"
-                    )
+                    errors.append(f"Chain lineage mismatch: {eid} links to {predecessor.extension_id}")
         return len(errors) == 0, errors
 
     def audit_log(self) -> List[str]:
