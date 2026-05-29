@@ -17,7 +17,6 @@ from pi_semantic_validator.models import ValidationReport
 from pi_semantic_validator.pipeline import validate_recon_output
 from pi_semantic_validator.runtime import run_validator
 
-
 console = Console()
 
 
@@ -102,7 +101,6 @@ def _print_report(report: ValidationReport, strict: bool = False) -> None:
     table.add_column("Violations", style="red")
     table.add_column("Evidence", style="green")
     for name, result in report.pass_results.items():
-        color = "red" if result.violations else "green"
         table.add_row(name, result.status, str(len(result.violations)), str(result.evidence_count))
     console.print(table)
 

@@ -11,17 +11,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
-from pi_interoperability_layer.mesh.receipts import ExecutionReceipt, OrchestrationLedger
+from pi_interoperability_layer.mesh.receipts import OrchestrationLedger
 from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
 from pi_interoperability_layer.snapshot.artifacts import SnapshotArtifact
-
 
 # ──────────────────────────────
 #  Delta Classification
@@ -300,11 +298,11 @@ diff classification. Produces a SemanticDriftReport.
         deltas: List[SemanticDelta] = []
         base_nodes = set(baseline.payload.data.get("nodes", {}).keys())
         mod_nodes = set(modified.payload.data.get("nodes", {}).keys())
-        base_edges = {
+        {
             tuple(sorted((e.get("upstream", ""), e.get("downstream", ""))))
             for e in baseline.payload.data.get("edges", [])
         }
-        mod_edges = {
+        {
             tuple(sorted((e.get("upstream", ""), e.get("downstream", ""))))
             for e in modified.payload.data.get("edges", [])
         }

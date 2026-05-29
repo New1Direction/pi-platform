@@ -6,11 +6,10 @@ Deterministic behavioral delta computation.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import click
 
-from pi_semantic_diff.models import DependencyGraph, SemanticIRTrace, AuthInvariant
+from pi_semantic_diff.models import AuthInvariant, DependencyGraph, SemanticIRTrace
 from pi_semantic_diff.runtime import DiffRuntime
 
 

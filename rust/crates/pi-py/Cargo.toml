@@ -1,0 +1,16 @@
+[package]
+name = "pi-py"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "PyO3 bindings exposing the PI Platform Rust agent core to Python."
+
+[lib]
+name = "pi_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pi-agents = { path = "../pi-agents" }
+pi-event-fabric = { path = "../pi-event-fabric" }
+serde_json = "1"
+pyo3 = { version = "0.23", features = ["extension-module", "abi3-py39"] }

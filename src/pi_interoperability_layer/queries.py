@@ -6,10 +6,9 @@ No inference. No LLM calls. No mutation of stored state.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 
-from pi_interoperability_layer.contracts import ArtifactContract
-from pi_interoperability_layer.registry import SnapshotRegistry, SnapshotRecord
+from pi_interoperability_layer.registry import SnapshotRecord, SnapshotRegistry
 
 
 class SemanticQueryResult:
@@ -199,7 +198,7 @@ class SemanticQueryEngine:
     def query_observability_drift(self, snapshot_id: str) -> SemanticQueryResult:
         """Return observability drift findings."""
         snap = self._load(snapshot_id)
-        findings = snap.payload.get("findings", [])
+        snap.payload.get("findings", [])
         drift = [
             {
                 "verbosity_expansion": snap.payload.get("verbosity_expansion"),

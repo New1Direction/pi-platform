@@ -98,7 +98,7 @@ class DifferentialVerifierNode:
             response = await client.request(
                 method, url, json=payload, headers=headers
             )
-        except httpx.RequestError as exc:
+        except httpx.RequestError:
             return BehavioralDelta(
                 path=path_template,
                 action=method,

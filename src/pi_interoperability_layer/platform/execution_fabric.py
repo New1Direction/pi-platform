@@ -14,16 +14,9 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pi_extension_governor.manifest import ExtensionManifest
-
-from pi_interoperability_layer.capability.graph import (
-    CompatibilityEdge,
-    CompatibilityType,
-    ExtensionCompatibilityGraph,
-)
-
 
 # ── Execution Phase ──────────────────────────────────────────────
 

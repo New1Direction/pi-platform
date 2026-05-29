@@ -13,14 +13,11 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-import struct
 import threading
-import time
-from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, Generator, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 
 from pi_interoperability_layer.snapshot.clock import DeterministicClock, canonical_timestamp
 
@@ -714,7 +711,7 @@ class EventReplayEngine:
             "event_count": len(events),
             "first_event_time": events[0].header.timestamp if events else None,
             "last_event_time": events[-1].header.timestamp if events else None,
-            "event_types": sorted(set(e.header.event_type.value for e in events)),
-            "tenant_ids": sorted(set(e.header.author_tenant_id for e in events)),
+            "event_types": sorted({e.header.event_type.value for e in events}),
+            "tenant_ids": sorted({e.header.author_tenant_id for e in events}),
             "chain_integrity": self.storage.verify_partition_chain(partition_key),
         }

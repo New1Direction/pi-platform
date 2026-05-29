@@ -6,13 +6,10 @@ Every model is evidence-bound, schema-validated, and fail-closed.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
-
 
 # ──────────────────────────────
 #  Epistemic Primitives (mirrored from pi-semantic-recon for independence)

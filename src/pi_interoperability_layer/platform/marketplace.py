@@ -12,12 +12,11 @@ import json
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
 
 from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest, ExtensionStatus, TrustZone
-
 
 # ── Capability Lifecycle States ──────────────────────────────────
 
@@ -222,7 +221,7 @@ class CompositionEngine:
 
             # 3. Check trust tier
             listing = next(
-                (l for l in self.catalog.values() if l.manifest_id == node.manifest_id),
+                (listing for listing in self.catalog.values() if listing.manifest_id == node.manifest_id),
                 None,
             )
             if listing and not self._trust_tier_satisfies(listing.trust_tier, node.trust_tier_minimum):
@@ -447,10 +446,10 @@ class CapabilityMarketplaceRegistry:
         return self._listings.get(listing_id)
 
     def query_by_class(self, cap_class: CapabilityClass) -> Tuple[MarketCapabilityListing, ...]:
-        return tuple(l for l in self._listings.values() if l.capability_class == cap_class)
+        return tuple(item for item in self._listings.values() if item.capability_class == cap_class)
 
     def query_by_tier(self, tier: TrustTier) -> Tuple[MarketCapabilityListing, ...]:
-        return tuple(l for l in self._listings.values() if l.trust_tier == tier)
+        return tuple(item for item in self._listings.values() if item.trust_tier == tier)
 
     def _log_event(self, listing: MarketCapabilityListing, event: str, evidence: str = "") -> None:
         self._lifecycle_events.append(

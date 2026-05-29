@@ -1,6 +1,7 @@
 """Tenant router: quota status."""
 
 from fastapi import APIRouter, HTTPException, Request
+
 from pi_console.schemas import GetTenantQuotaStatusRequest, GetTenantQuotaStatusResponse
 from pi_console.services import QuotaTracker
 

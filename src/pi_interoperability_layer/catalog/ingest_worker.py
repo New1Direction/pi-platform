@@ -11,7 +11,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from pi_extension_governor.manifest import (
     CapabilityClass,
@@ -19,9 +19,7 @@ from pi_extension_governor.manifest import (
     ExtensionStatus,
     TrustZone,
 )
-
 from pi_interoperability_layer.catalog.notte_client import (
-    CatalogPage,
     CatalogSearchResult,
     NotteCatalogClient,
 )

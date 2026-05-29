@@ -9,12 +9,11 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 from pi_extension_governor.manifest import (
     CapabilityClass,
     ExtensionManifest,
-    ExtensionStatus,
     TrustZone,
 )
 from pi_extension_governor.policy import ExtensionGovernancePolicy

@@ -7,6 +7,10 @@ import {
   MarketplaceCapability,
   SimulateCompositionResponse,
   TenantQuotaStatus,
+  TraceListItem,
+  PaginatedTracesResponse,
+  TraceDetailResponse,
+  LedgerSummaryResponse,
 } from "@/types";
 
 const API_BASE = "/api/v1";
@@ -117,4 +121,33 @@ export async function createSession(tenantId: string, llmEnabled = false): Promi
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+export async function getLedgerTraces(
+  limit = 50,
+  offset = 0,
+  nodeName?: string,
+  success?: boolean,
+  routedAgent?: string,
+  search?: string,
+  minRisk?: number
+): Promise<PaginatedTracesResponse> {
+  const queryParams = new URLSearchParams();
+  queryParams.append("limit", limit.toString());
+  queryParams.append("offset", offset.toString());
+  if (nodeName) queryParams.append("node_name", nodeName);
+  if (success !== undefined) queryParams.append("success", success.toString());
+  if (routedAgent) queryParams.append("routed_agent", routedAgent);
+  if (search) queryParams.append("search", search);
+  if (minRisk !== undefined) queryParams.append("min_risk", minRisk.toString());
+
+  return fetchJson<PaginatedTracesResponse>(`/ledger/traces?${queryParams.toString()}`);
+}
+
+export async function getLedgerTraceDetail(traceId: string): Promise<TraceDetailResponse> {
+  return fetchJson<TraceDetailResponse>(`/ledger/trace/${traceId}`);
+}
+
+export async function getLedgerSummary(): Promise<LedgerSummaryResponse> {
+  return fetchJson<LedgerSummaryResponse>("/ledger/summary");
 }

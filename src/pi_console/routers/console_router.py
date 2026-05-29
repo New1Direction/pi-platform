@@ -1,6 +1,7 @@
 """Console router: health, config, status."""
 
 from fastapi import APIRouter
+
 from pi_console.schemas import ConsoleHealth
 
 router = APIRouter()

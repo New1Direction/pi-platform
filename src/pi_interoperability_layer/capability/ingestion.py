@@ -10,27 +10,25 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from pi_extension_governor.governor import ExtensionGovernor, ExtensionAdmissionResult
-from pi_extension_governor.manifest import ExtensionManifest, ExtensionBundle, TrustZone, CapabilityClass, ExtensionStatus
-from pi_extension_governor.provenance import ExtensionExecutionReceipt
-
-from pi_interoperability_layer.capability.registry import (
-    SemanticCapabilityRegistry,
-    RegistryEntry,
-    RegistryEntryStatus,
-    RegistryFingerprints,
-    TrustScore,
-    TrustScoringBasis,
+from pi_extension_governor.governor import ExtensionGovernor
+from pi_extension_governor.manifest import (
+    ExtensionBundle,
 )
 from pi_interoperability_layer.capability.graph import (
-    ExtensionCompatibilityGraph,
+    CompatibilityCheck,
     CompatibilityEdge,
     CompatibilityType,
-    CompatibilityCheck,
     CompatibilityVerdict,
+    ExtensionCompatibilityGraph,
+)
+from pi_interoperability_layer.capability.registry import (
+    RegistryEntryStatus,
+    RegistryFingerprints,
+    SemanticCapabilityRegistry,
+    TrustScore,
+    TrustScoringBasis,
 )
 
 

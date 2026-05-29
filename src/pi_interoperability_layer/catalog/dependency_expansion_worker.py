@@ -10,10 +10,9 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest
-
+from pi_extension_governor.manifest import ExtensionManifest
 from pi_interoperability_layer.capability.graph import (
     CompatibilityEdge,
     CompatibilityType,

@@ -19,18 +19,15 @@ import hashlib
 import json
 import sqlite3
 import threading
-from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional, Tuple
 
 from pi_event_fabric.bus.core import (
     DomainEvent,
     EventBusStorage,
-    EventType,
 )
-from datetime import datetime, timezone
-
 from pi_interoperability_layer.snapshot.clock import DeterministicClock, canonical_timestamp
-
 
 # ──────────────────────────────
 #  Shard Sequence

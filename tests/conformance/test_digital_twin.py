@@ -24,14 +24,14 @@ from pi_interoperability_layer.snapshot.artifacts import (
     SnapshotType,
 )
 from pi_interoperability_layer.snapshot.clock import (
-    ClockSkewViolation,
+    ClockSkewViolationError,
     DeterministicClock,
     TimestampMarker,
     canonical_timestamp,
     compare_timestamps,
 )
 from pi_interoperability_layer.snapshot.registry import (
-    ClockOrderViolation,
+    ClockOrderViolationError,
     SnapshotRegistry,
 )
 from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
@@ -236,7 +236,7 @@ class TestSnapshotRegistry:
         reg.store(a)
         # Now try to store one with seq=1 (earlier timestamp)
         b = self._artifact("snap_earlier", seq=1, prev_hash="")
-        with pytest.raises(ClockOrderViolation):
+        with pytest.raises(ClockOrderViolationError):
             reg.store(b)
 
 

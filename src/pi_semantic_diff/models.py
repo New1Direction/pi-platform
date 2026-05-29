@@ -9,10 +9,9 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal, Optional, Set
+from typing import Any, List, Literal, Optional
 
 from pydantic import BaseModel, Field
-
 
 # ──────────────────────────────
 #  Epistemic Primitives (mirrored for independence)

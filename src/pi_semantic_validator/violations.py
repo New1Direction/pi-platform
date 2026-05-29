@@ -10,7 +10,7 @@ import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pi_semantic_validator.models import GovernanceViolation
 

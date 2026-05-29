@@ -1,4 +1,4 @@
-.PHONY: help install dev test test-all lint format docker-build docker-up clean
+.PHONY: help install dev test test-all lint format docker-build docker-up clean coverage coverage-html
 
 help:
 	@echo "PI Platform — Deterministic Semantic Execution Kernel"
@@ -46,6 +46,15 @@ docker-build:
 
 docker-up:
 	docker compose -f docker/docker-compose.yml up
+
+coverage:
+	PYTHONPATH=src python -m pytest tests -q --tb=short \
+		--cov=src --cov-report=term-missing --cov-fail-under=60
+
+coverage-html:
+	PYTHONPATH=src python -m pytest tests -q --tb=short \
+		--cov=src --cov-report=html --cov-report=term-missing
+	@echo "\n📊 Coverage report: htmlcov/index.html"
 
 clean:
 	rm -rf build dist *.egg-info .pytest_cache .mypy_cache .ruff_cache

@@ -15,11 +15,10 @@ Key constraints:
 from __future__ import annotations
 
 import hashlib
-import json
 import math
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pi_agent_chain.models import (
     AuthConsistencyReport,
@@ -32,7 +31,6 @@ from pi_agent_chain.models import (
     GovernanceViolation,
     ProtocolStateMachine,
     ReplayStabilityMetric,
-    SemanticConflictSet,
     SemanticQuorumReport,
     SemanticVariance,
     StabilityWindow,
@@ -205,7 +203,7 @@ class EntropyAnalysisValidator:
         total_claims = max(len(quorum.claims), 1)
         conflict_count = len(quorum.conflict_sets)
         rejected_count = len(quorum.rejected_claims)
-        intersection_count = len(quorum.intersections)
+        len(quorum.intersections)
 
         # Disagreement density
         disagreement_ratio = conflict_count / total_claims
@@ -307,7 +305,7 @@ class EntropyAnalysisValidator:
         node_count = len(fsm.nodes)
         edge_count = len(fsm.edges)
         max_fanout = max(fsm.max_fanout, 1)
-        max_nodes = max(fsm.max_nodes, 1)
+        max(fsm.max_nodes, 1)
 
         # Branching factor relative to max allowed
         branching = (edge_count / max(node_count, 1)) / max_fanout

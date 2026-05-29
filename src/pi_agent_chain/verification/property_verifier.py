@@ -16,7 +16,7 @@ Correct position in DAG:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import List
 
 from pi_agent_chain.models import BehavioralDelta, SynthesizedSpec
 

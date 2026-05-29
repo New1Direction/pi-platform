@@ -5,39 +5,39 @@ No recursive spawning. No probabilistic routing. No autonomous behavior.
 """
 
 from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
+from pi_interoperability_layer.mesh.defensive_workers import (
+    ComplianceEngineWorker,
+    ObservabilityDiffWorker,
+    ReplaySanitizerWorker,
+    SecuritySimulationWorker,
+    SensitiveFlowTrackerWorker,
+    TelemetryGovernorWorker,
+)
+from pi_interoperability_layer.mesh.kernel import CentralOrchestratorKernel, PhaseConfig
 from pi_interoperability_layer.mesh.receipts import (
     ExecutionReceipt,
     OrchestrationLedger,
     PhaseBoundaryReceipt,
 )
-from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
-from pi_interoperability_layer.mesh.kernel import CentralOrchestratorKernel, PhaseConfig
-from pi_interoperability_layer.mesh.workers import (
-    SnapshotIngestWorker,
-    SchemaValidationWorker,
-    EndpointExtractionWorker,
-    DependencyExtractionWorker,
-    EndpointDiffWorker,
-    BoundaryValidationWorker,
-    TopologyBuildWorker,
-    PropagationRiskWorker,
-    MergeGateWorker,
-    SnapshotRegistryWorker,
-)
-from pi_interoperability_layer.mesh.defensive_workers import (
-    TelemetryGovernorWorker,
-    ReplaySanitizerWorker,
-    SensitiveFlowTrackerWorker,
-    ObservabilityDiffWorker,
-    ComplianceEngineWorker,
-    SecuritySimulationWorker,
-)
 from pi_interoperability_layer.mesh.shard import (
     DeterministicPartitioner,
-    ShardCoordinator,
-    ShardAssignment,
     PhaseBoundary,
+    ShardAssignment,
+    ShardCoordinator,
     ShardState,
+)
+from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
+from pi_interoperability_layer.mesh.workers import (
+    BoundaryValidationWorker,
+    DependencyExtractionWorker,
+    EndpointDiffWorker,
+    EndpointExtractionWorker,
+    MergeGateWorker,
+    PropagationRiskWorker,
+    SchemaValidationWorker,
+    SnapshotIngestWorker,
+    SnapshotRegistryWorker,
+    TopologyBuildWorker,
 )
 
 __all__ = [

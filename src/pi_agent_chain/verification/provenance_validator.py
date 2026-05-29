@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from pi_agent_chain.models import EpistemicState, GovernanceViolation, ValidationBoundsConfig
 

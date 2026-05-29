@@ -17,7 +17,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Set
 
 from pi_interoperability_layer.mesh.artifact_bus import ArtifactSlot
 from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
@@ -236,7 +236,7 @@ class ReplaySanitizerWorker(WorkerBase):
                     nested = self._sanitize_payload(val, artifact_type)
                     redactions.extend(nested)
         elif isinstance(payload, list):
-            for i, item in enumerate(payload):
+            for _i, item in enumerate(payload):
                 if isinstance(item, (dict, list)):
                     nested = self._sanitize_payload(item, artifact_type)
                     redactions.extend(nested)
@@ -551,7 +551,6 @@ class SecuritySimulationWorker(WorkerBase):
     ]
 
     def _run(self, phase: str, input_slot_ids: List[str]) -> List[ArtifactSlot]:
-        results: List[Dict[str, Any]] = []
         detection_validations: List[Dict[str, Any]] = []
         containment_validations: List[Dict[str, Any]] = []
 

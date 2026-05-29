@@ -14,16 +14,11 @@ import sqlite3
 import threading
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from pi_connector_fabric.sdk.core import ConnectorManifest, ConnectorCapabilityClass, ConnectorSandboxPolicy
+from pi_connector_fabric.sdk.core import ConnectorCapabilityClass, ConnectorManifest, ConnectorSandboxPolicy
 from pi_event_fabric.governance.compiler import (
-    Condition,
-    ConditionOperator,
     Effect,
     GovernanceDecision,
     GovernanceEngine,
-    GovernanceRegistry,
-    GovernanceRule,
-    PolicyCompiler,
 )
 
 

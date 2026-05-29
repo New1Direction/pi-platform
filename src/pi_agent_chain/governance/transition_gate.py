@@ -20,7 +20,6 @@ from pi_agent_chain.models import (
     WorkerStatus,
 )
 
-
 # Canonical allowed transitions
 CANONICAL_TRANSITIONS: List[TransitionRule] = [
     # Linear pipeline

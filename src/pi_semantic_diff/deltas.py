@@ -6,7 +6,7 @@ No side effects. No LLM calls. Bounded traversal.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List
 
 from pi_semantic_diff.models import (
     AuthDelta,
@@ -20,7 +20,6 @@ from pi_semantic_diff.models import (
     SemanticIRTrace,
     StateEdge,
 )
-
 
 # ──────────────────────────────
 #  Endpoint Deltas

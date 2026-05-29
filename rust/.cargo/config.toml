@@ -1,0 +1,10 @@
+# PyO3 extension-module crates (pi-py) leave Python symbols unresolved at link
+# time — the interpreter provides them when the module is imported. On macOS the
+# linker must be told to allow that via dynamic_lookup, otherwise a plain
+# `cargo build` of the cdylib fails (maturin sets this itself, but this makes
+# `cargo build`/`cargo test` on the whole workspace work too).
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]

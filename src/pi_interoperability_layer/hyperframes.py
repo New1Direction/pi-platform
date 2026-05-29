@@ -17,19 +17,15 @@ import base64
 import hashlib
 import io
 import json
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Literal, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pydantic import BaseModel, Field
 
-from pi_interoperability_layer.snapshot.clock import canonical_timestamp
+from pi_interoperability_layer.drift_propagation import RiskPropagationGraph
 from pi_interoperability_layer.workers.pi_observability_diff_worker import (
-    SemanticDriftReport,
     SemanticDelta,
-    DeltaType,
+    SemanticDriftReport,
 )
-from pi_interoperability_layer.drift_propagation import RiskPropagationGraph, RiskNode
-
 
 # ──────────────────────────────
 #  Frame Primitives
@@ -274,14 +270,12 @@ class HyperFrameRenderEngine:
 
         out_path = output_path or f"/tmp/{sequence.sequence_id}.mp4"
         # Deterministic encoding: fixed quality, no randomness
-        iio.imwrite(
-            out_path,
-            frames_np,
-            plugin="ffmpeg",
-            fps=sequence.fps,
-            codec="libx264",
-            quality=8,  # deterministic quality level
-        )
+        # Use v2 API for ffmpeg compatibility
+        import imageio
+        writer = imageio.get_writer(out_path, fps=sequence.fps, codec="libx264", quality=8)
+        for frame_np in frames_np:
+            writer.append_data(frame_np)
+        writer.close()
 
         # Hash the output file for determinism verification
         with open(out_path, "rb") as f:
@@ -356,7 +350,8 @@ class HyperFrameRenderEngine:
 
         Renders at reduced resolution for performance; this is a fallback only.
         """
-        import struct, zlib
+        import struct
+        import zlib
 
         # Use reduced canvas for stdlib-only fallback performance
         w, h = 640, 360
@@ -375,7 +370,7 @@ class HyperFrameRenderEngine:
                 color = header
             else:
                 color = bg
-                for i, line in enumerate(text_rows[:25]):
+                for i, _line in enumerate(text_rows[:25]):
                     y0 = start_y + i * (bar_height + gap)
                     if y0 <= y < min(y0 + bar_height, h):
                         color = (45 + (i * 7) % 180, 60 + (i * 11) % 150, 80 + (i * 13) % 120)

@@ -11,7 +11,6 @@ from typing import Dict, List, Set
 
 from pi_agent_chain.models import (
     DependencyGraph,
-    SemanticField,
     SemanticIRTrace,
     StateEdge,
 )
@@ -54,10 +53,10 @@ class FlowMapperNode:
                 if not field.path.startswith("request.") and not field.path.startswith("header.") and not field.path.startswith("query."):
                     continue
                 fmt = field.inferred_type
-                for token_type, allowed_formats in self.TOKEN_TYPES.items():
+                for _token_type, allowed_formats in self.TOKEN_TYPES.items():
                     if fmt in allowed_formats or field.entropy_score > 0.85:
                         producers = response_index.get(fmt, [])
-                        for prod_ep, prod_path, example, entropy in producers:
+                        for prod_ep, prod_path, example, _entropy in producers:
                             if prod_ep == consumer_ep:
                                 continue
                             if example and field.example_value and example[:8] == field.example_value[:8]:

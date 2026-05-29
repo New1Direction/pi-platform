@@ -1,7 +1,9 @@
 """Audit router: get_audit_log."""
 
-from fastapi import APIRouter, HTTPException, Request
 from pathlib import Path
+
+from fastapi import APIRouter, HTTPException, Request
+
 from pi_console.schemas import GetAuditLogRequest, GetAuditLogResponse
 from pi_console.services import ConsoleAuditStore
 

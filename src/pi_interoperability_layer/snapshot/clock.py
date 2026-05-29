@@ -10,10 +10,9 @@ with explicit monotonic ordering guarantees.
 from __future__ import annotations
 
 import hashlib
-import json
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -43,7 +42,7 @@ class DeterministicClock(BaseModel):
         expected = self.origin_wall_time.timestamp() + elapsed
         actual = wall.timestamp()
         if abs(actual - expected) > self.max_skew_seconds:
-            raise ClockSkewViolation(
+            raise ClockSkewViolationError(
                 f"Clock skew {abs(actual - expected):.2f}s exceeds max {self.max_skew_seconds}s"
             )
         # Truncate to microseconds explicitly
@@ -98,11 +97,11 @@ class TimestampMarker(BaseModel):
         return self.ordering_key <= other.ordering_key
 
 
-class ClockSkewViolation(Exception):
+class ClockSkewViolationError(Exception):
     """Raised when wall clock deviates beyond max_skew_seconds from monotonic reference."""
 
 
-class ClockOrderViolation(Exception):
+class ClockOrderViolationError(Exception):
     """Raised when timestamp sequence is violated (non-monotonic within same clock)."""
 
 

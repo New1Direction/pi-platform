@@ -9,18 +9,16 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Tuple
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from pi_interoperability_layer.contracts import (
     ArtifactContract,
     ContractRegistry,
     SchemaEvolutionLog,
-    SchemaEvolutionRecord,
     SchemaVersion,
 )
-
 
 # ──────────────────────────────
 #  Compatibility Validation

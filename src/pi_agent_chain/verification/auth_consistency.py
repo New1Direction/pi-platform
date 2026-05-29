@@ -14,7 +14,7 @@ import hashlib
 import math
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pi_agent_chain.models import (
     AuthBinding,
@@ -25,7 +25,6 @@ from pi_agent_chain.models import (
     EpistemicState,
     GovernanceViolation,
     NormalizedTrafficPacket,
-    SemanticField,
     SemanticIRTrace,
     ValidationBoundsConfig,
 )
@@ -105,7 +104,7 @@ class AuthConsistencyValidator:
 
             # Extract from actual headers (observed values)
             for hk, hv in pkt.raw_headers:
-                hkl = hk.lower()
+                hk.lower()
                 ev = self._classify_header_evidence(
                     hk, hv, pkt, execution_id, trace
                 )
@@ -220,7 +219,7 @@ class AuthConsistencyValidator:
             for j in range(i + 1, len(clist)):
                 carrier_pairs.append((clist[i], clist[j]))
 
-        for pkt_id, pkt_evs in by_packet.items():
+        for _pkt_id, pkt_evs in by_packet.items():
             pkt_carriers = {(e.carrier, e.field_path) for e in pkt_evs}
             for (c1, fp1), (c2, fp2) in carrier_pairs:
                 key = (f"{c1}:{fp1}", f"{c2}:{fp2}")
@@ -335,7 +334,7 @@ class AuthConsistencyValidator:
             if len(evs) < 2:
                 continue
             hashes = [e.observed_value_hash for e in evs]
-            sorted_evs = sorted(evs, key=lambda e: e.observed_at)
+            sorted(evs, key=lambda e: e.observed_at)
             unique_hashes = len(set(hashes))
             total = len(evs)
 
@@ -395,7 +394,7 @@ class AuthConsistencyValidator:
                 AuthInvariant(
                     invariant_id=self._hash(f"replay:{execution_id}"),
                     invariant_type="REPLAY_SURVIVABILITY",
-                    description=f"Bearer/JWT/API-key auth observed in {len(set(e.packet_id for e in replayable_auth))} packets",
+                    description=f"Bearer/JWT/API-key auth observed in {len({e.packet_id for e in replayable_auth})} packets",
                     evidence_refs=[e.evidence_id for e in replayable_auth],
                     affected_endpoints=list({e.endpoint_template for e in replayable_auth}),
                     confidence=0.95,

@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from pi_semantic_validator.policy import ArchitecturePolicy
 from pi_semantic_validator.models import (
     AuthInvariant,
     GovernanceViolation,
@@ -26,6 +25,7 @@ from pi_semantic_validator.models import (
     WorkerResponse,
     WorkerStatus,
 )
+from pi_semantic_validator.policy import ArchitecturePolicy
 from pi_semantic_validator.violations import ViolationBuilder
 
 

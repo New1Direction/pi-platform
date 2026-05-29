@@ -14,11 +14,9 @@ import hashlib
 import json
 import uuid
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any, Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
-
 
 # ──────────────────────────────
 #  ExplicitCompositionRequest
@@ -72,7 +70,7 @@ class CompositionNode(BaseModel):
             try:
                 json.dumps(artifact, sort_keys=True, separators=(",", ":"), default=str)
             except (TypeError, ValueError) as exc:
-                raise ValueError(f"Artifact not JSON-serializable: {exc}")
+                raise ValueError(f"Artifact not JSON-serializable: {exc}") from exc
         return v
 
 

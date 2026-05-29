@@ -7,9 +7,9 @@ Experimental packages never gain governance authority.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set
+from typing import Optional, Set
 
-from pi_extension_governor.manifest import ExtensionManifest, ExtensionStatus, TrustZone
+from pi_extension_governor.manifest import ExtensionManifest, TrustZone
 
 
 @dataclass(frozen=True)

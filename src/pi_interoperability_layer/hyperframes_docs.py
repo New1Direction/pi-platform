@@ -13,18 +13,16 @@ No LLM-generated visuals. Same dark theme as infrastructure HyperFrames.
 
 from __future__ import annotations
 
-import base64
 import hashlib
-import io
 import json
 from typing import Any, Dict, List, Optional, Tuple
 
+from pi_connector_fabric.marketplace.governance import ConnectorMarketplaceRegistry
 from pi_interoperability_layer.hyperframes import (
     HyperFrame,
     HyperFrameSequence,
     RenderConfig,
 )
-from pi_connector_fabric.marketplace.governance import ConnectorMarketplaceRegistry
 
 
 class DocumentationHyperFrameRenderer:
@@ -143,7 +141,7 @@ class DocumentationHyperFrameRenderer:
                 "",
                 f"Enforcement: {inv.get('enforcement', 'static')}",
                 f"Scope:       {inv.get('scope', 'global')}",
-                f"Status:      ✓ PASS",
+                "Status:      ✓ PASS",
             ]
             frames.append(self._build_frame(i, f"Invariant {inv.get('id', 'UNK')}", lines))
 
@@ -284,15 +282,14 @@ class DocumentationHyperFrameRenderer:
 
         # Final status
         status = "PASS" if failed == 0 else "FAIL"
-        color = "node_safe" if failed == 0 else "node_risk"
         frames.append(self._build_frame(
             len(frames), "Suite Status",
             [
                 f"RESULT: {status}",
                 "",
-                f"  ✓ All invariants preserved" if failed == 0 else "  ✗ Regressions detected",
-                f"  ✓ Deterministic replay-safe",
-                f"  ✓ Zero probabilistic reasoning",
+                "  ✓ All invariants preserved" if failed == 0 else "  ✗ Regressions detected",
+                "  ✓ Deterministic replay-safe",
+                "  ✓ Zero probabilistic reasoning",
             ],
         ))
 

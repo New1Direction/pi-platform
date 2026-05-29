@@ -7,8 +7,8 @@ from __future__ import annotations
 
 from typing import List, Optional, Set
 
-from pi_semantic_radius.models import PassResult, RiskScore, TopologyGraph
 from pi_semantic_radius.engine import BlastRadiusEngine
+from pi_semantic_radius.models import PassResult, RiskScore, TopologyGraph
 
 
 class PropagationRiskPass:

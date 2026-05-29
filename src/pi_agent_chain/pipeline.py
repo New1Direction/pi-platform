@@ -30,9 +30,9 @@ from pi_agent_chain.models import (
     EquivalenceClass,
     ExecutionTrace,
     ExtractedProtocolSkeleton,
-    GovernedPacket,
     GovernanceConfig,
     GovernanceViolation,
+    GovernedPacket,
     NormalizedTrafficPacket,
     RuntimeState,
     SemanticDiff,
@@ -49,12 +49,12 @@ from pi_agent_chain.nodes.semantic_typer import SemanticTyperNode
 from pi_agent_chain.nodes.spec_synthesizer import SpecSynthesizerNode
 from pi_agent_chain.nodes.structural_extractor import StructuralExtractorNode
 from pi_agent_chain.nodes.verifier import DifferentialVerifierNode
+from pi_agent_chain.verification.auth_consistency import AuthConsistencyValidator
+from pi_agent_chain.verification.entropy_analysis import EntropyAnalysisValidator
 from pi_agent_chain.verification.provenance_validator import ProvenanceValidator
 from pi_agent_chain.verification.replay_validator import ReplayValidator
-from pi_agent_chain.verification.auth_consistency import AuthConsistencyValidator
-from pi_agent_chain.verification.state_transition import StateTransitionValidator
 from pi_agent_chain.verification.semantic_quorum import SemanticQuorum
-from pi_agent_chain.verification.entropy_analysis import EntropyAnalysisValidator
+from pi_agent_chain.verification.state_transition import StateTransitionValidator
 
 
 class PipelineDriver:
@@ -143,7 +143,7 @@ class PipelineDriver:
             response = kernel.execute(
                 worker_id="acquisition_gateway",
                 target_state=RuntimeState.CAPTURING,
-                worker_fn=lambda env: self._acquire(env, raw_req, raw_resp),
+                worker_fn=lambda env, _req=raw_req, _resp=raw_resp: self._acquire(env, _req, _resp),
                 input_payload=envelope_payload,
                 artifact=None,
                 provenance=[trace_id],
@@ -176,7 +176,7 @@ class PipelineDriver:
             response = kernel.execute(
                 worker_id="structural_extractor",
                 target_state=RuntimeState.NORMALIZING,
-                worker_fn=lambda env: self._extract(env, packet),
+                worker_fn=lambda env, _pkt=packet: self._extract(env, _pkt),
                 input_payload=packet.compute_hash(),
                 artifact=None,
                 provenance=[trace_id, packet.compute_hash()],
@@ -200,7 +200,7 @@ class PipelineDriver:
             response = kernel.execute(
                 worker_id="semantic_typer",
                 target_state=RuntimeState.EXTRACTING,
-                worker_fn=lambda env: self._type(env, packet, skel),
+                worker_fn=lambda env, _pkt=packet, _skel=skel: self._type(env, _pkt, _skel),
                 input_payload=payload,
                 artifact=None,
                 provenance=[trace_id, packet.compute_hash()],
@@ -277,7 +277,7 @@ class PipelineDriver:
             traces, packets, auth_report, execution_id=trace_id
         )
         critical_fsm = [v for v in fsm_violations if v.severity == "CRITICAL"]
-        if critical_fsm and report.passed:
+        if critical_fsm and auth_report.passed:
             # Only halt on CRITICAL FSM violations if verifier already passed
             return self._halt(
                 trace_id, kernel, "fsm_bounds",

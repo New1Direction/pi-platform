@@ -12,7 +12,6 @@ from typing import Any, Dict, List, Optional, Set
 from pi_extension_governor.manifest import (
     CapabilityClass,
     ExtensionManifest,
-    ExtensionStatus,
     TrustZone,
 )
 

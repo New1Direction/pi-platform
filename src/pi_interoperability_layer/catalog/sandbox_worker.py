@@ -12,8 +12,8 @@ import json
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-from pi_extension_governor.manifest import ExtensionManifest, ExtensionStatus
-from pi_extension_governor.sandbox import SandboxedExtensionRuntime, SandboxResult
+from pi_extension_governor.manifest import ExtensionManifest
+from pi_extension_governor.sandbox import SandboxedExtensionRuntime
 
 
 @dataclass(frozen=True)

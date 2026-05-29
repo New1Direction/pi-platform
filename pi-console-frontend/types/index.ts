@@ -49,6 +49,7 @@ export interface SimulationReport {
   replay_verification_hash: string;
   report_hash: string;
   generated_at: string;
+  can_execute?: boolean;
 }
 
 export interface SimulateCompositionResponse {
@@ -113,4 +114,61 @@ export interface TenantQuotaStatus {
   current_hour_compositions: number;
   current_hour_simulations: number;
   quota_exceeded: boolean;
+}
+
+export interface TraceListItem {
+  id: number;
+  trace_id: string;
+  node_name: string;
+  input_payload_hash: string;
+  llm_seed: number;
+  llm_temperature: number;
+  is_valid_type: boolean;
+  timestamp: string;
+  error_message?: string;
+  success?: boolean;
+  routed_agent?: string;
+  risk_score?: number;
+  output_summary?: string;
+  anomalies_detected: string[];
+}
+
+export interface PaginatedTracesResponse {
+  traces: TraceListItem[];
+  total_count: number;
+  limit: number;
+  offset: number;
+}
+
+export interface TraceDetailResponse {
+  id: number;
+  trace_id: string;
+  node_name: string;
+  input_payload_hash: string;
+  llm_seed: number;
+  llm_temperature: number;
+  is_valid_type: boolean;
+  timestamp: string;
+  error_message?: string;
+  raw_output: string;
+  parsed_output?: Record<string, any>;
+}
+
+export interface LedgerAnomaly {
+  trace_id: string;
+  node_name: string;
+  timestamp: string;
+  risk_score: number;
+  error: string;
+  summary: string;
+}
+
+export interface LedgerSummaryResponse {
+  total_traces: number;
+  success_rate: number;
+  avg_risk_score: number;
+  anomalies_count: number;
+  consensus_divergence_alerts: number;
+  node_distribution: Record<string, number>;
+  recent_anomalies: LedgerAnomaly[];
 }

@@ -14,12 +14,10 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from datetime import datetime
 from typing import Dict, List, Optional, Set, Tuple
 
 from pi_agent_chain.models import (
     AuthConsistencyReport,
-    AuthInvariant,
     EpistemicState,
     GovernanceViolation,
     NormalizedTrafficPacket,

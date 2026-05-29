@@ -7,8 +7,7 @@ import json
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Tuple
 
-from pydantic import BaseModel, Field, HttpUrl, field_validator
-
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ──────────────────────────────
 #  Primitive Enums (top-level)
@@ -1086,8 +1085,7 @@ class ValidationBoundsConfig(BaseModel):
     max_endpoints_per_shard: int = 64
     max_cross_shard_edges: int = 128
 
-    class Config:
-        frozen = True
+    model_config = ConfigDict(frozen=True)
 
 
 class ShardContext(BaseModel):

@@ -13,7 +13,7 @@ import hashlib
 import json
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
 
@@ -135,7 +135,7 @@ def create_production_router(
     if not FASTAPI_AVAILABLE:
         return None
 
-    from fastapi import APIRouter, Depends, HTTPException, Request, status
+    from fastapi import APIRouter, Depends, HTTPException, status
     from starlette.middleware.base import BaseHTTPMiddleware
 
     router = APIRouter(prefix="/v1")
@@ -161,7 +161,7 @@ def create_production_router(
         try:
             claims = auth_module.decode(token) if hasattr(auth_module, "decode") else {}
         except Exception:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_invalid")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="token_invalid") from None
 
         cid = request.headers.get("X-Correlation-ID", f"corr-{int(time.time() * 1_000_000)}")
         telemetry.logger.set_correlation(cid)
@@ -355,6 +355,54 @@ def create_production_router(
             "total": len(entries),
             "entries": entries,
         }
+
+    # ── Ledger Routes ──────────────────────────────────────
+    from typing import Optional
+
+    from fastapi import Query
+
+    from pi_console.routers.ledger_router import (
+        LedgerSummaryResponse,
+        PaginatedTracesResponse,
+        TraceDetailResponse,
+        get_ledger_summary,
+        get_trace_detail,
+        get_traces,
+    )
+
+    @router.get("/ledger/traces", response_model=PaginatedTracesResponse)
+    async def prod_get_traces(
+        limit: int = Query(50, ge=1, le=200),
+        offset: int = Query(0, ge=0),
+        node_name: Optional[str] = None,
+        success: Optional[bool] = None,
+        routed_agent: Optional[str] = None,
+        search: Optional[str] = None,
+        min_risk: Optional[float] = None,
+        ctx: Dict[str, Any] = Depends(get_security_context),
+    ):
+        return await get_traces(
+            limit=limit,
+            offset=offset,
+            node_name=node_name,
+            success=success,
+            routed_agent=routed_agent,
+            search=search,
+            min_risk=min_risk,
+        )
+
+    @router.get("/ledger/trace/{trace_id}", response_model=TraceDetailResponse)
+    async def prod_get_trace_detail(
+        trace_id: str,
+        ctx: Dict[str, Any] = Depends(get_security_context),
+    ):
+        return await get_trace_detail(trace_id=trace_id)
+
+    @router.get("/ledger/summary", response_model=LedgerSummaryResponse)
+    async def prod_get_ledger_summary(
+        ctx: Dict[str, Any] = Depends(get_security_context),
+    ):
+        return await get_ledger_summary()
 
     @router.get("/health")
     async def health() -> Dict[str, Any]:

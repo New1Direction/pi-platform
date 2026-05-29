@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from pi_semantic_validator.policy import ArchitecturePolicy
 from pi_semantic_validator.models import (
     AuthInvariant,
     DependencyGraph,
@@ -28,6 +27,7 @@ from pi_semantic_validator.models import (
     WorkerResponse,
     WorkerStatus,
 )
+from pi_semantic_validator.policy import ArchitecturePolicy
 from pi_semantic_validator.violations import ViolationBuilder
 
 
@@ -95,7 +95,7 @@ class BlastRadiusValidationPass:
 
         # 1. Dependency expansion limits per graph
         max_graph_iter = min(len(dep_graphs), bounds.max_edges_per_graph)
-        for gidx, graph in enumerate(dep_graphs[:max_graph_iter]):
+        for _gidx, graph in enumerate(dep_graphs[:max_graph_iter]):
             edge_count = len(graph.edges)
             node_count = len(graph.nodes)
             evidence_count += 1
@@ -175,7 +175,7 @@ class BlastRadiusValidationPass:
 
         # 2. FSM depth and cardinality bounds
         max_fsm_iter = min(len(fsms), bounds.max_endpoints_per_trace)
-        for fidx, fsm in enumerate(fsms[:max_fsm_iter]):
+        for _fidx, fsm in enumerate(fsms[:max_fsm_iter]):
             evidence_count += 1
             if fsm.node_count() > fsm.max_nodes:
                 violations.append(
@@ -288,7 +288,7 @@ class BlastRadiusValidationPass:
 
         # Graph depth heuristic: longest simple path (bounded DFS)
         max_graph_iter = min(len(dep_graphs), bounds.max_edges_per_graph)
-        for gidx, graph in enumerate(dep_graphs[:max_graph_iter]):
+        for _gidx, graph in enumerate(dep_graphs[:max_graph_iter]):
             depth = self._graph_depth(graph, bounds.max_blast_radius_depth)
             if depth > limits.max_replay_propagation_depth:
                 violations.append(

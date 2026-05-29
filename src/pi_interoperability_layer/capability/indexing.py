@@ -12,9 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
-
-from pi_extension_governor.manifest import CapabilityClass
+from typing import Dict, List, Optional, Set, Tuple
 
 
 class IndexField(Enum):

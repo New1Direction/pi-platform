@@ -77,9 +77,12 @@ class SpecSynthesizerNode:
                 "schemas": schemas,
             },
         }
+        # One-line SchemaGhost activation
+        from pi_micro_agents.pi_schema_ghost import PiSchemaGhost
+        spec, ghost_errors = PiSchemaGhost().scan(spec)
 
+        errors = self._validate_spec(spec) + ghost_errors
         raw_json = json.dumps(spec, indent=2, sort_keys=True)
-        errors = self._validate_spec(spec)
 
         return SynthesizedSpec(
             spec_json=raw_json,

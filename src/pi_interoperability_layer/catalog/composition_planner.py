@@ -10,12 +10,10 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest
-
 from pi_interoperability_layer.capability.graph import (
-    CompatibilityType,
     CompatibilityVerdict,
     ExtensionCompatibilityGraph,
 )
@@ -102,7 +100,7 @@ class CapabilityCompositionPlanner:
         nodes: List[CompositionNode] = []
         manifest_ids = {m.extension_id for m in manifests}
 
-        for idx, manifest in enumerate(manifests):
+        for _idx, manifest in enumerate(manifests):
             # Find dependencies within the provided set
             dep_inputs: List[str] = []
             for dep in manifest.dependencies:
@@ -215,8 +213,8 @@ class CapabilityCompositionPlanner:
     def _invalid_plan(self, reason: str) -> CompositionPlan:
         return CompositionPlan(
             plan_id="invalid",
-            nodes=tuple(),
-            execution_order=tuple(),
+            nodes=(),
+            execution_order=(),
             valid=False,
             reason=reason,
             plan_hash=hashlib.sha256(reason.encode()).hexdigest(),

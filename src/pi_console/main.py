@@ -10,11 +10,9 @@ from __future__ import annotations
 
 import os
 import time
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
-from fastapi import FastAPI, Header, HTTPException, Request, Response
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -23,9 +21,11 @@ from pi_console.routers import (
     capabilities_router,
     composition_router,
     console_router,
+    ledger_router,
     replay_router,
     session_router,
     tenant_router,
+    transparency_router,
 )
 from pi_console.schemas import ConsoleHealth
 from pi_console.services import CoreAdapter, QuotaTracker
@@ -104,6 +104,8 @@ def create_app() -> FastAPI:
     app.include_router(capabilities_router.router, prefix="/api/v1/capabilities", tags=["Capabilities"])
     app.include_router(tenant_router.router, prefix="/api/v1/tenant", tags=["Tenant"])
     app.include_router(audit_router.router, prefix="/api/v1/audit", tags=["Audit"])
+    app.include_router(ledger_router.router, prefix="/api/v1/ledger", tags=["Ledger"])
+    app.include_router(transparency_router.router, prefix="/api/v1/transparency", tags=["Transparency"])
 
     @app.get("/health", response_model=ConsoleHealth)
     async def health() -> ConsoleHealth:

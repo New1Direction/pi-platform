@@ -6,11 +6,10 @@ Deterministic propagation risk computation.
 from __future__ import annotations
 
 import json
-from pathlib import Path
 
 import click
 
-from pi_semantic_radius.models import TopologyGraph, TopologyNode, TopologyEdge
+from pi_semantic_radius.models import TopologyGraph
 from pi_semantic_radius.runtime import RadiusRuntime
 
 

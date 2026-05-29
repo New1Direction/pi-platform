@@ -4,32 +4,32 @@ Governed extension catalog, compatibility graph, ingestion pipeline,
 semantic indexing, and distributed shard coordination.
 """
 
-from pi_interoperability_layer.capability.registry import (
-    SemanticCapabilityRegistry,
-    RegistryEntry,
-    RegistryEntryStatus,
-    RegistryFingerprints,
-    TrustScore,
-    TrustScoringBasis,
-)
 from pi_interoperability_layer.capability.graph import (
-    ExtensionCompatibilityGraph,
+    CompatibilityCheck,
     CompatibilityEdge,
     CompatibilityType,
-    CompatibilityCheck,
     CompatibilityVerdict,
+    ExtensionCompatibilityGraph,
+)
+from pi_interoperability_layer.capability.indexing import (
+    IndexEntry,
+    IndexField,
+    SemanticIndexWorker,
+    SemanticQueryWorker,
 )
 from pi_interoperability_layer.capability.ingestion import (
     GovernedIngestionPipeline,
+    IngestionPhase,
     IngestionReceipt,
     IngestionStep,
-    IngestionPhase,
 )
-from pi_interoperability_layer.capability.indexing import (
-    SemanticIndexWorker,
-    SemanticQueryWorker,
-    IndexEntry,
-    IndexField,
+from pi_interoperability_layer.capability.registry import (
+    RegistryEntry,
+    RegistryEntryStatus,
+    RegistryFingerprints,
+    SemanticCapabilityRegistry,
+    TrustScore,
+    TrustScoringBasis,
 )
 
 __all__ = [

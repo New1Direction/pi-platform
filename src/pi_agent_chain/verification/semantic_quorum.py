@@ -19,8 +19,7 @@ import hashlib
 import json
 import math
 from collections import defaultdict
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from pi_agent_chain.artifact_registry import ArtifactRegistry, SemanticArtifact
 from pi_agent_chain.models import (
@@ -30,8 +29,8 @@ from pi_agent_chain.models import (
     SemanticClaim,
     SemanticConflictSet,
     SemanticField,
-    SemanticIRTrace,
     SemanticIntersection,
+    SemanticIRTrace,
     SemanticQuorumReport,
     ValidationBoundsConfig,
 )
@@ -346,7 +345,7 @@ class SemanticQuorum:
         if len(types) > 1:
             conflict_type = "TYPE_MISMATCH"
             desc = f"Conflicting types {types} at path {property_path}. Preserved. Not resolved."
-        elif len(set(c.authority_weight for c in residuals)) > 1:
+        elif len({c.authority_weight for c in residuals}) > 1:
             conflict_type = "AUTHORITY_WEIGHT_COLLISION"
             desc = f"Same type but authority-weight divergence at path {property_path}."
         else:

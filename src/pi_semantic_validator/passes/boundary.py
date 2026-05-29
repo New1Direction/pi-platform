@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
 
-from pi_semantic_validator.policy import ArchitecturePolicy
 from pi_semantic_validator.models import (
     DependencyGraph,
     GovernanceViolation,
@@ -23,7 +22,7 @@ from pi_semantic_validator.models import (
     WorkerResponse,
     WorkerStatus,
 )
-from pi_semantic_validator.policy import TrustZone, TrustBoundaryRule
+from pi_semantic_validator.policy import ArchitecturePolicy, TrustBoundaryRule
 from pi_semantic_validator.violations import ViolationBuilder
 
 
@@ -56,7 +55,7 @@ class BoundaryValidationPass:
                     )
 
         max_iter = min(len(dep_graphs), bounds.max_edges_per_graph)
-        for gidx, graph in enumerate(dep_graphs[:max_iter]):
+        for _gidx, graph in enumerate(dep_graphs[:max_iter]):
             edges = graph.edges
             max_edge_iter = min(len(edges), bounds.max_edges_per_graph)
             for eidx, edge in enumerate(edges[:max_edge_iter]):
@@ -136,7 +135,7 @@ class BoundaryValidationPass:
         for tidx, trace_raw in enumerate(traces[:max_trace_iter]):
             endpoint = trace_raw.get("endpoint_template", "")
             method = trace_raw.get("method", "")
-            fields = trace_raw.get("fields", [])
+            trace_raw.get("fields", [])
             layer = policy.get_layer_for_endpoint(endpoint)
 
             # Detect stateful mutation by method or mutation classification in fields

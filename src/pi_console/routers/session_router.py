@@ -1,6 +1,7 @@
 """Session router: create, get, list, terminate."""
 
 from fastapi import APIRouter, HTTPException
+
 from pi_console.schemas import ConsoleSession
 from pi_console.services import ConsoleSessionStore
 

@@ -16,7 +16,7 @@ import json
 import time
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from pi_semantic_validator.models import (
     EpistemicState,
@@ -27,15 +27,15 @@ from pi_semantic_validator.models import (
     WorkerResponse,
     WorkerStatus,
 )
-from pi_semantic_validator.policy import ArchitecturePolicy, load_policy
-from pi_semantic_validator.violations import ViolationBuilder
+from pi_semantic_validator.passes.blast_radius import BlastRadiusValidationPass
 
 # Pass imports (will be wired below)
 from pi_semantic_validator.passes.boundary import BoundaryValidationPass
 from pi_semantic_validator.passes.layer import LayerValidationPass
 from pi_semantic_validator.passes.mutation_drift import MutationDriftValidationPass
 from pi_semantic_validator.passes.replay_safety import ReplaySafetyValidationPass
-from pi_semantic_validator.passes.blast_radius import BlastRadiusValidationPass
+from pi_semantic_validator.policy import ArchitecturePolicy, load_policy
+from pi_semantic_validator.violations import ViolationBuilder
 
 
 class ValidatorRuntime:
