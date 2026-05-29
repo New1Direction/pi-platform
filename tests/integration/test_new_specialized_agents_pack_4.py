@@ -370,9 +370,13 @@ def test_docker_compose_security_sentry():
 def test_git_secret_leak_sentry():
     agent = PiGitSecretLeakSentry()
 
-    code_vuln = """
+    # Synthetic secret built at runtime: matches the detector's sk_live_[a-zA-Z0-9]{24}
+    # pattern but is NOT a real credential, and no scannable literal lands in this file
+    # (avoids re-tripping GitHub secret scanning, which is why the original was scrubbed).
+    fake_secret = "sk_live_" + "x" * 24
+    code_vuln = f"""
     # Unsafe Stripe key hardcoded
-    api_key = "STRIPE_LIVE_KEY_SCRUBBED"
+    api_key = "{fake_secret}"
     """
     res_vuln = agent.audit_secrets(GitSecretLeakInput(file_path="config.py", file_content=code_vuln))
     assert not res_vuln.is_secure
@@ -481,7 +485,7 @@ def test_strict_mode_warn_fallbacks(monkeypatch):
 
     # Git Secret Warn Fallback
     agent_secret = PiGitSecretLeakSentry()
-    code_vuln_sec = 'key = "STRIPE_LIVE_KEY_SCRUBBED"'
+    code_vuln_sec = 'key = "sk_live_' + "x" * 24 + '"'  # synthetic; matches detector, no scannable literal
     res_sec = agent_secret.audit_secrets(GitSecretLeakInput(file_path="c.py", file_content=code_vuln_sec))
     assert res_sec.is_secure
     assert res_sec.status == "WARN_GIT_SECRET"
