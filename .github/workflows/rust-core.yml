@@ -1,0 +1,33 @@
+name: Rust Core — build & test
+
+# Runs only when the Rust core changes, so it stays independent of the Python
+# platform CI. Tests the pure-Rust crates (the agent core + event fabric); the
+# pi-py PyO3 cdylib is intentionally excluded here — it needs Python linkage and
+# is exercised by the parity harness, not by `cargo test`.
+on:
+  push:
+    paths:
+      - "rust/**"
+      - ".github/workflows/rust-core.yml"
+  pull_request:
+    paths:
+      - "rust/**"
+      - ".github/workflows/rust-core.yml"
+
+jobs:
+  rust-core:
+    name: Rust core (cargo build + test)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Build pure-Rust cores (release)
+        run: cargo build -p pi-agents -p pi-event-fabric --release
+      - name: Test pure-Rust cores
+        run: cargo test -p pi-agents -p pi-event-fabric
