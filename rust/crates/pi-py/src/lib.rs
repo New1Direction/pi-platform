@@ -142,6 +142,28 @@ fn list_agents() -> Vec<String> {
     pi_agents::list_agents()
 }
 
+/// Run many agents against ONE shared input in a single boundary crossing.
+///
+/// `names_json` is a JSON array of agent names; `input_json` is serialized once
+/// on the Python side and reused for every agent (each agent ignores fields it
+/// doesn't declare). Returns a JSON object `{name: output}` so the caller pays a
+/// single json.dumps + one PyO3 call + one json.loads regardless of agent count
+/// — amortizing the per-call boundary the benchmark showed dominates cheap agents.
+#[pyfunction]
+fn run_agents(names_json: &str, input_json: &str) -> PyResult<String> {
+    let names: Vec<String> =
+        serde_json::from_str(names_json).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let mut out = serde_json::Map::with_capacity(names.len());
+    for name in names {
+        let v = match pi_agents::run_agent(&name, input_json) {
+            Ok(s) => serde_json::from_str(&s).unwrap_or(serde_json::Value::Null),
+            Err(e) => serde_json::json!({ "__error__": e }),
+        };
+        out.insert(name, v);
+    }
+    Ok(serde_json::Value::Object(out).to_string())
+}
+
 fn json_dispatch(
     f: fn(&str, &serde_json::Value) -> Result<serde_json::Value, String>,
     op: &str,
@@ -174,6 +196,7 @@ fn gate_op(op: &str, args_json: &str) -> PyResult<String> {
 #[pymodule]
 fn pi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_agent, m)?)?;
+    m.add_function(wrap_pyfunction!(run_agents, m)?)?;
     m.add_function(wrap_pyfunction!(list_agents, m)?)?;
     m.add_function(wrap_pyfunction!(schema_op, m)?)?;
     m.add_function(wrap_pyfunction!(governance_op, m)?)?;

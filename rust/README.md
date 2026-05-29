@@ -73,16 +73,27 @@ Release build, realistic ~120-line input, **integration-inclusive** (Python
 | Solidity flash-loan | 20 µs | 14 µs | **1.5×** |
 | JWT-none sentry | 12 µs | 26 µs | **0.47× (slower!)** |
 
-**Median ~4×, up to 12.5×.** Two honest takeaways:
-1. **Compute-heavy agents win big** (regex/entropy/multi-pattern). The PyO3+JSON
-   crossing itself is cheap — **0.32 µs/call**.
-2. **Trivial agents regress** (JWT): the per-call Python-side `json.dumps` of the
-   payload dominates when there's almost no compute to win back. → Port the heavy
-   agents; for the rest, **amortize the boundary** by serializing the source once
-   and running the whole suite in Rust per input (the consensus fabric runs
-   hundreds of agents per request) — a batch `run_agents()` would deliver the full
-   speedup. **Always benchmark `--release`** (debug Rust was ~20× slower, inverting
-   every result).
+**Per-agent: median ~4×, up to 12.5×** (compute-heavy regex/entropy/multi-pattern).
+Trivial agents (JWT) can regress because there's no compute to outweigh the fixed
+cost. The PyO3+JSON crossing itself is cheap — **0.32 µs/call**.
+
+**Full agent fan-out (`fanout_benchmark.py`) — the number that matters:**
+running *all 203* parity-matched agents on one real artifact:
+
+| | per fan-out | per agent | speedup |
+|---|--:|--:|--:|
+| Python | 15.7 ms | 77 µs | 1.00× |
+| **Rust** | **7.4 ms** | **36 µs** | **2.12×** |
+
+**Honest corrections the benchmark forced** (my first instinct was wrong):
+- **~2.1× end-to-end**, not 4× — Python's validator is `pydantic-core` (itself
+  Rust), a strong baseline, so aggregate gains are modest vs. cherry-picked agents.
+- **Batching to "amortize the boundary" buys ~nothing** — the boundary is already
+  0.3 µs. And a *naive* batch over a unioned 600 KB input is actively **slower**
+  (`batch_benchmark.py`, 0.42×) because every agent re-parses the bloat. Dispatch
+  focused per-agent inputs instead.
+- **Always benchmark `--release`** — debug Rust was ~20× slower and inverted every
+  result (JWT looked like 0.05×).
 
 ## Governance kernel (`pi_agent_chain`) — fail-closed gates
 
