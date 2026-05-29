@@ -11,6 +11,8 @@
 
 pub mod canonical;
 pub mod event;
+pub mod governance_compiler;
+pub mod schema_evolution;
 pub mod storage;
 
 pub use canonical::dumps_canonical;

@@ -42,8 +42,21 @@ is *genuinely* deterministic — and the parity harness feeds both sides the sam
 clock to prove byte-identical hashing. The port is arguably more correct than
 the original. (Saved as a project memory.)
 
-Run: `PYTHONPATH=.:../../src python event_fabric_parity.py` and
-`… python event_fabric_fuzz.py 2000 --floats` (after `maturin develop`).
+Two more event-fabric modules' **deterministic cores** are ported and parity-verified
+(`schema_governance_parity.py`, byte-identical incl. SHA-256):
+- `schema/evolution.py` — schema fingerprinting, compatibility diff/validation,
+  migration-path BFS, data migration (`pi_core.schema_op`).
+- `governance/compiler.py` — rule/compiled hashing, the operator evaluator, and the
+  fail-closed priority decision engine (`pi_core.governance_op`).
+
+Each surfaced a real parity subtlety: schema violations interpolate a `str`-Enum
+member, which on Python 3.9 renders as `"SchemaChangeType.NAME"` (not the value).
+The SQLite registries (CRUD with `datetime('now')` timestamps) are non-deterministic
+persistence plumbing, scoped out. Remaining event-fabric files (`ordering/shard`,
+`bus/semantic_fabric`, `replay/cross_version`) build on these and are follow-on.
+
+Run: `PYTHONPATH=.:../../src python event_fabric_parity.py`,
+`… event_fabric_fuzz.py 2000 --floats`, `… schema_governance_parity.py` (after `maturin develop`).
 
 ## Status — 205 agents ported, fully verified
 

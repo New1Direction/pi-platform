@@ -142,10 +142,35 @@ fn list_agents() -> Vec<String> {
     pi_agents::list_agents()
 }
 
+fn json_dispatch(
+    f: fn(&str, &serde_json::Value) -> Result<serde_json::Value, String>,
+    op: &str,
+    args_json: &str,
+) -> PyResult<String> {
+    let args: serde_json::Value =
+        serde_json::from_str(args_json).map_err(|e| PyValueError::new_err(e.to_string()))?;
+    let out = f(op, &args).map_err(PyValueError::new_err)?;
+    Ok(out.to_string())
+}
+
+/// Deterministic schema-evolution ops (fingerprint / validate / find_path / migrate_data).
+#[pyfunction]
+fn schema_op(op: &str, args_json: &str) -> PyResult<String> {
+    json_dispatch(pi_event_fabric::schema_evolution::dispatch, op, args_json)
+}
+
+/// Deterministic governance ops (rule_hash / compiled_hash / evaluate).
+#[pyfunction]
+fn governance_op(op: &str, args_json: &str) -> PyResult<String> {
+    json_dispatch(pi_event_fabric::governance_compiler::dispatch, op, args_json)
+}
+
 #[pymodule]
 fn pi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_agent, m)?)?;
     m.add_function(wrap_pyfunction!(list_agents, m)?)?;
+    m.add_function(wrap_pyfunction!(schema_op, m)?)?;
+    m.add_function(wrap_pyfunction!(governance_op, m)?)?;
     m.add_class::<EventBus>()?;
     m.add("__doc__", "PI Platform deterministic agent core (Rust/PyO3).")?;
     Ok(())
