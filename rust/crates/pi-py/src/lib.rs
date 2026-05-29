@@ -131,8 +131,12 @@ impl EventBus {
 /// `input_json` is the serialized input model; the return value is the
 /// serialized output model. Raises `ValueError` on unknown agent or bad input.
 #[pyfunction]
-fn run_agent(name: &str, input_json: &str) -> PyResult<String> {
-    pi_agents::run_agent(name, input_json)
+fn run_agent(py: Python<'_>, name: &str, input_json: &str) -> PyResult<String> {
+    // Release the GIL during the pure-Rust scan so concurrent calls actually
+    // parallelize across cores (Python ThreadPoolExecutor can't — the GIL
+    // serializes CPU-bound work; this is the consensus fabric's hot path).
+    let (name, input) = (name.to_string(), input_json.to_string());
+    py.allow_threads(move || pi_agents::run_agent(&name, &input))
         .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
@@ -150,18 +154,22 @@ fn list_agents() -> Vec<String> {
 /// single json.dumps + one PyO3 call + one json.loads regardless of agent count
 /// — amortizing the per-call boundary the benchmark showed dominates cheap agents.
 #[pyfunction]
-fn run_agents(names_json: &str, input_json: &str) -> PyResult<String> {
+fn run_agents(py: Python<'_>, names_json: &str, input_json: &str) -> PyResult<String> {
     let names: Vec<String> =
         serde_json::from_str(names_json).map_err(|e| PyValueError::new_err(e.to_string()))?;
-    let mut out = serde_json::Map::with_capacity(names.len());
-    for name in names {
-        let v = match pi_agents::run_agent(&name, input_json) {
-            Ok(s) => serde_json::from_str(&s).unwrap_or(serde_json::Value::Null),
-            Err(e) => serde_json::json!({ "__error__": e }),
-        };
-        out.insert(name, v);
-    }
-    Ok(serde_json::Value::Object(out).to_string())
+    let input = input_json.to_string();
+    let json = py.allow_threads(move || {
+        let mut out = serde_json::Map::with_capacity(names.len());
+        for name in names {
+            let v = match pi_agents::run_agent(&name, &input) {
+                Ok(s) => serde_json::from_str(&s).unwrap_or(serde_json::Value::Null),
+                Err(e) => serde_json::json!({ "__error__": e }),
+            };
+            out.insert(name, v);
+        }
+        serde_json::Value::Object(out).to_string()
+    });
+    Ok(json)
 }
 
 fn json_dispatch(

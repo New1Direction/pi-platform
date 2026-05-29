@@ -85,6 +85,20 @@ running *all 203* parity-matched agents on one real artifact:
 | Python | 15.7 ms | 77 µs | 1.00× |
 | **Rust** | **7.4 ms** | **36 µs** | **2.12×** |
 
+**The decisive number — concurrent fabric (`concurrency_benchmark.py`):** the real
+consensus fabric runs CPU-bound scans under a `ThreadPoolExecutor`. Python's GIL
+can't parallelize CPU work; the Rust agents release the GIL and scale across cores:
+
+| workers | Python (GIL) | Rust (no-GIL) | speedup |
+|--:|--:|--:|--:|
+| 1 | 196 ms | 118 ms | 1.66× |
+| 4 | 221 ms | 58 ms | 3.83× |
+| 8 | 243 ms | **45 ms** | **5.45×** |
+
+Python gets *slower* with more threads (GIL contention); Rust scales with cores.
+**~5× on the fabric's real shape, growing with hardware** — this is the migration's
+actual justification: multi-core parallelism Python structurally cannot deliver.
+
 **Honest corrections the benchmark forced** (my first instinct was wrong):
 - **~2.1× end-to-end**, not 4× — Python's validator is `pydantic-core` (itself
   Rust), a strong baseline, so aggregate gains are modest vs. cherry-picked agents.
