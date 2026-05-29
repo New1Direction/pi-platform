@@ -18,12 +18,12 @@ Rust core (pi-agents)  ──maturin/PyO3──▶  Python module `pi_core`  ◀
 | `crates/pi-py/` | The single PyO3 crate. Builds a `cdylib` named `pi_core` exposing `run_agent(name, input_json)` and `list_agents()`. |
 | `parity/` | The equivalence harness: `test_parity.py` (curated samples), `fuzz_parity.py` (independent differential fuzzer), and one `specs/<agent>.py` per ported agent. |
 
-## Status — 96 agents ported, fully verified
+## Status — 131 agents ported, fully verified
 
-- **96** micro-agents ported to Rust (95 via three parallel orchestration batches + 1 hand-built template).
-- **348** Rust unit tests pass — deterministically, including under forced 16-thread parallelism.
-- **955** curated parity tests pass — every ported agent is byte-identical to its Python original across hand-picked edge cases and env-var branches.
-- **48,000** differential-fuzz comparisons per run — **0** divergences on inputs the porters never saw (CRLF / lone `\r` / `U+2028` / oversized / Unicode), including float-stress on the Shannon-entropy agent.
+- **131** micro-agents ported to Rust (four parallel orchestration batches + 2 hand-built: the template and one whose subagent failed to write files).
+- **484** Rust unit tests pass — deterministically, including under forced 16-thread parallelism.
+- **1,335** curated parity tests pass — every ported agent is byte-identical to its Python original across hand-picked edge cases and env-var branches.
+- **65,500** differential-fuzz comparisons per run — **0** divergences on inputs the porters never saw (CRLF / lone `\r` / `U+2028` / oversized / Unicode), including float-stress on the Shannon-entropy agent.
 
 Equivalence — not "it compiles" — is the gate.
 
@@ -32,7 +32,13 @@ Equivalence — not "it compiles" — is the gate.
 > 1. **Env-var test isolation.** Agents reading `PI_*_STRICT_MODE` need their unit tests
 >    serialized (`serial_test::#[serial]`) — `cargo test` runs parallel threads and a test
 >    mutating a process-global env var leaks into siblings (flaky, never a real port bug).
->    5 agents needed this; bake `#[serial]` into the template for any env-reading agent.
+>    10 agents needed this; it's now baked into the orchestration prompt so new env-reading
+>    agents get `#[serial]` automatically.
+>
+> 4. **Config-file fallback.** `pi_llm_system_prompt_drift_sentry`'s strict-mode resolver
+>    reads `~/.antigravitycli/config.json` then a `__file__`-relative repo config. The latter
+>    path isn't reproducible from a compiled lib; in this repo the key is absent so it resolves
+>    to the `True` default — the Rust port replicates env + home-config and documents the rest.
 >
 > 2. **Non-deterministic originals.** `pi_threat_model_generator` builds a list via
 >    `list(set(...))` — order is hash-randomized per CPython process, so byte-identical
