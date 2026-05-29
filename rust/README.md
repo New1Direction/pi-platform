@@ -58,6 +58,32 @@ persistence plumbing, scoped out. Remaining event-fabric files (`ordering/shard`
 Run: `PYTHONPATH=.:../../src python event_fabric_parity.py`,
 `… event_fabric_fuzz.py 2000 --floats`, `… schema_governance_parity.py` (after `maturin develop`).
 
+## Performance — measured, not assumed (`parity/benchmark.py`)
+
+The migration's whole justification is speed; it was unmeasured until now.
+Release build, realistic ~120-line input, **integration-inclusive** (Python
+`json.dumps` → `pi_core.run_agent` → `json.loads`):
+
+| Agent | Python | Rust (+boundary) | Speedup |
+|-------|-------:|-----------------:|--------:|
+| LLM prompt injection | 235 µs | 19 µs | **12.5×** |
+| Hardcoded secret | 106 µs | 19 µs | **5.5×** |
+| Sensitive data scanner | 187 µs | 47 µs | **4.0×** |
+| Git entropy | 29 µs | 14 µs | **2.1×** |
+| Solidity flash-loan | 20 µs | 14 µs | **1.5×** |
+| JWT-none sentry | 12 µs | 26 µs | **0.47× (slower!)** |
+
+**Median ~4×, up to 12.5×.** Two honest takeaways:
+1. **Compute-heavy agents win big** (regex/entropy/multi-pattern). The PyO3+JSON
+   crossing itself is cheap — **0.32 µs/call**.
+2. **Trivial agents regress** (JWT): the per-call Python-side `json.dumps` of the
+   payload dominates when there's almost no compute to win back. → Port the heavy
+   agents; for the rest, **amortize the boundary** by serializing the source once
+   and running the whole suite in Rust per input (the consensus fabric runs
+   hundreds of agents per request) — a batch `run_agents()` would deliver the full
+   speedup. **Always benchmark `--release`** (debug Rust was ~20× slower, inverting
+   every result).
+
 ## Governance kernel (`pi_agent_chain`) — fail-closed gates
 
 A verified start on the second stateful core. The two deterministic **fail-closed
