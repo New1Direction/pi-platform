@@ -43,9 +43,7 @@ class SnapshotRegistry(BaseModel):
     # Global sequence counter for deterministic ordering
     _sequence_counter: int = 0
     # Default retention policy
-    default_retention: RetentionPolicy = Field(
-        default_factory=lambda: RetentionPolicy(policy_id="default")
-    )
+    default_retention: RetentionPolicy = Field(default_factory=lambda: RetentionPolicy(policy_id="default"))
     # Registry hash for integrity verification
     registry_hash: str = ""
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -224,9 +222,7 @@ class SnapshotRegistry(BaseModel):
     def snapshot_count(self, tenant_id: Optional[str] = None) -> int:
         if tenant_id is None:
             return len(self._artifacts)
-        return sum(
-            1 for a in self._artifacts.values() if a.tenant_id == tenant_id
-        )
+        return sum(1 for a in self._artifacts.values() if a.tenant_id == tenant_id)
 
 
 class ClockOrderViolationError(Exception):

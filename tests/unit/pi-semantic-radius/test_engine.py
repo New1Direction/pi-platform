@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from pi_semantic_radius.models import TopologyGraph, TopologyNode, TopologyEdge
 from pi_semantic_radius.engine import BlastRadiusEngine
-from pi_semantic_radius.runtime import RadiusRuntime
-from pi_semantic_radius.passes.propagation_risk import PropagationRiskPass
-from pi_semantic_radius.passes.topology_expansion import TopologyExpansionPass
+from pi_semantic_radius.models import TopologyEdge, TopologyGraph, TopologyNode
 from pi_semantic_radius.passes.auth_boundary import AuthBoundaryPass
-from pi_semantic_radius.passes.replay_hazard import ReplayHazardPass
 from pi_semantic_radius.passes.mutation_impact import MutationImpactPass
+from pi_semantic_radius.passes.propagation_risk import PropagationRiskPass
+from pi_semantic_radius.passes.replay_hazard import ReplayHazardPass
+from pi_semantic_radius.passes.topology_expansion import TopologyExpansionPass
+from pi_semantic_radius.runtime import RadiusRuntime
 
 
 def test_topology_graph_fanout() -> None:
@@ -92,7 +92,8 @@ def test_engine_compute_score() -> None:
 
 
 def test_engine_evaluate_report_limits() -> None:
-    from pi_semantic_radius.models import RiskScore, RiskReport
+    from pi_semantic_radius.models import RiskReport, RiskScore
+
     engine = BlastRadiusEngine(max_dependencies_per_endpoint=2)
     report = RiskReport(
         report_id="r1",

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -41,9 +40,9 @@ class PiSoliditySelfdestructCodeEraseSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check for selfdestruct or suicide
             if "selfdestruct" in body or "suicide" in body:
                 vulnerable_funcs.append(name)
@@ -70,5 +69,5 @@ class PiSoliditySelfdestructCodeEraseSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

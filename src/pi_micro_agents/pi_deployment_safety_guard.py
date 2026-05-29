@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-from typing import List
 
 from pydantic import BaseModel, Field
 
@@ -29,7 +28,9 @@ def is_strict_mode() -> bool:
 class DeploymentSafetyInput(BaseModel):
     deployment_target: str = Field(..., description="Target deployment stage or environment")
     post_remediation_code: str = Field(..., description="Code after patches have been auto-applied")
-    health_check_endpoint: str = Field(default="http://localhost:8080/health", description="System health verification URL")
+    health_check_endpoint: str = Field(
+        default="http://localhost:8080/health", description="System health verification URL"
+    )
 
 
 class DeploymentSafetyOutput(BaseModel):
@@ -65,5 +66,5 @@ class PiDeploymentSafetyGuard:
             deployment_allowed=deployment_allowed,
             post_deploy_checks_passed=post_deploy_checks_passed,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -57,14 +57,14 @@ class PiSolidityReentrancyMutexSentry:
         flagged_findings = []
 
         # Find state variable declaration of custom boolean locks
-        mutex_decl_match = re.search(r'\bbool\s+(private|public|internal)?\s*(locked|inSwap|reentrancyLock)\b', code)
-        
+        mutex_decl_match = re.search(r"\bbool\s+(private|public|internal)?\s*(locked|inSwap|reentrancyLock)\b", code)
+
         if mutex_decl_match:
             # Found custom rolled boolean reentrancy locks
             # Mode 1: Check if they toggle it manually using a boolean state variable
             # Booleans use expensive storage slots (20k gas to set to true, 5k to reset).
-            manual_toggle_match = re.search(r'(locked|inSwap|reentrancyLock)\s*=\s*(true|false)', code)
-            
+            manual_toggle_match = re.search(r"(locked|inSwap|reentrancyLock)\s*=\s*(true|false)", code)
+
             if manual_toggle_match:
                 vulnerable_funcs.append("file_header")
                 flagged_findings.append(
@@ -90,5 +90,5 @@ class PiSolidityReentrancyMutexSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

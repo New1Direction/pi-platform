@@ -54,13 +54,13 @@ class PiLLMSystemPromptDriftSentry:
         flagged_findings = []
 
         drift_patterns = [
-            (r'ignore\s+previous\s+instructions', "Active request to ignore system rules"),
-            (r'ignore\s+above', "Request to bypass prior contextual bounds"),
-            (r'system\s*:\s*(?:override|instructions)', "Imitation of system instruction boundaries"),
-            (r'you\s+are\s+now\s+a\b', "Attempted persona override injection"),
-            (r'your\s+new\s+instructions\s+are', "Direct system instruction rewriting attempt"),
-            (r'developer\s+mode\b', "Attempted developer mode bypass emulation"),
-            (r'dan\s+mode\b', "Do-Anything-Now constraint bypass injection")
+            (r"ignore\s+previous\s+instructions", "Active request to ignore system rules"),
+            (r"ignore\s+above", "Request to bypass prior contextual bounds"),
+            (r"system\s*:\s*(?:override|instructions)", "Imitation of system instruction boundaries"),
+            (r"you\s+are\s+now\s+a\b", "Attempted persona override injection"),
+            (r"your\s+new\s+instructions\s+are", "Direct system instruction rewriting attempt"),
+            (r"developer\s+mode\b", "Attempted developer mode bypass emulation"),
+            (r"dan\s+mode\b", "Do-Anything-Now constraint bypass injection"),
         ]
 
         p_lower = prompt.lower()
@@ -81,8 +81,5 @@ class PiLLMSystemPromptDriftSentry:
                 is_secure = True
 
         return SystemPromptDriftOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

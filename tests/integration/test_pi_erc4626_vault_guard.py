@@ -1,7 +1,5 @@
 """Integration tests for PiERC4626VaultGuard — tokenized vault compliance agent."""
 
-import pytest
-
 from pi_micro_agents.pi_erc4626_vault_guard import (
     PiERC4626VaultGuard,
     VaultGuardInput,
@@ -159,14 +157,16 @@ contract IncompleteVault {
 
 # ── Tests: Mode 1 — Attack Surface Detection ───────────────────────────────
 
-class TestERC4626VaultGuardMode1:
 
+class TestERC4626VaultGuardMode1:
     def test_compliant_vault_passes(self) -> None:
         agent = PiERC4626VaultGuard()
-        result = agent.audit_vault(VaultGuardInput(
-            file_path="vault.sol",
-            solidity_code=COMPLIANT_VAULT,
-        ))
+        result = agent.audit_vault(
+            VaultGuardInput(
+                file_path="vault.sol",
+                solidity_code=COMPLIANT_VAULT,
+            )
+        )
         assert isinstance(result, VaultGuardOutput)
         assert result.is_compliant is True
         assert result.attack_vectors == []
@@ -175,30 +175,36 @@ class TestERC4626VaultGuardMode1:
 
     def test_inflation_attack_detected(self) -> None:
         agent = PiERC4626VaultGuard()
-        result = agent.audit_vault(VaultGuardInput(
-            file_path="vault.sol",
-            solidity_code=INFLATION_VULNERABLE_VAULT,
-        ))
+        result = agent.audit_vault(
+            VaultGuardInput(
+                file_path="vault.sol",
+                solidity_code=INFLATION_VULNERABLE_VAULT,
+            )
+        )
         assert isinstance(result, VaultGuardOutput)
         assert any("inflation" in v.lower() or "virtual" in v.lower() for v in result.attack_vectors)
         assert result.risk_score >= 80.0
 
     def test_rounding_errors_detected(self) -> None:
         agent = PiERC4626VaultGuard()
-        result = agent.audit_vault(VaultGuardInput(
-            file_path="vault.sol",
-            solidity_code=ROUNDING_ERROR_VAULT,
-        ))
+        result = agent.audit_vault(
+            VaultGuardInput(
+                file_path="vault.sol",
+                solidity_code=ROUNDING_ERROR_VAULT,
+            )
+        )
         assert isinstance(result, VaultGuardOutput)
         assert len(result.rounding_violations) > 0
         assert any("convertToShares" in v or "convertToAssets" in v for v in result.rounding_violations)
 
     def test_output_is_pydantic_model(self) -> None:
         agent = PiERC4626VaultGuard()
-        result = agent.audit_vault(VaultGuardInput(
-            file_path="v.sol",
-            solidity_code=COMPLIANT_VAULT,
-        ))
+        result = agent.audit_vault(
+            VaultGuardInput(
+                file_path="v.sol",
+                solidity_code=COMPLIANT_VAULT,
+            )
+        )
         assert isinstance(result, VaultGuardOutput)
         assert hasattr(result, "is_compliant")
         assert hasattr(result, "attack_vectors")
@@ -210,19 +216,20 @@ class TestERC4626VaultGuardMode1:
 
 # ── Tests: Mode 2 — Interface Compliance ──────────────────────────────────
 
-class TestERC4626VaultGuardMode2:
 
+class TestERC4626VaultGuardMode2:
     def test_missing_functions_flagged(self) -> None:
         agent = PiERC4626VaultGuard()
-        result = agent.audit_vault(VaultGuardInput(
-            file_path="vault.sol",
-            solidity_code=INCOMPLETE_INTERFACE,
-        ))
+        result = agent.audit_vault(
+            VaultGuardInput(
+                file_path="vault.sol",
+                solidity_code=INCOMPLETE_INTERFACE,
+            )
+        )
         assert isinstance(result, VaultGuardOutput)
         assert len(result.missing_functions) > 0
         # Should flag many missing functions
-        assert any("totalAssets" in f or "convertToShares" in f or "asset" in f
-                   for f in result.missing_functions)
+        assert any("totalAssets" in f or "convertToShares" in f or "asset" in f for f in result.missing_functions)
 
     def test_risk_score_bounded(self) -> None:
         for code in [COMPLIANT_VAULT, INFLATION_VULNERABLE_VAULT, ROUNDING_ERROR_VAULT]:
@@ -232,23 +239,27 @@ class TestERC4626VaultGuardMode2:
 
     def test_compliant_vault_no_missing_functions(self) -> None:
         agent = PiERC4626VaultGuard()
-        result = agent.audit_vault(VaultGuardInput(
-            file_path="vault.sol",
-            solidity_code=COMPLIANT_VAULT,
-        ))
+        result = agent.audit_vault(
+            VaultGuardInput(
+                file_path="vault.sol",
+                solidity_code=COMPLIANT_VAULT,
+            )
+        )
         assert result.missing_functions == []
 
 
 # ── Tests: Dual-Use & Serialization ───────────────────────────────────────
 
-class TestERC4626VaultGuardDualUse:
 
+class TestERC4626VaultGuardDualUse:
     def test_model_dump_serializable(self) -> None:
         agent = PiERC4626VaultGuard()
-        result = agent.audit_vault(VaultGuardInput(
-            file_path="v.sol",
-            solidity_code=COMPLIANT_VAULT,
-        ))
+        result = agent.audit_vault(
+            VaultGuardInput(
+                file_path="v.sol",
+                solidity_code=COMPLIANT_VAULT,
+            )
+        )
         d = result.model_dump()
         assert "is_compliant" in d
         assert "risk_score" in d
@@ -263,10 +274,6 @@ class TestERC4626VaultGuardDualUse:
 
     def test_risk_score_higher_for_critical_findings(self) -> None:
         agent = PiERC4626VaultGuard()
-        clean_result = agent.audit_vault(VaultGuardInput(
-            file_path="v.sol", solidity_code=COMPLIANT_VAULT
-        ))
-        vuln_result = agent.audit_vault(VaultGuardInput(
-            file_path="v.sol", solidity_code=INFLATION_VULNERABLE_VAULT
-        ))
+        clean_result = agent.audit_vault(VaultGuardInput(file_path="v.sol", solidity_code=COMPLIANT_VAULT))
+        vuln_result = agent.audit_vault(VaultGuardInput(file_path="v.sol", solidity_code=INFLATION_VULNERABLE_VAULT))
         assert vuln_result.risk_score > clean_result.risk_score

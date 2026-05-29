@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -56,12 +55,14 @@ class PiRustTuiResourceLimit:
         # E.g. while let, loop, while, and containing terminal.draw()
         # Look for infinite loops or rendering loops
         has_draw = "terminal.draw" in code or "Terminal::draw" in code or "draw(" in code
-        
+
         if has_draw:
             # We want to check if they have duration limits, poll, sleep, or interval
             # E.g. event::poll, sleep, Interval, tick
-            has_throttle = any(x in code for x in ["event::poll", "Duration::from", "sleep(", "tick(", "interval(", "FrameRate", "fps"])
-            
+            has_throttle = any(
+                x in code for x in ["event::poll", "Duration::from", "sleep(", "tick(", "interval(", "FrameRate", "fps"]
+            )
+
             if not has_throttle:
                 vulnerable_elements.append("terminal_draw_loop")
                 flagged_findings.append(
@@ -87,5 +88,5 @@ class PiRustTuiResourceLimit:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

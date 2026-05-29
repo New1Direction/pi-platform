@@ -40,7 +40,9 @@ class ZKCircomDivisionOutput(BaseModel):
     vulnerable_signals: List[str] = Field(default_factory=list, description="Vulnerable signal names or variables")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed Circom zero-division findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_CIRCOM_DIVISION, REJECTED_CIRCOM_DIVISION)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_CIRCOM_DIVISION, REJECTED_CIRCOM_DIVISION)"
+    )
 
 
 # 3. Core Micro-Agent Class
@@ -57,21 +59,25 @@ class PiZKCircomDivisionSentry:
         flagged_findings = []
 
         # Find templates
-        templates = re.findall(r'template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        templates = re.findall(r"template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for tname, params, body in templates:
+        for tname, _params, body in templates:
             # Find any division statement, e.g. a <-- b / c or similar
-            div_matches = re.finditer(r'([a-zA-Z0-9_]+)\s*(?:<--|-->|=)\s*([a-zA-Z0-9_]+)\s*(?:/|\\)\s*([a-zA-Z0-9_]+)', body)
+            div_matches = re.finditer(
+                r"([a-zA-Z0-9_]+)\s*(?:<--|-->|=)\s*([a-zA-Z0-9_]+)\s*(?:/|\\)\s*([a-zA-Z0-9_]+)", body
+            )
             for match in div_matches:
                 dest = match.group(1)
-                num = match.group(2)
+                match.group(2)
                 divisor = match.group(3)
 
                 # Check if divisor is constrained to be non-zero (e.g. divisor === 0 or divisor !== 0 or assert(divisor != 0))
                 # Or checks if there is a constraint checking divisor is non-zero
-                is_constrained = re.search(rf'\b{divisor}\s*!==?\s*0', body) or \
-                                 re.search(rf'assert\s*\(\s*{divisor}\s*!=?\s*0\s*\)', body) or \
-                                 re.search(rf'{divisor}\s*===\s*0', body) # checked for zero block handling
+                is_constrained = (
+                    re.search(rf"\b{divisor}\s*!==?\s*0", body)
+                    or re.search(rf"assert\s*\(\s*{divisor}\s*!=?\s*0\s*\)", body)
+                    or re.search(rf"{divisor}\s*===\s*0", body)
+                )  # checked for zero block handling
 
                 if not is_constrained:
                     vulnerable_signals.append(divisor)
@@ -98,5 +104,5 @@ class PiZKCircomDivisionSentry:
             vulnerable_signals=vulnerable_signals,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

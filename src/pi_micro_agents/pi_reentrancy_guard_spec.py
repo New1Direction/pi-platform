@@ -40,7 +40,9 @@ class ReentrancyGuardSpecOutput(BaseModel):
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed reentrancy safety findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_REENTRANCY_RISK, REJECTED_REENTRANCY_RISK)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_REENTRANCY_RISK, REJECTED_REENTRANCY_RISK)"
+    )
 
 
 # 3. Core Micro-Agent Class
@@ -57,12 +59,12 @@ class PiReentrancyGuardSpec:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Mode 1: Check for external call before state write
-            external_call_match = re.search(r'\.(call|transfer|send)\s*\(', body)
-            state_write_match = re.search(r'([a-zA-Z0-9_]+)\s*(\+=|-=|=)\s*', body)
+            external_call_match = re.search(r"\.(call|transfer|send)\s*\(", body)
+            state_write_match = re.search(r"([a-zA-Z0-9_]+)\s*(\+=|-=|=)\s*", body)
 
             if external_call_match and state_write_match:
                 # Find positions to see if state write happens after external call
@@ -71,7 +73,7 @@ class PiReentrancyGuardSpec:
 
                 if write_pos > call_pos:
                     # Check if it has a nonReentrant modifier
-                    has_modifier = "nonReentrant" in code or re.search(r'\bnonReentrant\b', body)
+                    has_modifier = "nonReentrant" in code or re.search(r"\bnonReentrant\b", body)
                     if not has_modifier:
                         vulnerable_funcs.append(name)
                         flagged_findings.append(
@@ -96,5 +98,5 @@ class PiReentrancyGuardSpec:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

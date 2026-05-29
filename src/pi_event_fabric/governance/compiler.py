@@ -27,6 +27,7 @@ from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 #  Policy DSL
 # ──────────────────────────────
 
+
 class Effect(str, Enum):
     ALLOW = "allow"
     DENY = "deny"
@@ -104,7 +105,9 @@ class GovernanceRule:
             "version": self.version,
             "parent_rule_id": self.parent_rule_id,
         }
-        return hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
+        return hashlib.sha256(
+            json.dumps(canonical, sort_keys=True, separators=(",", ":"), default=str).encode()
+        ).hexdigest()
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -125,6 +128,7 @@ class GovernanceRule:
 # ──────────────────────────────
 #  Policy Compiler
 # ──────────────────────────────
+
 
 @dataclass(frozen=True)
 class CompiledPolicy:
@@ -149,10 +153,24 @@ class PolicyCompiler:
     """
 
     ALLOWED_FIELDS: Set[str] = {
-        "tenant_id", "actor_id", "role", "action", "resource_type", "resource_id",
-        "composition_id", "snapshot_id", "worker_id", "stage", "event_type",
-        "partition_key", "epoch_number", "schema_name", "schema_version",
-        "connector_id", "connector_trust_tier", "sandbox_policy",
+        "tenant_id",
+        "actor_id",
+        "role",
+        "action",
+        "resource_type",
+        "resource_id",
+        "composition_id",
+        "snapshot_id",
+        "worker_id",
+        "stage",
+        "event_type",
+        "partition_key",
+        "epoch_number",
+        "schema_name",
+        "schema_version",
+        "connector_id",
+        "connector_trust_tier",
+        "sandbox_policy",
     }
 
     @classmethod
@@ -173,12 +191,17 @@ class PolicyCompiler:
             return True
 
         # Deterministic compiled hash
-        compiled_data = json.dumps({
-            "rule_id": rule.rule_id,
-            "conditions": [c.to_dict() for c in rule.conditions],
-            "effect": rule.effect.value,
-            "priority": rule.priority,
-        }, sort_keys=True, separators=(",", ":"), default=str)
+        compiled_data = json.dumps(
+            {
+                "rule_id": rule.rule_id,
+                "conditions": [c.to_dict() for c in rule.conditions],
+                "effect": rule.effect.value,
+                "priority": rule.priority,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
         compiled_hash = hashlib.sha256(compiled_data.encode()).hexdigest()
 
         return CompiledPolicy(
@@ -193,15 +216,11 @@ class PolicyCompiler:
     @classmethod
     def _validate_condition(cls, condition: Condition) -> None:
         if condition.field not in cls.ALLOWED_FIELDS:
-            raise PolicyValidationError(
-                f"Field '{condition.field}' not in allowed fields: {cls.ALLOWED_FIELDS}"
-            )
+            raise PolicyValidationError(f"Field '{condition.field}' not in allowed fields: {cls.ALLOWED_FIELDS}")
 
         if condition.operator == ConditionOperator.MATCHES_REGEX:
             # Regex patterns must be explicitly whitelisted
-            raise PolicyValidationError(
-                "Regex matching is not allowed in the deterministic policy DSL"
-            )
+            raise PolicyValidationError("Regex matching is not allowed in the deterministic policy DSL")
 
     @classmethod
     def _evaluate(cls, condition: Condition, context: Dict[str, Any]) -> bool:
@@ -258,6 +277,7 @@ class PolicyValidationError(Exception):
 #  Governance Decision Engine
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class GovernanceDecision:
     """Deterministic decision from the governance engine."""
@@ -272,13 +292,18 @@ class GovernanceDecision:
 
     def __post_init__(self, _: Any = None) -> None:
         if not self.decision_hash:
-            decision_data = json.dumps({
-                "context_id": self.context_id,
-                "effect": self.effect.value,
-                "matched_rules": self.matched_rules,
-                "denied_by": self.denied_by,
-                "evaluated_at": self.evaluated_at,
-            }, sort_keys=True, separators=(",", ":"), default=str)
+            decision_data = json.dumps(
+                {
+                    "context_id": self.context_id,
+                    "effect": self.effect.value,
+                    "matched_rules": self.matched_rules,
+                    "denied_by": self.denied_by,
+                    "evaluated_at": self.evaluated_at,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            )
             object.__setattr__(self, "decision_hash", hashlib.sha256(decision_data.encode()).hexdigest())
 
 
@@ -330,12 +355,17 @@ class GovernanceEngine:
         if not matched:
             final_effect = Effect.DENY
 
-        decision_data = json.dumps({
-            "context_id": context.get("correlation_id", "unknown"),
-            "effect": final_effect.value,
-            "matched_rules": matched,
-            "denied_by": denied_by,
-        }, sort_keys=True, separators=(",", ":"), default=str)
+        decision_data = json.dumps(
+            {
+                "context_id": context.get("correlation_id", "unknown"),
+                "effect": final_effect.value,
+                "matched_rules": matched,
+                "denied_by": denied_by,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
         decision_hash = hashlib.sha256(decision_data.encode()).hexdigest()
 
         return GovernanceDecision(
@@ -352,6 +382,7 @@ class GovernanceEngine:
 # ──────────────────────────────
 #  Governance Registry
 # ──────────────────────────────
+
 
 class GovernanceRegistry:
     """Append-only registry for governance rules and compiled policies.
@@ -420,10 +451,17 @@ class GovernanceRegistry:
                    (rule_id, name, description, target_scope, conditions_json, effect, priority, version, parent_rule_id, rule_hash, registered_at, registered_by)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)""",
                 (
-                    rule.rule_id, rule.name, rule.description, rule.target_scope,
+                    rule.rule_id,
+                    rule.name,
+                    rule.description,
+                    rule.target_scope,
                     json.dumps([c.to_dict() for c in rule.conditions], sort_keys=True),
-                    rule.effect.value, rule.priority, rule.version,
-                    rule.parent_rule_id, rule.rule_hash, registered_by,
+                    rule.effect.value,
+                    rule.priority,
+                    rule.version,
+                    rule.parent_rule_id,
+                    rule.rule_hash,
+                    registered_by,
                 ),
             )
             conn.commit()
@@ -457,9 +495,13 @@ class GovernanceRegistry:
                    (decision_id, context_id, effect, matched_rules_json, denied_by, decision_hash, evaluated_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    decision.decision_id, decision.context_id, decision.effect.value,
+                    decision.decision_id,
+                    decision.context_id,
+                    decision.effect.value,
                     json.dumps(decision.matched_rules, sort_keys=True),
-                    decision.denied_by, decision.decision_hash, decision.evaluated_at,
+                    decision.denied_by,
+                    decision.decision_hash,
+                    decision.evaluated_at,
                 ),
             )
             conn.commit()

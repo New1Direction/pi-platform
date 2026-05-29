@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_read_only_reentrancy_sentry import (
     PiReadOnlyReentrancySentry,
     ReadOnlyReentrancyInput,
-    ReadOnlyReentrancyOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -38,11 +35,7 @@ def test_read_only_reentrancy_vulnerable():
         }
     }
     """
-    inp = ReadOnlyReentrancyInput(
-        file_path="VulnerableReader.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ReadOnlyReentrancyInput(file_path="VulnerableReader.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_readonly_reentrancy(inp)
 
@@ -77,11 +70,7 @@ def test_read_only_reentrancy_compliant_with_warning():
         }
     }
     """
-    inp = ReadOnlyReentrancyInput(
-        file_path="CompliantReader.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ReadOnlyReentrancyInput(file_path="CompliantReader.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_readonly_reentrancy(inp)
 
@@ -115,31 +104,27 @@ def test_orchestrator_read_only_reentrancy_consensus_passed(monkeypatch):
             "vulnerable_functions": ["getPrice"],
             "flagged_findings": ["Read-only reentrancy risk on get_virtual_price"],
             "risk_score": 90.0,
-            "status": "REJECTED_READONLY_REENTRANCY"
+            "status": "REJECTED_READONLY_REENTRANCY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["getPrice"],
             "flagged_findings": ["Read-only reentrancy risk on get_virtual_price"],
             "risk_score": 90.0,
-            "status": "REJECTED_READONLY_REENTRANCY"
+            "status": "REJECTED_READONLY_REENTRANCY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["getPrice"],
             "flagged_findings": ["Read-only reentrancy risk on get_virtual_price"],
             "risk_score": 90.0,
-            "status": "REJECTED_READONLY_REENTRANCY"
-        }
+            "status": "REJECTED_READONLY_REENTRANCY",
+        },
     ]
 
     inp = OrchestratorInput(
         goal="read-only reentrancy on Reader.sol to check pool balance query safety",
-        context={
-            "file_path": "Reader.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Reader.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 

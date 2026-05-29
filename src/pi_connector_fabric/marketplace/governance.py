@@ -98,10 +98,15 @@ class ConnectorMarketplaceRegistry:
                     trust_tier, verified, registered_at, registered_by)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)""",
                 (
-                    manifest_id, manifest.connector_id, manifest.version,
-                    manifest.name, json.dumps(manifest.to_dict(), sort_keys=True),
-                    manifest.manifest_hash, manifest.trust_tier,
-                    1 if manifest.author_verified else 0, registered_by,
+                    manifest_id,
+                    manifest.connector_id,
+                    manifest.version,
+                    manifest.name,
+                    json.dumps(manifest.to_dict(), sort_keys=True),
+                    manifest.manifest_hash,
+                    manifest.trust_tier,
+                    1 if manifest.author_verified else 0,
+                    registered_by,
                 ),
             )
             conn.commit()
@@ -121,9 +126,7 @@ class ConnectorMarketplaceRegistry:
                     (trust_tier,),
                 ).fetchall()
             else:
-                rows = conn.execute(
-                    "SELECT * FROM connector_manifests ORDER BY registered_at DESC"
-                ).fetchall()
+                rows = conn.execute("SELECT * FROM connector_manifests ORDER BY registered_at DESC").fetchall()
             conn.close()
 
         results = []
@@ -172,13 +175,17 @@ class ConnectorMarketplaceRegistry:
         if not manifest:
             raise ValueError(f"Manifest not found: {connector_id}@{version}")
 
-        sig_data = json.dumps({
-            "connector_id": connector_id,
-            "version": version,
-            "manifest_hash": manifest.manifest_hash,
-            "signer": signer_id,
-            "timestamp": manifest.manifest_hash[:16],  # deterministic proxy
-        }, sort_keys=True, separators=(",", ":"))
+        sig_data = json.dumps(
+            {
+                "connector_id": connector_id,
+                "version": version,
+                "manifest_hash": manifest.manifest_hash,
+                "signer": signer_id,
+                "timestamp": manifest.manifest_hash[:16],  # deterministic proxy
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         sig_hash = hashlib.sha256(sig_data.encode()).hexdigest()
 
         signature_id = f"sig_{connector_id}_{version}_{sig_hash[:16]}"

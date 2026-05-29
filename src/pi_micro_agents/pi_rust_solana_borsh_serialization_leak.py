@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -41,12 +40,14 @@ class PiRustSolanaBorshSerializationLeak:
         flagged_findings = []
 
         # Find structs with BorshSerialize or AnchorSerialize
-        struct_matches = re.finditer(r'#\[derive\([^)]*(BorshSerialize|AnchorSerialize)[^)]*\)\]\s*(?:pub\s+)?struct\s+([a-zA-Z0-9_]+)', code)
+        struct_matches = re.finditer(
+            r"#\[derive\([^)]*(BorshSerialize|AnchorSerialize)[^)]*\)\]\s*(?:pub\s+)?struct\s+([a-zA-Z0-9_]+)", code
+        )
 
         for match in struct_matches:
             struct_name = match.group(2)
             # Find fields in this struct. Simple parser to look for dynamic/unbounded collections or raw padding
-            struct_block = re.search(r'struct\s+' + struct_name + r'\s*\{([\s\S]*?)\}', code)
+            struct_block = re.search(r"struct\s+" + struct_name + r"\s*\{([\s\S]*?)\}", code)
             if struct_block:
                 fields = struct_block.group(1)
                 # Check for dynamic structures or potential uninitialized data leaks (missing explicit padding or custom serialization bounds)
@@ -74,5 +75,5 @@ class PiRustSolanaBorshSerializationLeak:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

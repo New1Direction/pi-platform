@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -38,20 +37,18 @@ class PiLLMPromptEgressLeakDetector:
         flagged_findings = []
 
         leak_patterns = {
-            "AWS API Key": r'AKIA[0-9A-Z]{16}',
-            "Private Key": r'-----BEGIN\s+PRIVATE\s+KEY-----',
-            "Generic Secret / Token": r'api[-_]?key|secret[-_]?token|bearer\s+[a-zA-Z0-9_\-\.]+',
-            "Credit Card": r'\b[3-6][0-9]{11,15}\b',
-            "Social Security Number": r'\b\d{3}-\d{2}-\d{4}\b'
+            "AWS API Key": r"AKIA[0-9A-Z]{16}",
+            "Private Key": r"-----BEGIN\s+PRIVATE\s+KEY-----",
+            "Generic Secret / Token": r"api[-_]?key|secret[-_]?token|bearer\s+[a-zA-Z0-9_\-\.]+",
+            "Credit Card": r"\b[3-6][0-9]{11,15}\b",
+            "Social Security Number": r"\b\d{3}-\d{2}-\d{4}\b",
         }
 
         is_secure = True
         for name, pattern in leak_patterns.items():
             if re.search(pattern, prompt, re.IGNORECASE):
                 is_secure = False
-                flagged_findings.append(
-                    f"Egress leak detected: Content matches pattern for '{name}'."
-                )
+                flagged_findings.append(f"Egress leak detected: Content matches pattern for '{name}'.")
 
         risk_score = 90.0 if not is_secure else 0.0
 
@@ -65,8 +62,5 @@ class PiLLMPromptEgressLeakDetector:
                 is_secure = True
 
         return LLMPromptEgressLeakOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

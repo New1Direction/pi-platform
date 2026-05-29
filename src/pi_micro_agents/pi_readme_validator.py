@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import os
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_README_STRICT_MODE")
@@ -10,14 +13,17 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class ReadmeInput(BaseModel):
     readme_content: str = Field(..., description="Markdown content of the README file")
+
 
 class ReadmeOutput(BaseModel):
     is_secure: bool = Field(..., description="True if all critical document sections are present")
     missing_sections: List[str] = Field(default_factory=list, description="List of missing section headers")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiReadmeValidator:
     """Deterministic micro-agent that checks a README.md file for critical sections (Installation, Prerequisites, etc.)."""
@@ -33,7 +39,7 @@ class PiReadmeValidator:
         expected_sections = [
             ("prerequisites", [r"^#+\s+.*prerequisite", r"^#+\s+.*requirement"]),
             ("installation", [r"^#+\s+.*install"]),
-            ("usage", [r"^#+\s+.*usage", r"^#+\s+.*getting\s+started"])
+            ("usage", [r"^#+\s+.*usage", r"^#+\s+.*getting\s+started"]),
         ]
 
         lines = content.splitlines()
@@ -58,8 +64,5 @@ class PiReadmeValidator:
                 is_secure = True
 
         return ReadmeOutput(
-            is_secure=is_secure,
-            missing_sections=missing_sections,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, missing_sections=missing_sections, risk_score=risk_score, status=status
         )

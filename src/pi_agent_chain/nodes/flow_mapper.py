@@ -50,7 +50,11 @@ class FlowMapperNode:
         for trace in traces:
             consumer_ep = f"{trace.method} {trace.endpoint_template}"
             for field in trace.fields:
-                if not field.path.startswith("request.") and not field.path.startswith("header.") and not field.path.startswith("query."):
+                if (
+                    not field.path.startswith("request.")
+                    and not field.path.startswith("header.")
+                    and not field.path.startswith("query.")
+                ):
                     continue
                 fmt = field.inferred_type
                 for _token_type, allowed_formats in self.TOKEN_TYPES.items():

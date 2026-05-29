@@ -9,16 +9,12 @@ All deterministic. No randomness.
 
 from __future__ import annotations
 
-import json
 import os
 import tempfile
-from typing import Any, Dict, List
 
-import pytest
-
-from pi_interoperability_layer.hyperframes import RenderConfig
-from pi_interoperability_layer.hyperframes_docs import DocumentationHyperFrameRenderer
 from pi_connector_fabric.hyperframes_infra import InfrastructureReplayHyperFrameRenderer
+from pi_connector_fabric.marketplace.governance import ConnectorMarketplaceRegistry
+from pi_connector_fabric.replay.import_pipeline import DigitalTwinImport
 from pi_connector_fabric.sdk.core import (
     ArtifactNormalizer,
     ConnectorExecutionFence,
@@ -29,17 +25,16 @@ from pi_connector_fabric.topology.engine import (
     RiskPropagationTopology,
     UnifiedTopologyGraph,
 )
-from pi_connector_fabric.replay.import_pipeline import DigitalTwinImport
-from pi_connector_fabric.marketplace.governance import ConnectorMarketplaceRegistry
 from pi_event_fabric.governance.compiler import (
-    GovernanceDecision,
     Effect,
+    GovernanceDecision,
 )
-
+from pi_interoperability_layer.hyperframes_docs import DocumentationHyperFrameRenderer
 
 # ──────────────────────────────
 #  Documentation Video Tests
 # ──────────────────────────────
+
 
 class TestDocumentationHyperFrames:
     def test_render_platform_architecture(self):
@@ -98,14 +93,19 @@ class TestDocumentationHyperFrames:
         try:
             registry = ConnectorMarketplaceRegistry(path)
             # Register a fake manifest for testing
-            from pi_connector_fabric.sdk.core import ConnectorManifest, ConnectorCapabilityClass, ConnectorSandboxPolicy
+            from pi_connector_fabric.sdk.core import ConnectorCapabilityClass, ConnectorManifest, ConnectorSandboxPolicy
+
             m = ConnectorManifest(
-                connector_id="test.v1", name="Test", version="1.0.0",
+                connector_id="test.v1",
+                name="Test",
+                version="1.0.0",
                 description="Test connector",
                 capability_classes=(ConnectorCapabilityClass.TOPOLOGY_READ,),
                 sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-                target_systems=("test",), output_schemas=("TopologyArtifact",),
-                required_credentials=(), config_schema={},
+                target_systems=("test",),
+                output_schemas=("TopologyArtifact",),
+                required_credentials=(),
+                config_schema={},
             )
             registry.register(m)
             renderer = DocumentationHyperFrameRenderer()
@@ -136,27 +136,42 @@ class TestDocumentationHyperFrames:
 #  Infrastructure Replay Video Tests
 # ──────────────────────────────
 
+
 class TestInfrastructureReplayHyperFrames:
     def test_render_connector_ingestion(self):
         renderer = InfrastructureReplayHyperFrameRenderer()
         receipts = [
             IngestionReceipt(
-                receipt_id="r1", connector_id="c.k8s", connector_version="1.0.0",
-                tenant_id="t1", actor_id="u1", correlation_id="run1",
-                ingestion_start="2026-01-01T00:00:00Z", ingestion_end="2026-01-01T00:00:01Z",
-                artifact_count=2, artifact_hashes=("h1", "h2"),
+                receipt_id="r1",
+                connector_id="c.k8s",
+                connector_version="1.0.0",
+                tenant_id="t1",
+                actor_id="u1",
+                correlation_id="run1",
+                ingestion_start="2026-01-01T00:00:00Z",
+                ingestion_end="2026-01-01T00:00:01Z",
+                artifact_count=2,
+                artifact_hashes=("h1", "h2"),
                 fence_used=ConnectorExecutionFence.SANDBOXED_READ,
                 sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-                error_count=0, errors=(),
+                error_count=0,
+                errors=(),
             ),
             IngestionReceipt(
-                receipt_id="r2", connector_id="c.tf", connector_version="1.0.0",
-                tenant_id="t1", actor_id="u1", correlation_id="run1",
-                ingestion_start="2026-01-01T00:00:02Z", ingestion_end="2026-01-01T00:00:03Z",
-                artifact_count=1, artifact_hashes=("h3",),
+                receipt_id="r2",
+                connector_id="c.tf",
+                connector_version="1.0.0",
+                tenant_id="t1",
+                actor_id="u1",
+                correlation_id="run1",
+                ingestion_start="2026-01-01T00:00:02Z",
+                ingestion_end="2026-01-01T00:00:03Z",
+                artifact_count=1,
+                artifact_hashes=("h3",),
                 fence_used=ConnectorExecutionFence.SANDBOXED_READ,
                 sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-                error_count=0, errors=(),
+                error_count=0,
+                errors=(),
             ),
         ]
         seq = renderer.render_connector_ingestion(receipts)
@@ -170,9 +185,12 @@ class TestInfrastructureReplayHyperFrames:
         for i in range(3):
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"n{i}", "type": "pod"}],
-                edges=[{"from": f"n{i}", "to": f"n{(i+1)%3}", "relation": "link"}],
-                source_system="k8s", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                edges=[{"from": f"n{i}", "to": f"n{(i + 1) % 3}", "relation": "link"}],
+                source_system="k8s",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             dt.import_artifact(a)
         seq = renderer.render_topology_construction(dt)
@@ -182,9 +200,30 @@ class TestInfrastructureReplayHyperFrames:
     def test_render_drift_evolution(self):
         renderer = InfrastructureReplayHyperFrameRenderer()
         snapshots = [
-            {"graph_hash": "abc", "node_count": 2, "edge_count": 1, "stable": True, "added_nodes": [], "removed_nodes": []},
-            {"graph_hash": "def", "node_count": 3, "edge_count": 2, "stable": False, "added_nodes": ["n3"], "removed_nodes": []},
-            {"graph_hash": "ghi", "node_count": 3, "edge_count": 2, "stable": True, "added_nodes": [], "removed_nodes": []},
+            {
+                "graph_hash": "abc",
+                "node_count": 2,
+                "edge_count": 1,
+                "stable": True,
+                "added_nodes": [],
+                "removed_nodes": [],
+            },
+            {
+                "graph_hash": "def",
+                "node_count": 3,
+                "edge_count": 2,
+                "stable": False,
+                "added_nodes": ["n3"],
+                "removed_nodes": [],
+            },
+            {
+                "graph_hash": "ghi",
+                "node_count": 3,
+                "edge_count": 2,
+                "stable": True,
+                "added_nodes": [],
+                "removed_nodes": [],
+            },
         ]
         seq = renderer.render_drift_evolution(snapshots)
         assert seq.total_frames == 4  # baseline + 2 snapshots + assessment
@@ -203,9 +242,12 @@ class TestInfrastructureReplayHyperFrames:
         for i in range(5):
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"n{i}", "type": "node"}],
-                edges=[{"from": f"n{i}", "to": f"n{(i+1)%5}", "relation": "link"}],
-                source_system="s", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                edges=[{"from": f"n{i}", "to": f"n{(i + 1) % 5}", "relation": "link"}],
+                source_system="s",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             graph.add_artifact(a)
         risk = RiskPropagationTopology(graph)
@@ -217,12 +259,20 @@ class TestInfrastructureReplayHyperFrames:
         renderer = InfrastructureReplayHyperFrameRenderer()
         decisions = [
             GovernanceDecision(
-                decision_id="d1", context_id="c1", effect=Effect.ALLOW,
-                matched_rules=["rule_a"], denied_by="", evaluated_at="2026-01-01T00:00:00Z",
+                decision_id="d1",
+                context_id="c1",
+                effect=Effect.ALLOW,
+                matched_rules=["rule_a"],
+                denied_by="",
+                evaluated_at="2026-01-01T00:00:00Z",
             ),
             GovernanceDecision(
-                decision_id="d2", context_id="c2", effect=Effect.DENY,
-                matched_rules=[], denied_by="governance:unknown_connector", evaluated_at="2026-01-01T00:00:01Z",
+                decision_id="d2",
+                context_id="c2",
+                effect=Effect.DENY,
+                matched_rules=[],
+                denied_by="governance:unknown_connector",
+                evaluated_at="2026-01-01T00:00:01Z",
             ),
         ]
         seq = renderer.render_governance_audit_trail(decisions)
@@ -237,13 +287,20 @@ class TestInfrastructureReplayHyperFrames:
         renderer = InfrastructureReplayHyperFrameRenderer()
         receipts = [
             IngestionReceipt(
-                receipt_id="r1", connector_id="c", connector_version="1",
-                tenant_id="t1", actor_id="u1", correlation_id="c1",
-                ingestion_start="2026-01-01T00:00:00Z", ingestion_end="2026-01-01T00:00:01Z",
-                artifact_count=1, artifact_hashes=("h1",),
+                receipt_id="r1",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                actor_id="u1",
+                correlation_id="c1",
+                ingestion_start="2026-01-01T00:00:00Z",
+                ingestion_end="2026-01-01T00:00:01Z",
+                artifact_count=1,
+                artifact_hashes=("h1",),
                 fence_used=ConnectorExecutionFence.SANDBOXED_READ,
                 sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-                error_count=0, errors=(),
+                error_count=0,
+                errors=(),
             ),
         ]
         seq1 = renderer.render_connector_ingestion(receipts)
@@ -258,8 +315,11 @@ class TestInfrastructureReplayHyperFrames:
         a = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         dt.import_artifact(a)
         seq = renderer.render_topology_construction(dt)
@@ -272,21 +332,25 @@ class TestInfrastructureReplayHyperFrames:
 #  Integration
 # ──────────────────────────────
 
+
 class TestHyperFramesVideoIntegration:
     def test_documentation_and_infrastructure_sequences_different(self):
         doc_renderer = DocumentationHyperFrameRenderer()
         infra_renderer = InfrastructureReplayHyperFrameRenderer()
 
-        doc_seq = doc_renderer.render_governance_invariants([
-            {"id": "INV1", "description": "Test", "enforcement": "static", "scope": "global"}
-        ])
+        doc_seq = doc_renderer.render_governance_invariants(
+            [{"id": "INV1", "description": "Test", "enforcement": "static", "scope": "global"}]
+        )
 
         dt = DigitalTwinImport("t1")
         a = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         dt.import_artifact(a)
         infra_seq = infra_renderer.render_topology_construction(dt)

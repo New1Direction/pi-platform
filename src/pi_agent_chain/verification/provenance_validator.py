@@ -83,11 +83,13 @@ class ProvenanceValidator:
 
         # Check promotion evidence exists
         if not artifact.evidence_refs:
-            return False, [self._make_violation(
-                "UNVERIFIABLE_PROMOTION",
-                artifact,
-                {"target_state": target_state, "reason": "No evidence_refs for promotion"},
-            )]
+            return False, [
+                self._make_violation(
+                    "UNVERIFIABLE_PROMOTION",
+                    artifact,
+                    {"target_state": target_state, "reason": "No evidence_refs for promotion"},
+                )
+            ]
 
         return True, []
 
@@ -103,11 +105,13 @@ class ProvenanceValidator:
             and not artifact.parent_artifact_ids
             and not artifact.evidence_refs
         ):
-            return [self._make_violation(
-                "ORPHANED_ARTIFACT",
-                artifact,
-                {"epistemic_state": artifact.epistemic_state},
-            )]
+            return [
+                self._make_violation(
+                    "ORPHANED_ARTIFACT",
+                    artifact,
+                    {"epistemic_state": artifact.epistemic_state},
+                )
+            ]
         return []
 
     def _check_ancestry(self, artifact) -> List[GovernanceViolation]:
@@ -116,11 +120,13 @@ class ProvenanceValidator:
         for parent_id in artifact.parent_artifact_ids:
             parent = self._find_artifact_by_id(parent_id)
             if parent is None:
-                violations.append(self._make_violation(
-                    "UNVERIFIABLE_ANCESTRY",
-                    artifact,
-                    {"missing_parent_id": parent_id},
-                ))
+                violations.append(
+                    self._make_violation(
+                        "UNVERIFIABLE_ANCESTRY",
+                        artifact,
+                        {"missing_parent_id": parent_id},
+                    )
+                )
         return violations
 
     def _check_broken_chains(self, artifact) -> List[GovernanceViolation]:
@@ -131,41 +137,47 @@ class ProvenanceValidator:
                 evidence_id = ref.replace("artifact:", "")
                 evidence = self._find_artifact_by_id(evidence_id)
                 if evidence is None:
-                    violations.append(self._make_violation(
-                        "BROKEN_EVIDENCE_CHAIN",
-                        artifact,
-                        {"missing_evidence_id": evidence_id},
-                    ))
+                    violations.append(
+                        self._make_violation(
+                            "BROKEN_EVIDENCE_CHAIN",
+                            artifact,
+                            {"missing_evidence_id": evidence_id},
+                        )
+                    )
         return violations
 
     def _check_hash_integrity(self, artifact) -> List[GovernanceViolation]:
         """Replay hash consistency: payload hash must match semantic_hash."""
         if not artifact.payload_json:
-            return [self._make_violation(
-                "REPLAY_HASH_MISMATCH",
-                artifact,
-                {"reason": "Empty payload_json"},
-            )]
+            return [
+                self._make_violation(
+                    "REPLAY_HASH_MISMATCH",
+                    artifact,
+                    {"reason": "Empty payload_json"},
+                )
+            ]
 
         computed = hashlib.sha256(artifact.payload_json.encode()).hexdigest()
         if computed != artifact.semantic_hash:
-            return [self._make_violation(
-                "REPLAY_HASH_MISMATCH",
-                artifact,
-                {"computed": computed, "stored": artifact.semantic_hash},
-            )]
+            return [
+                self._make_violation(
+                    "REPLAY_HASH_MISMATCH",
+                    artifact,
+                    {"computed": computed, "stored": artifact.semantic_hash},
+                )
+            ]
 
         # Check input/output/trace hash consistency if they exist
         if artifact.input_hash and artifact.output_hash:
-            combined = hashlib.sha256(
-                f"{artifact.input_hash}:{artifact.output_hash}".encode()
-            ).hexdigest()
+            combined = hashlib.sha256(f"{artifact.input_hash}:{artifact.output_hash}".encode()).hexdigest()
             if artifact.trace_hash and combined != artifact.trace_hash:
-                return [self._make_violation(
-                    "REPLAY_HASH_MISMATCH",
-                    artifact,
-                    {"computed_trace": combined, "stored_trace": artifact.trace_hash},
-                )]
+                return [
+                    self._make_violation(
+                        "REPLAY_HASH_MISMATCH",
+                        artifact,
+                        {"computed_trace": combined, "stored_trace": artifact.trace_hash},
+                    )
+                ]
         return []
 
     def _check_epistemic_contamination(self, artifact) -> List[GovernanceViolation]:
@@ -177,33 +189,39 @@ class ProvenanceValidator:
         for parent_id in artifact.parent_artifact_ids:
             parent = self._find_artifact_by_id(parent_id)
             if parent and parent.epistemic_state == EpistemicState.INFERRED:
-                return [self._make_violation(
-                    "EPISTEMIC_CONTAMINATION",
-                    artifact,
-                    {
-                        "artifact_state": artifact.epistemic_state,
-                        "parent_state": parent.epistemic_state,
-                        "parent_id": parent_id,
-                    },
-                )]
+                return [
+                    self._make_violation(
+                        "EPISTEMIC_CONTAMINATION",
+                        artifact,
+                        {
+                            "artifact_state": artifact.epistemic_state,
+                            "parent_state": parent.epistemic_state,
+                            "parent_id": parent_id,
+                        },
+                    )
+                ]
         return []
 
     def _check_cyclic_lineage(self, artifact, seen: set, depth: int = 0) -> List[GovernanceViolation]:
         """Detect circular parent references."""
         if depth > 20:
             # Safety cap - cycle likely if depth exceeds 20
-            return [self._make_violation(
-                "CYCLIC_PROVENANCE",
-                artifact,
-                {"depth_reached": depth, "seen": list(seen)},
-            )]
+            return [
+                self._make_violation(
+                    "CYCLIC_PROVENANCE",
+                    artifact,
+                    {"depth_reached": depth, "seen": list(seen)},
+                )
+            ]
 
         if artifact.artifact_id in seen:
-            return [self._make_violation(
-                "CYCLIC_PROVENANCE",
-                artifact,
-                {"cycle_at": artifact.artifact_id, "path": list(seen)},
-            )]
+            return [
+                self._make_violation(
+                    "CYCLIC_PROVENANCE",
+                    artifact,
+                    {"cycle_at": artifact.artifact_id, "path": list(seen)},
+                )
+            ]
 
         seen.add(artifact.artifact_id)
         violations = []
@@ -220,11 +238,13 @@ class ProvenanceValidator:
         # Check for promotion records in provenance string list
         has_promotion = any(p.startswith("promoted:") for p in artifact.provenance)
         if has_promotion and not artifact.parent_artifact_ids and not artifact.evidence_refs:
-            return [self._make_violation(
-                "LINEAGE_TAMPERING",
-                artifact,
-                {"reason": "Promoted artifact with no parents or evidence"},
-            )]
+            return [
+                self._make_violation(
+                    "LINEAGE_TAMPERING",
+                    artifact,
+                    {"reason": "Promoted artifact with no parents or evidence"},
+                )
+            ]
         return []
 
     def _check_provenance_closure(self, artifact) -> List[GovernanceViolation]:
@@ -235,11 +255,13 @@ class ProvenanceValidator:
 
         def _walk(art, depth: int = 0):
             if depth > 20:
-                violations.append(self._make_violation(
-                    "ANCESTRY_DEPTH_EXCEEDED",
-                    art,
-                    {"max_depth": 20},
-                ))
+                violations.append(
+                    self._make_violation(
+                        "ANCESTRY_DEPTH_EXCEEDED",
+                        art,
+                        {"max_depth": 20},
+                    )
+                )
                 return
             if art.artifact_id in visited:
                 return
@@ -251,21 +273,25 @@ class ProvenanceValidator:
             if art.epistemic_state == EpistemicState.INFERRED:
                 # Must have parents that can close
                 if not art.parent_artifact_ids:
-                    violations.append(self._make_violation(
-                        "PROVENANCE_NOT_CLOSED",
-                        art,
-                        {"reason": "INFERRED artifact with no parents"},
-                    ))
+                    violations.append(
+                        self._make_violation(
+                            "PROVENANCE_NOT_CLOSED",
+                            art,
+                            {"reason": "INFERRED artifact with no parents"},
+                        )
+                    )
                     return
 
             for parent_id in art.parent_artifact_ids:
                 parent = self._find_artifact_by_id(parent_id)
                 if parent is None:
-                    violations.append(self._make_violation(
-                        "PROVENANCE_NOT_CLOSED",
-                        art,
-                        {"missing_parent": parent_id},
-                    ))
+                    violations.append(
+                        self._make_violation(
+                            "PROVENANCE_NOT_CLOSED",
+                            art,
+                            {"missing_parent": parent_id},
+                        )
+                    )
                     continue
                 _walk(parent, depth + 1)
 

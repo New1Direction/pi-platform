@@ -29,7 +29,7 @@ export default function AuditLogViewer({ entries, total }: AuditLogViewerProps) 
             </div>
             <div className="text-xs text-[var(--muted-foreground)]">IP: {entry.user_ip || "—"}</div>
             <pre className="text-xs bg-[var(--secondary)] rounded p-2 mt-2 overflow-auto max-h-[120px]">
-              {JSON.stringify(entry.structured_request, null, 2)}
+              {JSON.stringify(entry.structured_request, null, 2).slice(0, 50_000)}
             </pre>
           </div>
         ))}

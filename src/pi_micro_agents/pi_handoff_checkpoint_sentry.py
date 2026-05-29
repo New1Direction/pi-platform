@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import os
-import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_HANDOFF_STRICT_MODE")
@@ -10,14 +12,17 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class HandoffInput(BaseModel):
     handoff_content: str = Field(..., description="Handoff documentation text")
+
 
 class HandoffOutput(BaseModel):
     is_secure: bool = Field(..., description="True if handoff document is complete")
     flagged_missing_items: List[str] = Field(default_factory=list, description="List of missing handoff requirements")
     risk_score: float = Field(..., description="Calculated risk score")
     status: str = Field(..., description="Status (PASSED, REJECTED_HANDOFF, WARN_HANDOFF)")
+
 
 class PiHandoffCheckpointSentry:
     """Deterministic micro-agent that verifies handoff files contain a clear state and checklist."""
@@ -28,20 +33,20 @@ class PiHandoffCheckpointSentry:
     def audit_handoff(self, input_envelope: HandoffInput) -> HandoffOutput:
         content = input_envelope.handoff_content
         missing = []
-        
+
         required_headers = [
             ("reproduction", "Missing reproduction instructions or scripts"),
             ("next step", "Missing next steps or upcoming items"),
-            ("status", "Missing current progress or branch status")
+            ("status", "Missing current progress or branch status"),
         ]
-        
+
         for keyword, desc in required_headers:
             if keyword not in content.lower():
                 missing.append(desc)
-                
+
         is_secure = len(missing) == 0
         risk_score = 80.0 if not is_secure else 0.0
-        
+
         status = "PASSED"
         if not is_secure:
             if is_strict_mode():
@@ -49,10 +54,5 @@ class PiHandoffCheckpointSentry:
             else:
                 status = "WARN_HANDOFF"
                 is_secure = True
-                
-        return HandoffOutput(
-            is_secure=is_secure,
-            flagged_missing_items=missing,
-            risk_score=risk_score,
-            status=status
-        )
+
+        return HandoffOutput(is_secure=is_secure, flagged_missing_items=missing, risk_score=risk_score, status=status)

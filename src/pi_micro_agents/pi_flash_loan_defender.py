@@ -27,19 +27,27 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class FlashLoanInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level of parsing: STRICT, MEDIUM")
-    allowed_pairs: List[str] = Field(default_factory=list, description="User-defined custom allowed pair addresses or safe pools")
+    allowed_pairs: List[str] = Field(
+        default_factory=list, description="User-defined custom allowed pair addresses or safe pools"
+    )
+
 
 class FlashLoanOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from flash loan pricing vulnerabilities")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed line and violation findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_FLASH_LOAN_VULNERABILITY, REJECTED_FLASH_LOAN_VULNERABILITY)")
+    status: str = Field(
+        ...,
+        description="Status classification (PASSED, WARN_FLASH_LOAN_VULNERABILITY, REJECTED_FLASH_LOAN_VULNERABILITY)",
+    )
+
 
 # 3. Helper function to extract concrete Solidity functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
@@ -47,7 +55,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
     code_len = len(solidity_code)
 
     # Pattern matching "function [name] (" or "constructor ("
-    pattern = re.compile(r'\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -57,11 +65,11 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         start_idx = match.start()
 
         # Calculate line number of start_idx
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
         # Semicolons and opening braces determine concrete vs abstract functions
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -71,9 +79,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -82,6 +90,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 4. Core Micro-Agent Class
 class PiFlashLoanDefender:
@@ -100,14 +109,27 @@ class PiFlashLoanDefender:
 
         # Spot reserve and direct pool balance lookup signatures
         spot_price_triggers = [
-            "getreserves", "slot0", "uniswapv2pair", "uniswapv3pool",
-            "balanceof(pair)", "balanceof(address(pair))", "pair.balanceof"
+            "getreserves",
+            "slot0",
+            "uniswapv2pair",
+            "uniswapv3pool",
+            "balanceof(pair)",
+            "balanceof(address(pair))",
+            "pair.balanceof",
         ]
 
         # Safe decentralized pricing oracles and TWAPs
         secure_oracles = [
-            "latestrounddata", "pricefeed", "aggregatorv3interface", "chainlink",
-            "consult", "twap", "period", "pyth", "ipyth", "getlatestprice"
+            "latestrounddata",
+            "pricefeed",
+            "aggregatorv3interface",
+            "chainlink",
+            "consult",
+            "twap",
+            "period",
+            "pyth",
+            "ipyth",
+            "getlatestprice",
         ]
 
         for func_name, func_body, start_line in functions:
@@ -115,8 +137,8 @@ class PiFlashLoanDefender:
                 continue
 
             # Clean body of comments to prevent false positives
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Convert body to lowercase for matching
             body_lower = cleaned_body.lower()
@@ -146,7 +168,9 @@ class PiFlashLoanDefender:
 
             # Check if this function relies on direct balance reading to get pricing
             # e.g. balanceOf(address(this)) to value assets
-            has_direct_balance_pricing = "balanceof" in body_lower and any(kw in body_lower for kw in ["price", "value", "valuation", "getrate"])
+            has_direct_balance_pricing = "balanceof" in body_lower and any(
+                kw in body_lower for kw in ["price", "value", "valuation", "getrate"]
+            )
 
             # Evaluate if secure decentralized oracle or TWAP consult mechanism is integrated
             has_secure_oracle = any(oracle in body_lower for oracle in secure_oracles)
@@ -176,12 +200,12 @@ class PiFlashLoanDefender:
                 status = "REJECTED_FLASH_LOAN_VULNERABILITY"
             else:
                 status = "WARN_FLASH_LOAN_VULNERABILITY"
-                is_secure = True # Warn only in non-strict mode
+                is_secure = True  # Warn only in non-strict mode
 
         return FlashLoanOutput(
             is_secure=is_secure,
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

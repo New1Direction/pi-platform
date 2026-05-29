@@ -2,18 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_oracle_sentry import (
-    PiOracleSentry,
     OracleSentryInput,
-    OracleSentryOutput,
-    detect_pricing_anomalies,
-    is_strict_mode,
+    PiOracleSentry,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -49,7 +44,7 @@ def test_oracle_sentry_high_deviation(monkeypatch):
 
     # Observed price 3100.0 is 3.33% deviation (exceeds 2.0%)
     inp = OracleSentryInput(token="ETH", chain_id=1, current_observed_price=3100.0, max_deviation_percent=2.0)
-    
+
     # 1. Normal Strict Mode (Enabled by default)
     out_strict = sentry.audit_prices(inp)
     assert out_strict.is_secure is False
@@ -98,7 +93,7 @@ def test_orchestrator_routing_to_oracle_sentry(monkeypatch):
     goal = "Execute price verification check on ETH token on mainnet"
     inp = OrchestratorInput(
         goal=goal,
-        context={"token": "ETH", "chain_id": 1, "current_observed_price": 3005.0, "max_deviation_percent": 2.0}
+        context={"token": "ETH", "chain_id": 1, "current_observed_price": 3005.0, "max_deviation_percent": 2.0},
     )
     res = orchestrator.execute_goal(inp)
 
@@ -121,7 +116,7 @@ def test_orchestrator_consensus_high_deviation_block(monkeypatch):
     goal = "Run oracle scan for ETH"
     inp = OrchestratorInput(
         goal=goal,
-        context={"token": "ETH", "chain_id": 1, "current_observed_price": 3150.0, "max_deviation_percent": 2.0}
+        context={"token": "ETH", "chain_id": 1, "current_observed_price": 3150.0, "max_deviation_percent": 2.0},
     )
     res = orchestrator.execute_goal(inp)
 

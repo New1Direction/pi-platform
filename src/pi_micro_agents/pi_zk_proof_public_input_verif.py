@@ -54,9 +54,9 @@ class PiZKProofPublicInputVerif:
 
         # Find all functions doing verifyProof calls
         # E.g. verifyProof, verifyZK
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             if any(x in name.lower() for x in ["verifyproof", "verifyzk"]):
                 # Check if public inputs array or parameter matches a verification requirement but is never checked or asserted
                 # Look for calls to verifyProof(a, b, c, input) where input is unchecked. E.g. lacks checking that the input matches the target state
@@ -64,9 +64,9 @@ class PiZKProofPublicInputVerif:
                 if "input" in body or "publicInput" in body:
                     # Look for require or if checks on those input elements
                     has_input_validation = False
-                    if re.search(r'(require\s*\(\s*input|require\s*\(\s*publicInput|assert\s*\(\s*input)', body):
+                    if re.search(r"(require\s*\(\s*input|require\s*\(\s*publicInput|assert\s*\(\s*input)", body):
                         has_input_validation = True
-                    if re.search(r'(if\s*\(\s*input|if\s*\(\s*publicInput)', body):
+                    if re.search(r"(if\s*\(\s*input|if\s*\(\s*publicInput)", body):
                         has_input_validation = True
 
                     if not has_input_validation:
@@ -94,5 +94,5 @@ class PiZKProofPublicInputVerif:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

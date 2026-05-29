@@ -36,7 +36,9 @@ class PromptInjectionInput(BaseModel):
 
 class PromptInjectionOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if prompt is clean and free of injection patterns")
-    vulnerable_prompts: List[str] = Field(default_factory=list, description="Vulnerable prompts matching injection rules")
+    vulnerable_prompts: List[str] = Field(
+        default_factory=list, description="Vulnerable prompts matching injection rules"
+    )
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed prompt injection safety findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_INJECTION_RISK, REJECTED_INJECTION_RISK)")
@@ -57,19 +59,17 @@ class PiLLMPromptInjectionSentry:
 
         # List of high-risk prompt injection / jailbreak patterns
         injection_rules = [
-            (r'(?i)\bignore\s+previous\s+instructions\b', "Ignore Previous Instructions override"),
-            (r'(?i)\bsystem\s+prompt\s+above\b', "System prompt extraction attempt"),
-            (r'(?i)\byou\s+are\s+now\s+an\s+unfiltered\b', "Unfiltered persona roleplay jailbreak"),
-            (r'(?i)\bdecode\s+the\s+following\s+base64\b', "Obfuscated payload execution check"),
-            (r'(?i)\bswitch\s+into\s+developer\s+mode\b', "Developer override state bypass"),
+            (r"(?i)\bignore\s+previous\s+instructions\b", "Ignore Previous Instructions override"),
+            (r"(?i)\bsystem\s+prompt\s+above\b", "System prompt extraction attempt"),
+            (r"(?i)\byou\s+are\s+now\s+an\s+unfiltered\b", "Unfiltered persona roleplay jailbreak"),
+            (r"(?i)\bdecode\s+the\s+following\s+base64\b", "Obfuscated payload execution check"),
+            (r"(?i)\bswitch\s+into\s+developer\s+mode\b", "Developer override state bypass"),
         ]
 
         for pattern, description in injection_rules:
             if re.search(pattern, prompt):
                 vulnerable_prompts.append(prompt)
-                flagged_findings.append(
-                    f"Prompt contains high-risk injection/jailbreak pattern: '{description}'."
-                )
+                flagged_findings.append(f"Prompt contains high-risk injection/jailbreak pattern: '{description}'.")
                 break
 
         is_secure = len(vulnerable_prompts) == 0
@@ -89,5 +89,5 @@ class PiLLMPromptInjectionSentry:
             vulnerable_prompts=vulnerable_prompts,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

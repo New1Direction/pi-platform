@@ -122,7 +122,9 @@ class GovernanceKernel:
             branch_count=self._branch_count,
             provenance=provenance or [],
             execution_id=exec_id,
-            parent_execution_id=exec_id if self._execution_counter == 1 else f"exec_{self.root_goal_id}_{self._execution_counter - 1:04d}",
+            parent_execution_id=exec_id
+            if self._execution_counter == 1
+            else f"exec_{self.root_goal_id}_{self._execution_counter - 1:04d}",
             trace_hash="",
             prompt_hash=self._compute_hash(input_payload),
             input_hash=self._compute_hash(input_payload),
@@ -272,11 +274,7 @@ class GovernanceKernel:
 
     def _allowed_transitions_from(self, state_id: str) -> List[str]:
         """List allowed next states from the current state."""
-        return [
-            rule.to_state
-            for rule in self.transition_gate.rules
-            if rule.from_state == state_id
-        ]
+        return [rule.to_state for rule in self.transition_gate.rules if rule.from_state == state_id]
 
     def terminal_report(self) -> Dict[str, Any]:
         """Emit a final governance summary."""

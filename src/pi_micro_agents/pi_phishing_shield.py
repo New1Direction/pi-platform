@@ -29,25 +29,30 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class PhishingShieldInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level: STRICT, MEDIUM")
 
+
 class PhishingShieldOutput(BaseModel):
-    is_secure: bool = Field(..., description="Indicates if contract is free from message-sender phishing vulnerabilities")
+    is_secure: bool = Field(
+        ..., description="Indicates if contract is free from message-sender phishing vulnerabilities"
+    )
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed phishing shield findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_PHISHING_RISK, REJECTED_PHISHING_RISK)")
+
 
 # Helper to extract functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
     functions = []
     code_len = len(solidity_code)
 
-    pattern = re.compile(r'\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -62,10 +67,10 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             func_name = "receive"
 
         start_idx = match.start()
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -74,9 +79,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -85,6 +90,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 3. Core Micro-Agent Class
 class PiPhishingShield:
@@ -102,8 +108,8 @@ class PiPhishingShield:
         functions = extract_solidity_functions(code)
 
         for func_name, func_body, start_line in functions:
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Mode 1: msg.sender Phishing Vector check (using msg.sender for callback validation)
             # Find callback patterns like "onTokenTransfer" or "tokensReceived" or external hook execution
@@ -120,7 +126,9 @@ class PiPhishingShield:
             # If function looks like signature permit verifier, verify deadline checking exists
             if "permit" in func_name.lower():
                 # Signature permit needs deadline validation (must verify block.timestamp <= deadline)
-                if "deadline" in cleaned_body.lower() and not any(cond in cleaned_body.lower() for cond in ["block.timestamp", "now"]):
+                if "deadline" in cleaned_body.lower() and not any(
+                    cond in cleaned_body.lower() for cond in ["block.timestamp", "now"]
+                ):
                     flagged_findings.append(
                         f"Permit Warning: Function '{func_name}' on Line {start_line} accepts a 'deadline' parameter "
                         f"but does not validate it against the current block.timestamp, violating EIP-2612 specification guidelines."
@@ -143,5 +151,5 @@ class PiPhishingShield:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

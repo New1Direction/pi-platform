@@ -62,7 +62,7 @@ class PiRustTokioDeadlockSentry:
         if has_std_mutex and has_await:
             # Let's see if a MutexGuard is kept across an await point.
             # Simplified static analyzer looking for standard synchronous locking in async blocks
-            if re.search(r'\.lock\(\)[\s\S]*?\.await', code):
+            if re.search(r"\.lock\(\)[\s\S]*?\.await", code):
                 vulnerable_elements.append("sync_lock_held_across_await")
                 flagged_findings.append(
                     "Rust async block holds a synchronous std::sync::Mutex guard across an '.await' point. "
@@ -70,7 +70,7 @@ class PiRustTokioDeadlockSentry:
                 )
 
             # Check block_on deadlock patterns E.g. block_on inside an async function
-            if re.search(r'async[\s\S]*?block_on\(', code):
+            if re.search(r"async[\s\S]*?block_on\(", code):
                 vulnerable_elements.append("block_on_inside_async")
                 flagged_findings.append(
                     "Rust async function or block uses a synchronous 'block_on' executor call. "
@@ -94,5 +94,5 @@ class PiRustTokioDeadlockSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -4,6 +4,10 @@ Governed extension catalog, compatibility graph, ingestion pipeline,
 semantic indexing, and distributed shard coordination.
 """
 
+from pi_interoperability_layer.capability.deferred import (
+    DeferredTool,
+    ToolSchemaStore,
+)
 from pi_interoperability_layer.capability.graph import (
     CompatibilityCheck,
     CompatibilityEdge,
@@ -39,6 +43,8 @@ __all__ = [
     "RegistryFingerprints",
     "TrustScore",
     "TrustScoringBasis",
+    "DeferredTool",
+    "ToolSchemaStore",
     "ExtensionCompatibilityGraph",
     "CompatibilityEdge",
     "CompatibilityType",

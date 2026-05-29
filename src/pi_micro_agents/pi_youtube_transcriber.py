@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Heuristic check: screens auto-generated transcripts for prompt injection jailbreaks
 def detect_transcriber_anomalies(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -47,14 +48,17 @@ def detect_transcriber_anomalies(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. Pydantic Inputs and Outputs
 class TranscriptInput(BaseModel):
     video_urls: List[str] = Field(..., description="List of YouTube video URLs to transcribe")
     creator: str = Field(..., description="Creator/Author of the videos")
 
+
 class TranscriptItem(BaseModel):
     video_id: str
     text: str
+
 
 class TranscriptOutput(BaseModel):
     success: bool
@@ -62,6 +66,7 @@ class TranscriptOutput(BaseModel):
     transcripts: List[TranscriptItem] = Field(default_factory=list)
     combined_text: str = ""
     anomalies_detected: List[str] = Field(default_factory=list)
+
 
 # 4. Core Agent Class
 class PiYoutubeTranscriber:
@@ -79,6 +84,7 @@ class PiYoutubeTranscriber:
         has_api = False
         try:
             from youtube_transcript_api import YouTubeTranscriptApi
+
             has_api = True
         except ImportError:
             pass
@@ -97,6 +103,7 @@ class PiYoutubeTranscriber:
             if has_api:
                 try:
                     from youtube_transcript_api import YouTubeTranscriptApi
+
                     transcript = YouTubeTranscriptApi.get_transcript(video_id)
                     text = " ".join([item["text"] for item in transcript])
                 except Exception:

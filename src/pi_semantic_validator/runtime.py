@@ -145,9 +145,7 @@ class ValidatorRuntime:
                 )
 
             # Bounded collect
-            bounded = self._bounded_collect(
-                response.violations, self.bounds.max_violations_per_pass
-            )
+            bounded = self._bounded_collect(response.violations, self.bounds.max_violations_per_pass)
             response.violations = bounded
             self._violations.extend(bounded)
             self._pass_results[pass_name] = response
@@ -181,10 +179,7 @@ class ValidatorRuntime:
             "warning_count": sum(1 for v in self._violations if v.severity == "WARNING"),
             "passes_executed": len(self._pass_results),
             "execution_time_ms": elapsed_ms,
-            "bounded_truncated": any(
-                v.rule == "BOUNDED_EXECUTION_VIOLATION_LIMIT_EXCEEDED"
-                for v in self._violations
-            ),
+            "bounded_truncated": any(v.rule == "BOUNDED_EXECUTION_VIOLATION_LIMIT_EXCEEDED" for v in self._violations),
         }
 
         return ValidationReport(

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ExplicitCompositionRequest,
   CompositionNode,
@@ -75,6 +75,33 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     selectedTrace: null,
   });
 
+  // Refs mirror the latest values so async callbacks read the current
+  // sessionId / composition without participating in dep arrays — closes
+  // stale-closure bugs where a fetch fires against a stale session.
+  const sessionIdRef = useRef(state.sessionId);
+  const compositionRef = useRef(state.composition);
+  useEffect(() => {
+    sessionIdRef.current = state.sessionId;
+    compositionRef.current = state.composition;
+  }, [state.sessionId, state.composition]);
+
+  // One AbortController per logical fetch slot. Switching tabs or refiring
+  // a query cancels the in-flight call so a stale response can't overwrite
+  // newer state.
+  const inflight = useRef<Record<string, AbortController | undefined>>({});
+  const swapController = useCallback((key: string): AbortController => {
+    inflight.current[key]?.abort();
+    const ac = new AbortController();
+    inflight.current[key] = ac;
+    return ac;
+  }, []);
+  useEffect(() => {
+    return () => {
+      // Cancel everything on unmount.
+      Object.values(inflight.current).forEach((ac) => ac?.abort());
+    };
+  }, []);
+
   const setMode = useCallback((mode: ConsoleMode) => {
     setState((s) => ({ ...s, mode }));
   }, []);
@@ -85,8 +112,9 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     try {
       const sess = await createSession(tenantId, llmEnabled);
       setState((s) => ({ ...s, sessionId: sess.session_id, loading: false }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message, loading: false }));
+    } catch (e: unknown) {
+      console.error("[pi-console] initSession error:", e);
+      setState((s) => ({ ...s, error: "Session initialization failed.", loading: false }));
     }
   }, [tenantId, llmEnabled]);
 
@@ -110,15 +138,22 @@ export function useConsole(tenantId: string, llmEnabled = false) {
   }, [tenantId, state.sessionId]);
 
   const runSimulation = useCallback(async () => {
-    if (!state.composition) return;
+    // Read through the ref so a rapid sequence of buildComposition →
+    // runSimulation always simulates the latest DAG, not the closure-captured
+    // snapshot from the render that created this callback.
+    const composition = compositionRef.current;
+    if (!composition) return;
+    swapController("simulation");
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
-      const res = await simulateComposition(state.composition);
+      const res = await simulateComposition(composition);
       setState((s) => ({ ...s, simulationReport: { ...res.report, can_execute: res.can_execute }, loading: false }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message, loading: false }));
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === "AbortError") return;
+      console.error("[pi-console] runSimulation error:", e);
+      setState((s) => ({ ...s, error: "Simulation failed. Please try again.", loading: false }));
     }
-  }, [state.composition]);
+  }, [swapController]);
 
   const approveAndSubmit = useCallback(async () => {
     if (!state.composition || !state.simulationReport?.can_execute) return;
@@ -127,12 +162,17 @@ export function useConsole(tenantId: string, llmEnabled = false) {
       const comp = { ...state.composition, approved_by_user: true, approval_timestamp: new Date().toISOString() };
       await submitComposition(comp, true);
       setState((s) => ({ ...s, composition: comp, loading: false }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message, loading: false }));
+    } catch (e: unknown) {
+      console.error("[pi-console] approveAndSubmit error:", e);
+      setState((s) => ({ ...s, error: "Submission failed. Please try again.", loading: false }));
     }
   }, [state.composition, state.simulationReport]);
 
   const sendChat = useCallback(async (message: string) => {
+    // Always use the live sessionId — capturing it in deps means a chat
+    // sent during session init would post to "" and 400.
+    const sessionId = sessionIdRef.current;
+    swapController("chat");
     setState((s) => ({
       ...s,
       chatMessages: [...s.chatMessages, { role: "user", text: message }],
@@ -140,7 +180,7 @@ export function useConsole(tenantId: string, llmEnabled = false) {
       error: null,
     }));
     try {
-      const res = await translateChat(state.sessionId, message);
+      const res = await translateChat(sessionId, message);
       const assistantText = res.translation_valid
         ? `Translated to composition:\n${JSON.stringify(res.proposed_composition, null, 2)}\n\nExplanation: ${res.explanation}`
         : `Translation failed: ${res.validation_errors.join(", ")}`;
@@ -150,15 +190,18 @@ export function useConsole(tenantId: string, llmEnabled = false) {
         loading: false,
         composition: res.proposed_composition || s.composition,
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === "AbortError") return;
+      const msg = e instanceof Error ? e.message : "Unknown error";
+      console.error("[pi-console] chat error:", msg);
       setState((s) => ({
         ...s,
-        chatMessages: [...s.chatMessages, { role: "assistant", text: `Error: ${e.message}` }],
+        chatMessages: [...s.chatMessages, { role: "assistant", text: "An error occurred. Please try again." }],
         loading: false,
-        error: e.message,
+        error: "Request failed. Please try again.",
       }));
     }
-  }, [state.sessionId]);
+  }, [swapController]);
 
   const loadCapabilities = useCallback(async () => {
     setState((s) => ({ ...s, loading: true }));
@@ -172,8 +215,8 @@ export function useConsole(tenantId: string, llmEnabled = false) {
         compatEdges: graph.edges,
         loading: false,
       }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message, loading: false }));
+    } catch (e: unknown) {
+      setState((s) => ({ ...s, error: "Request failed. Please try again.", loading: false }));
     }
   }, []);
 
@@ -182,8 +225,8 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     try {
       const res = await getAuditLog();
       setState((s) => ({ ...s, auditEntries: res.entries, loading: false }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message, loading: false }));
+    } catch (e: unknown) {
+      setState((s) => ({ ...s, error: "Request failed. Please try again.", loading: false }));
     }
   }, []);
 
@@ -191,8 +234,8 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     try {
       const res = await getTenantQuota();
       setState((s) => ({ ...s, quota: res.quota }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message }));
+    } catch (e: unknown) {
+      setState((s) => ({ ...s, error: "Request failed. Please try again." }));
     }
   }, []);
 
@@ -205,22 +248,27 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     search?: string,
     minRisk?: number
   ) => {
+    // Cancel any prior in-flight ledger fetch so rapid filter changes
+    // don't race responses out of order.
+    const ac = swapController("ledger-traces");
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
       const res = await getLedgerTraces(limit, offset, nodeName, success, routedAgent, search, minRisk);
+      if (ac.signal.aborted) return;
       setState((s) => ({ ...s, ledgerTraces: res.traces, ledgerTotalCount: res.total_count, loading: false }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message, loading: false }));
+    } catch (e: unknown) {
+      if ((e as { name?: string })?.name === "AbortError") return;
+      setState((s) => ({ ...s, error: "Request failed. Please try again.", loading: false }));
     }
-  }, []);
+  }, [swapController]);
 
   const loadLedgerTraceDetail = useCallback(async (traceId: string) => {
     setState((s) => ({ ...s, loading: true, error: null }));
     try {
       const res = await getLedgerTraceDetail(traceId);
       setState((s) => ({ ...s, selectedTrace: res, loading: false }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message, loading: false }));
+    } catch (e: unknown) {
+      setState((s) => ({ ...s, error: "Request failed. Please try again.", loading: false }));
     }
   }, []);
 
@@ -228,8 +276,8 @@ export function useConsole(tenantId: string, llmEnabled = false) {
     try {
       const res = await getLedgerSummary();
       setState((s) => ({ ...s, ledgerSummary: res }));
-    } catch (e: any) {
-      setState((s) => ({ ...s, error: e.message }));
+    } catch (e: unknown) {
+      setState((s) => ({ ...s, error: "Request failed. Please try again." }));
     }
   }, []);
 

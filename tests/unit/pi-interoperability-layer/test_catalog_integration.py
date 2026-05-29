@@ -9,10 +9,8 @@ All Notte API calls are mocked. No credentials in tests.
 
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -24,62 +22,49 @@ from pi_extension_governor.manifest import (
     TrustZone,
 )
 from pi_extension_governor.policy import ExtensionGovernancePolicy
-
 from pi_interoperability_layer.capability.graph import (
-    CompatibilityType,
     ExtensionCompatibilityGraph,
 )
 from pi_interoperability_layer.capability.registry import (
     SemanticCapabilityRegistry,
-    RegistryEntryStatus,
-    RegistryFingerprints,
-    TrustScore,
-    TrustScoringBasis,
 )
-
-from pi_interoperability_layer.catalog.notte_client import (
-    CatalogPage,
-    CatalogSearchResult,
-    NotteCatalogClient,
+from pi_interoperability_layer.catalog.classifier_worker import (
+    CapabilityClassifierWorker,
+)
+from pi_interoperability_layer.catalog.composition_planner import (
+    CapabilityCompositionPlanner,
+)
+from pi_interoperability_layer.catalog.dependency_expansion_worker import (
+    DependencyGraphExpansionWorker,
 )
 from pi_interoperability_layer.catalog.ingest_worker import (
     CatalogIngestReceipt,
     PackageCatalogIngestWorker,
 )
-from pi_interoperability_layer.catalog.classifier_worker import (
-    CapabilityClassificationResult,
-    CapabilityClassifierWorker,
+from pi_interoperability_layer.catalog.normalization_worker import (
+    PackageNormalizationWorker,
+)
+from pi_interoperability_layer.catalog.notte_client import (
+    CatalogPage,
+    CatalogSearchResult,
+    NotteCatalogClient,
+)
+from pi_interoperability_layer.catalog.pipeline import (
+    CatalogIntegrationPipeline,
 )
 from pi_interoperability_layer.catalog.policy_gate_worker import (
-    PackagePolicyGateResult,
     PackagePolicyGateWorker,
 )
 from pi_interoperability_layer.catalog.sandbox_worker import (
-    SandboxValidationReceipt,
     SandboxValidationWorker,
 )
-from pi_interoperability_layer.catalog.normalization_worker import (
-    PackageNormalizationReceipt,
-    PackageNormalizationWorker,
-)
-from pi_interoperability_layer.catalog.dependency_expansion_worker import (
-    DependencyExpansionReceipt,
-    DependencyGraphExpansionWorker,
-)
-from pi_interoperability_layer.catalog.composition_planner import (
-    CompositionNode,
-    CompositionPlan,
-    CapabilityCompositionPlanner,
-)
-from pi_interoperability_layer.catalog.pipeline import (
-    CatalogPipelineReceipt,
-    CatalogIntegrationPipeline,
-)
-
 
 # ── Fixtures ───────────────────────────────────────────────────────
 
-def _mock_manifest(name: str = "test-pkg", cap_class: CapabilityClass = CapabilityClass.STATIC_ANALYZER) -> ExtensionManifest:
+
+def _mock_manifest(
+    name: str = "test-pkg", cap_class: CapabilityClass = CapabilityClass.STATIC_ANALYZER
+) -> ExtensionManifest:
     return ExtensionManifest(
         extension_id=f"catalog_{name}_1.0.0",
         package_name=name,
@@ -100,6 +85,7 @@ def _mock_manifest(name: str = "test-pkg", cap_class: CapabilityClass = Capabili
 
 
 # ── Notte Client Tests ─────────────────────────────────────────────
+
 
 def test_notte_client_requires_api_key(monkeypatch: Any) -> None:
     monkeypatch.delenv("NOTTE_API_KEY", raising=False)
@@ -136,6 +122,7 @@ def test_notte_client_normalizes_search() -> None:
 
 
 # ── Ingest Worker Tests ────────────────────────────────────────────
+
 
 def test_ingest_worker_normalizes_manifest() -> None:
     pkg = CatalogSearchResult(
@@ -196,12 +183,15 @@ def test_ingest_receipt_hash_determinism() -> None:
 
 # ── Classifier Worker Tests ────────────────────────────────────────
 
+
 def test_classifier_keyword_match() -> None:
     manifest = _mock_manifest("openapi-tool", CapabilityClass.STATIC_ANALYZER)
-    manifest = manifest.model_copy(update={
-        "description": "OpenAPI schema validator and swagger parser",
-        "metadata": {"keywords": ["openapi", "swagger", "rest-api"]},
-    })
+    manifest = manifest.model_copy(
+        update={
+            "description": "OpenAPI schema validator and swagger parser",
+            "metadata": {"keywords": ["openapi", "swagger", "rest-api"]},
+        }
+    )
     worker = CapabilityClassifierWorker()
     result = worker.classify(manifest)
     assert result.assigned_class == CapabilityClass.OPENAPI_TOOLING
@@ -211,9 +201,11 @@ def test_classifier_keyword_match() -> None:
 
 def test_classifier_dependency_match() -> None:
     manifest = _mock_manifest("k8s-helper", CapabilityClass.STATIC_ANALYZER)
-    manifest = manifest.model_copy(update={
-        "dependencies": ["@kubernetes/client-node", "helm"],
-    })
+    manifest = manifest.model_copy(
+        update={
+            "dependencies": ["@kubernetes/client-node", "helm"],
+        }
+    )
     worker = CapabilityClassifierWorker()
     result = worker.classify(manifest)
     assert result.assigned_class == CapabilityClass.KUBERNETES_MANIFEST
@@ -229,6 +221,7 @@ def test_classifier_no_match_defaults_static() -> None:
 
 # ── Policy Gate Worker Tests ─────────────────────────────────────
 
+
 def test_policy_gate_passes_safe_package() -> None:
     manifest = _mock_manifest("safe-pkg")
     worker = PackagePolicyGateWorker()
@@ -240,9 +233,11 @@ def test_policy_gate_passes_safe_package() -> None:
 
 def test_policy_gate_fails_banned_import() -> None:
     manifest = _mock_manifest("evil-pkg")
-    manifest = manifest.model_copy(update={
-        "dependencies": ["eval", "child_process"],
-    })
+    manifest = manifest.model_copy(
+        update={
+            "dependencies": ["eval", "child_process"],
+        }
+    )
     worker = PackagePolicyGateWorker()
     result = worker.evaluate(manifest)
     assert result.passed is False
@@ -253,9 +248,11 @@ def test_policy_gate_fails_banned_import() -> None:
 
 def test_policy_gate_fails_zone_restriction() -> None:
     manifest = _mock_manifest("zone-pkg")
-    manifest = manifest.model_copy(update={
-        "trust_zone": TrustZone.CORE_TRUSTED,
-    })
+    manifest = manifest.model_copy(
+        update={
+            "trust_zone": TrustZone.CORE_TRUSTED,
+        }
+    )
     policy = ExtensionGovernancePolicy(
         approved_capability_classes=set(CapabilityClass),
         banned_imports=set(),
@@ -275,6 +272,7 @@ def test_policy_gate_fails_zone_restriction() -> None:
 
 
 # ── Sandbox Worker Tests ─────────────────────────────────────────
+
 
 def test_sandbox_validates_deterministic_code() -> None:
     manifest = _mock_manifest("det-pkg")
@@ -300,6 +298,7 @@ def test_sandbox_fails_non_deterministic() -> None:
 
 # ── Normalization Worker Tests ───────────────────────────────────
 
+
 def test_normalization_accept_known_artifact() -> None:
     manifest = _mock_manifest("norm-pkg", CapabilityClass.OPENAPI_TOOLING)
     worker = PackageNormalizationWorker()
@@ -321,19 +320,24 @@ def test_normalization_reject_unknown_artifact() -> None:
 
 # ── Dependency Expansion Worker Tests ────────────────────────────
 
+
 def test_dependency_expansion_adds_edges() -> None:
     graph = ExtensionCompatibilityGraph()
     dep_manifest = _mock_manifest("dep-pkg")
-    dep_manifest = dep_manifest.model_copy(update={
-        "extension_id": "catalog_dep-pkg_1.0.0",
-        "name": "dep-pkg",
-    })
+    dep_manifest = dep_manifest.model_copy(
+        update={
+            "extension_id": "catalog_dep-pkg_1.0.0",
+            "name": "dep-pkg",
+        }
+    )
     graph.register_installed(dep_manifest.extension_id)
 
     main_manifest = _mock_manifest("main-pkg")
-    main_manifest = main_manifest.model_copy(update={
-        "dependencies": ["dep-pkg@^1.0.0"],
-    })
+    main_manifest = main_manifest.model_copy(
+        update={
+            "dependencies": ["dep-pkg@^1.0.0"],
+        }
+    )
 
     worker = DependencyGraphExpansionWorker(graph)
     known = {"dep-pkg": dep_manifest}
@@ -346,9 +350,11 @@ def test_dependency_expansion_adds_edges() -> None:
 def test_dependency_expansion_records_missing() -> None:
     graph = ExtensionCompatibilityGraph()
     manifest = _mock_manifest("orphan-pkg")
-    manifest = manifest.model_copy(update={
-        "dependencies": ["missing-dep@1.0.0"],
-    })
+    manifest = manifest.model_copy(
+        update={
+            "dependencies": ["missing-dep@1.0.0"],
+        }
+    )
     worker = DependencyGraphExpansionWorker(graph)
     receipt = worker.expand(manifest, {})
     assert receipt.edges_added == 0
@@ -356,6 +362,7 @@ def test_dependency_expansion_records_missing() -> None:
 
 
 # ── Composition Planner Tests ────────────────────────────────────
+
 
 def test_planner_builds_valid_dag() -> None:
     graph = ExtensionCompatibilityGraph()
@@ -397,21 +404,34 @@ def test_planner_empty_manifests_invalid() -> None:
 
 # ── Full Pipeline Tests ──────────────────────────────────────────
 
+
 def test_pipeline_admits_deterministic_package(tmp_path: Path) -> None:
     registry = SemanticCapabilityRegistry(root_dir=tmp_path)
     graph = ExtensionCompatibilityGraph()
     pipeline = CatalogIntegrationPipeline(registry, graph)
     # Mock the ingest worker to avoid Notte API key requirement
-    pkg = CatalogSearchResult(
-        package_name="safe-pkg", package_version="1.0.0", package_type="npm",
-        description="", keywords=(), author="", license="",
-        dependencies=(), dev_dependencies=(), raw_metadata_hash="abc", ingest_timestamp="",
+    CatalogSearchResult(
+        package_name="safe-pkg",
+        package_version="1.0.0",
+        package_type="npm",
+        description="",
+        keywords=(),
+        author="",
+        license="",
+        dependencies=(),
+        dev_dependencies=(),
+        raw_metadata_hash="abc",
+        ingest_timestamp="",
     )
     pipeline.ingest_worker = MagicMock()
     pipeline.ingest_worker.ingest_package.return_value = CatalogIngestReceipt(
-        ingest_id="test", page=1, packages_ingested=1, raw_hash="abc",
+        ingest_id="test",
+        page=1,
+        packages_ingested=1,
+        raw_hash="abc",
         normalized_manifests=(_mock_manifest("safe-pkg"),),
-        timestamp="", receipt_hash="rhash",
+        timestamp="",
+        receipt_hash="rhash",
     )
 
     source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'endpoints': []}"
@@ -427,17 +447,25 @@ def test_pipeline_receipt_chain_integrity(tmp_path: Path) -> None:
     pipeline = CatalogIntegrationPipeline(registry, graph)
     pipeline.ingest_worker = MagicMock()
     pipeline.ingest_worker.ingest_package.return_value = CatalogIngestReceipt(
-        ingest_id="test", page=1, packages_ingested=1, raw_hash="abc",
+        ingest_id="test",
+        page=1,
+        packages_ingested=1,
+        raw_hash="abc",
         normalized_manifests=(_mock_manifest("pkg-a"),),
-        timestamp="", receipt_hash="rhash",
+        timestamp="",
+        receipt_hash="rhash",
     )
 
     source = "OUTPUT = {'result': 1}"
     r1 = pipeline.process_package("pkg-a", source, {})
     pipeline.ingest_worker.ingest_package.return_value = CatalogIngestReceipt(
-        ingest_id="test2", page=1, packages_ingested=1, raw_hash="def",
+        ingest_id="test2",
+        page=1,
+        packages_ingested=1,
+        raw_hash="def",
         normalized_manifests=(_mock_manifest("pkg-b"),),
-        timestamp="", receipt_hash="rhash2",
+        timestamp="",
+        receipt_hash="rhash2",
     )
     r2 = pipeline.process_package("pkg-b", source, {})
     assert r1.pipeline_hash != r2.pipeline_hash
@@ -450,9 +478,13 @@ def test_pipeline_deterministic_same_input_same_receipt(tmp_path: Path) -> None:
     pipeline = CatalogIntegrationPipeline(registry, graph)
     pipeline.ingest_worker = MagicMock()
     pipeline.ingest_worker.ingest_package.return_value = CatalogIngestReceipt(
-        ingest_id="test", page=1, packages_ingested=1, raw_hash="abc",
+        ingest_id="test",
+        page=1,
+        packages_ingested=1,
+        raw_hash="abc",
         normalized_manifests=(_mock_manifest("stable-pkg"),),
-        timestamp="", receipt_hash="rhash",
+        timestamp="",
+        receipt_hash="rhash",
     )
 
     source = "OUTPUT = {'stable': True}"
@@ -465,6 +497,7 @@ def test_pipeline_deterministic_same_input_same_receipt(tmp_path: Path) -> None:
 
 
 # ── End-to-End Catalog Mock Tests ──────────────────────────────────
+
 
 def test_catalog_mock_ingest_classify_gate() -> None:
     """Simulate full flow with mocked Notte client."""

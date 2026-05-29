@@ -38,7 +38,9 @@ class DirtyMemoryInput(BaseModel):
 class DirtyMemoryOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if memory safety checks passed")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed inline assembly memory safety findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed inline assembly memory safety findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_DIRTY_MEMORY, REJECTED_DIRTY_MEMORY)")
 
@@ -57,16 +59,16 @@ class PiSolidityDirtyMemorySentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             if "assembly" in body and "mstore" in body:
                 # Check if it writes to dynamic memory offsets (above 0x80) without reading the free memory pointer (0x40)
                 has_free_mem_load = "mload(0x40)" in body.replace(" ", "")
-                
+
                 # Check for direct writes above the scratch space / zero slot absolute boundary without free memory load
                 # e.g., mstore(0x80, ...), mstore(128, ...)
-                writes_absolute_dynamic = re.search(r'mstore\s*\(\s*(0x[89a-fA-F0-9]{2,}|1[2-9]\d|\d{3,})\s*,', body)
+                writes_absolute_dynamic = re.search(r"mstore\s*\(\s*(0x[89a-fA-F0-9]{2,}|1[2-9]\d|\d{3,})\s*,", body)
 
                 if writes_absolute_dynamic and not has_free_mem_load:
                     vulnerable_funcs.append(name)
@@ -93,5 +95,5 @@ class PiSolidityDirtyMemorySentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

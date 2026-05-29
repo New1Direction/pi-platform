@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 #  Topology Primitives
 # ──────────────────────────────
 
+
 class TopologyNode(BaseModel):
     """A single node in the dependency topology."""
 
@@ -97,6 +98,7 @@ class TopologyGraph(BaseModel):
 #  Blast Radius Models
 # ──────────────────────────────
 
+
 class BlastRadiusScore(BaseModel):
     """Deterministic blast radius score for a topology change."""
 
@@ -145,6 +147,7 @@ class BlastRadiusReport(BaseModel):
 #  Blast Radius Engine
 # ──────────────────────────────
 
+
 class BlastRadiusEngine(BaseModel):
     """Deterministic blast radius computation engine.
 
@@ -185,20 +188,12 @@ class BlastRadiusEngine(BaseModel):
         mod_complexity = self._complexity_score(modified)
         complexity_delta = mod_complexity - base_complexity
 
-        base_fanout = max(
-            (baseline.fanout(n) for n in baseline.nodes.keys()), default=0
-        )
-        mod_fanout = max(
-            (modified.fanout(n) for n in modified.nodes.keys()), default=0
-        )
+        base_fanout = max((baseline.fanout(n) for n in baseline.nodes.keys()), default=0)
+        mod_fanout = max((modified.fanout(n) for n in modified.nodes.keys()), default=0)
         fanout_delta = mod_fanout - base_fanout
 
-        base_depth = max(
-            (baseline.depth_from(n) for n in baseline.nodes.keys()), default=0
-        )
-        mod_depth = max(
-            (modified.depth_from(n) for n in modified.nodes.keys()), default=0
-        )
+        base_depth = max((baseline.depth_from(n) for n in baseline.nodes.keys()), default=0)
+        mod_depth = max((modified.depth_from(n) for n in modified.nodes.keys()), default=0)
         depth_delta = mod_depth - base_depth
 
         # Auth surface deltas
@@ -211,12 +206,8 @@ class BlastRadiusEngine(BaseModel):
         replay_propagation_depth = mod_depth
 
         # Side-effect bound
-        base_se = sum(
-            1 for n in baseline.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND"
-        )
-        mod_se = sum(
-            1 for n in modified.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND"
-        )
+        base_se = sum(1 for n in baseline.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND")
+        mod_se = sum(1 for n in modified.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND")
         side_effect_delta = mod_se - base_se
 
         # Deterministic input hash
@@ -225,9 +216,7 @@ class BlastRadiusEngine(BaseModel):
             "modified_nodes": sorted(modified.nodes.keys()),
             "target_node": target_node,
         }
-        input_hash = hashlib.sha256(
-            json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        input_hash = hashlib.sha256(json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
         return BlastRadiusScore(
             score_id=f"br_{target_node}_{input_hash[:16]}",
@@ -252,14 +241,10 @@ class BlastRadiusEngine(BaseModel):
         """Bounded deterministic topology complexity score."""
         node_count = len(graph.nodes)
         edge_count = len(graph.edges)
-        max_fanout = max(
-            (graph.fanout(n) for n in graph.nodes.keys()), default=0
-        )
-        max_depth = max(
-            (graph.depth_from(n) for n in graph.nodes.keys()), default=0
-        )
+        max_fanout = max((graph.fanout(n) for n in graph.nodes.keys()), default=0)
+        max_depth = max((graph.depth_from(n) for n in graph.nodes.keys()), default=0)
         # Deterministic formula: nodes + edges + fanout^2 + depth^2
-        return float(node_count + edge_count + (max_fanout ** 2) + (max_depth ** 2))
+        return float(node_count + edge_count + (max_fanout**2) + (max_depth**2))
 
     def evaluate_report(self, report: BlastRadiusReport) -> List[str]:
         """Evaluate report against limits; return list of exceeded limit names."""

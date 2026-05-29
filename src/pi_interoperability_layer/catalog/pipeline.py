@@ -186,10 +186,12 @@ class CatalogIntegrationPipeline:
             )
 
         # Update manifest with proven sandbox results
-        manifest = manifest.model_copy(update={
-            "deterministic_claim": sandbox_receipt.determinism_verified,
-            "replayability_claim": sandbox_receipt.replay_safe_verified,
-        })
+        manifest = manifest.model_copy(
+            update={
+                "deterministic_claim": sandbox_receipt.determinism_verified,
+                "replayability_claim": sandbox_receipt.replay_safe_verified,
+            }
+        )
 
         # Phase 5: Semantic Normalization
         # Use sandbox output as the raw output to normalize
@@ -237,7 +239,9 @@ class CatalogIntegrationPipeline:
         fingerprints = RegistryFingerprints(
             manifest_hash=manifest.compute_hash(),
             source_hash=sandbox_receipt.output_hash if sandbox_receipt else "",
-            determinism_fingerprint=sandbox_receipt.output_hash if sandbox_receipt and sandbox_receipt.determinism_verified else "",
+            determinism_fingerprint=sandbox_receipt.output_hash
+            if sandbox_receipt and sandbox_receipt.determinism_verified
+            else "",
             policy_hash=gate_result.gate_hash if gate_result else "",
             normalization_hash=norm_receipt.receipt_hash if norm_receipt else "",
             provenance_chain_hash=ingest_receipt.receipt_hash if ingest_receipt else "",
@@ -270,9 +274,7 @@ class CatalogIntegrationPipeline:
             evidence,
         )
 
-    def _register_rejected(
-        self, manifest: ExtensionManifest, reason: str
-    ) -> None:
+    def _register_rejected(self, manifest: ExtensionManifest, reason: str) -> None:
         """Register a rejected package in the registry for audit."""
         fingerprints = RegistryFingerprints(
             manifest_hash=manifest.compute_hash(),

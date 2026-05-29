@@ -40,7 +40,9 @@ class ArbitraryTransferOutput(BaseModel):
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed arbitrary transfer safety findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_ARBITRARY_TRANSFER, REJECTED_ARBITRARY_TRANSFER)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_ARBITRARY_TRANSFER, REJECTED_ARBITRARY_TRANSFER)"
+    )
 
 
 # 3. Core Micro-Agent Class
@@ -57,29 +59,34 @@ class PiSolidityArbitraryTransferSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
         for name, args, body in func_blocks:
             # Check if function takes an address parameter that might represent a token
-            param_matches = re.findall(r'address\s+([a-zA-Z0-9_]+)', args)
+            param_matches = re.findall(r"address\s+([a-zA-Z0-9_]+)", args)
             if not param_matches:
                 continue
 
             for param in param_matches:
                 # Look for transfer / transferFrom called on this parameter
                 # e.g., token.transfer, IERC20(token).transfer, SafeERC20.safeTransfer(token, ...) or token.safeTransfer
-                is_transferred = re.search(rf'{param}\s*\.\s*(?:transfer|transferFrom|safeTransfer)', body) or \
-                                 re.search(rf'IERC20\s*\(\s*{param}\s*\)\s*\.\s*(?:transfer|transferFrom|safeTransfer)', body) or \
-                                 re.search(rf'safeTransfer\s*\(\s*(?:IERC20\s*\()?\s*{param}\s*\)?', body)
+                is_transferred = (
+                    re.search(rf"{param}\s*\.\s*(?:transfer|transferFrom|safeTransfer)", body)
+                    or re.search(rf"IERC20\s*\(\s*{param}\s*\)\s*\.\s*(?:transfer|transferFrom|safeTransfer)", body)
+                    or re.search(rf"safeTransfer\s*\(\s*(?:IERC20\s*\()?\s*{param}\s*\)?", body)
+                )
 
                 if is_transferred:
                     # Check if there is a whitelist check or dynamic parameter validation matching this parameter
                     # e.g. whitelist[param], isWhitelisted[param], require(param == trustedToken)
-                    has_whitelist_check = re.search(rf'whitelist\s*\[\s*{param}\s*\]', body) or \
-                                          re.search(rf'isWhitelisted\s*\[\s*{param}\s*\]', body) or \
-                                          re.search(rf'require\s*\(\s*{param}\s*==\s*[a-zA-Z0-9_]+\s*\)', body) or \
-                                          re.search(rf'require\s*\(\s*[a-zA-Z0-9_]+\s*==\s*{param}\s*\)', body) or \
-                                          "onlyOwner" in body or "onlyAdmin" in body
+                    has_whitelist_check = (
+                        re.search(rf"whitelist\s*\[\s*{param}\s*\]", body)
+                        or re.search(rf"isWhitelisted\s*\[\s*{param}\s*\]", body)
+                        or re.search(rf"require\s*\(\s*{param}\s*==\s*[a-zA-Z0-9_]+\s*\)", body)
+                        or re.search(rf"require\s*\(\s*[a-zA-Z0-9_]+\s*==\s*{param}\s*\)", body)
+                        or "onlyOwner" in body
+                        or "onlyAdmin" in body
+                    )
 
                     if not has_whitelist_check:
                         vulnerable_funcs.append(name)
@@ -107,5 +114,5 @@ class PiSolidityArbitraryTransferSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

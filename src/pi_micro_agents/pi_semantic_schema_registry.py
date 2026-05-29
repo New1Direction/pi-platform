@@ -54,7 +54,9 @@ class PiSemanticSchemaRegistry:
 
         # Find dynamic schema shifts, unstructured fields with wildcards, or lack of primary constraints
         # E.g. raw JSON field types or wildcards in schema validations that allow arbitrary inputs
-        unstructured_match = re.search(r'(JSON1|dynamic_schema|unstructured_data|Column\(\s*JSON\s*\)|BypassValidation)', code)
+        unstructured_match = re.search(
+            r"(JSON1|dynamic_schema|unstructured_data|Column\(\s*JSON\s*\)|BypassValidation)", code
+        )
 
         if unstructured_match:
             vulnerable_elements.append(unstructured_match.group(1))
@@ -81,5 +83,5 @@ class PiSemanticSchemaRegistry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

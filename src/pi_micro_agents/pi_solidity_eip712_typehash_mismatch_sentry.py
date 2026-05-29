@@ -53,11 +53,11 @@ class PiSolidityEIP712TypehashMismatchSentry:
         flagged_findings = []
 
         # Find all structs defined in Solidity
-        structs = re.findall(r'struct\s+([a-zA-Z0-9_]+)\s*\{([\s\S]*?)\}', code)
+        structs = re.findall(r"struct\s+([a-zA-Z0-9_]+)\s*\{([\s\S]*?)\}", code)
         struct_map = {}
         for sname, sbody in structs:
             # Parse variables: e.g. address from;
-            vars_list = re.findall(r'([a-zA-Z0-9_\[\]]+)\s+([a-zA-Z0-9_]+)\s*;', sbody)
+            vars_list = re.findall(r"([a-zA-Z0-9_\[\]]+)\s+([a-zA-Z0-9_]+)\s*;", sbody)
             struct_map[sname] = [(vtype.strip(), vname.strip()) for vtype, vname in vars_list]
 
         # Find all TYPEHASH constants/variables declared in Solidity, e.g. keccak256("Mail(address from,address to,string contents)")
@@ -65,7 +65,7 @@ class PiSolidityEIP712TypehashMismatchSentry:
 
         for th_name, signature in typehashes:
             # Extract struct name and params from signature, e.g. "Mail(address from,address to,string contents)"
-            sig_match = re.match(r'([a-zA-Z0-9_]+)\s*\(([^)]*)\)', signature)
+            sig_match = re.match(r"([a-zA-Z0-9_]+)\s*\(([^)]*)\)", signature)
             if sig_match:
                 sname = sig_match.group(1)
                 sig_params_raw = sig_match.group(2)
@@ -115,5 +115,5 @@ class PiSolidityEIP712TypehashMismatchSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

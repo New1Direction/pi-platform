@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_vyper_sec_scanner import (
     PiVyperSecScanner,
     VyperScannerInput,
-    VyperScannerOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -30,17 +27,13 @@ def test_vyper_scanner_vulnerable_compiler():
 
     vyper_code = """
     # @version 0.3.7
-    
+
     @external
     @nonreentrant("lock")
     def withdraw():
         pass
     """
-    inp = VyperScannerInput(
-        file_path="VulnerableVyper.vy",
-        vyper_code=vyper_code,
-        check_level="STRICT"
-    )
+    inp = VyperScannerInput(file_path="VulnerableVyper.vy", vyper_code=vyper_code, check_level="STRICT")
 
     out = agent.audit_vyper(inp)
 
@@ -60,15 +53,11 @@ def test_vyper_scanner_missing_decorator():
 
     vyper_code = """
     # @version 0.3.10
-    
+
     def internal_helper():
         pass
     """
-    inp = VyperScannerInput(
-        file_path="MissingDecorator.vy",
-        vyper_code=vyper_code,
-        check_level="STRICT"
-    )
+    inp = VyperScannerInput(file_path="MissingDecorator.vy", vyper_code=vyper_code, check_level="STRICT")
 
     out = agent.audit_vyper(inp)
 
@@ -88,17 +77,13 @@ def test_vyper_scanner_compliant():
 
     vyper_code = """
     # @version 0.3.10
-    
+
     @external
     @nonreentrant("lock")
     def withdraw():
         pass
     """
-    inp = VyperScannerInput(
-        file_path="CompliantVyper.vy",
-        vyper_code=vyper_code,
-        check_level="STRICT"
-    )
+    inp = VyperScannerInput(file_path="CompliantVyper.vy", vyper_code=vyper_code, check_level="STRICT")
 
     out = agent.audit_vyper(inp)
 
@@ -132,31 +117,27 @@ def test_orchestrator_vyper_scanner_consensus_passed(monkeypatch):
             "vulnerable_functions": ["global_compiler"],
             "flagged_findings": ["Vulnerable compiler version detected"],
             "risk_score": 90.0,
-            "status": "REJECTED_VYPER_VULNERABILITY"
+            "status": "REJECTED_VYPER_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["global_compiler"],
             "flagged_findings": ["Vulnerable compiler version detected"],
             "risk_score": 90.0,
-            "status": "REJECTED_VYPER_VULNERABILITY"
+            "status": "REJECTED_VYPER_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["global_compiler"],
             "flagged_findings": ["Vulnerable compiler version detected"],
             "risk_score": 90.0,
-            "status": "REJECTED_VYPER_VULNERABILITY"
-        }
+            "status": "REJECTED_VYPER_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
         goal="vyper scan to check compiler versions",
-        context={
-            "file_path": "contract.vy",
-            "vyper_code": vyper_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "contract.vy", "vyper_code": vyper_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 

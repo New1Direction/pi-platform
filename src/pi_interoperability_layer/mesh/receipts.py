@@ -26,7 +26,9 @@ class ExecutionReceipt(BaseModel):
     phase: str
     input_slot_ids: List[str] = Field(default_factory=list)
     output_slot_ids: List[str] = Field(default_factory=list)
-    status: str = "PENDING"  # PENDING, SUCCESS, FAIL, TIMEOUT, PANIC, SCHEMA_MISMATCH, REPLAY_MISMATCH, RESOURCE_EXCEEDED
+    status: str = (
+        "PENDING"  # PENDING, SUCCESS, FAIL, TIMEOUT, PANIC, SCHEMA_MISMATCH, REPLAY_MISMATCH, RESOURCE_EXCEEDED
+    )
     status_detail: str = ""
     determinism_proof: str = ""  # hash proving deterministic output
     resource_usage: Dict[str, float] = Field(default_factory=dict)  # e.g. {"cpu_ms": 12.3, "memory_mb": 45.6}

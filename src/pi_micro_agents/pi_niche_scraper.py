@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Heuristic anomaly checking (checks if X feed data contains system override attacks)
 def detect_scraper_anomalies(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -47,6 +48,7 @@ def detect_scraper_anomalies(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. Pydantic Inputs and Outputs
 class ScraperInput(BaseModel):
     niche: str = Field(..., description="The niche topic to target on X, e.g. AI or Web3")
@@ -54,15 +56,18 @@ class ScraperInput(BaseModel):
     github_stars_threshold: int = Field(default=500, description="Minimum GitHub repository stars")
     target_handles: List[str] = Field(default_factory=list, description="Curated user handles to target")
 
+
 class ScrapedTweet(BaseModel):
     handle: str
     text: str
     engagement_count: int
 
+
 class ScrapedRepo(BaseModel):
     name: str
     description: str
     stars: int
+
 
 class ScraperOutput(BaseModel):
     success: bool
@@ -70,6 +75,7 @@ class ScraperOutput(BaseModel):
     tweets: List[ScrapedTweet] = Field(default_factory=list)
     github_repos: List[ScrapedRepo] = Field(default_factory=list)
     anomalies_detected: List[str] = Field(default_factory=list)
+
 
 # 4. Core Agent Class
 class PiNicheScraper:
@@ -91,7 +97,7 @@ class PiNicheScraper:
                 handle="@levelsio",
                 text="Autonomous AI agents running micro-tasks is definitely the dominant pipeline model for startups in 2026.",
                 engagement_count=4500,
-            )
+            ),
         ]
 
         scraped_repos = [
@@ -104,7 +110,7 @@ class PiNicheScraper:
                 name="uagents/uagents",
                 description="Fetch.ai lightweight autonomous agent orchestration framework",
                 stars=1800,
-            )
+            ),
         ]
 
         # In a real setup, we would perform active scraping here.
@@ -123,6 +129,7 @@ class PiNicheScraper:
             scraped_repos = []
 
         import datetime
+
         scraped_time = datetime.datetime.now().isoformat()
 
         return ScraperOutput(

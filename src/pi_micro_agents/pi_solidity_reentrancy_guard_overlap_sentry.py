@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -23,7 +22,9 @@ class ReentrancyGuardOverlapInput(BaseModel):
 
 class ReentrancyGuardOverlapOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if there are no overlapping reentrancy guards")
-    vulnerable_functions: List[str] = Field(default_factory=list, description="Functions with nested or overlapping guards")
+    vulnerable_functions: List[str] = Field(
+        default_factory=list, description="Functions with nested or overlapping guards"
+    )
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on overlapping guards")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
@@ -41,7 +42,7 @@ class PiSolidityReentrancyGuardOverlapSentry:
         flagged_findings = []
 
         # Find function declarations and modifiers
-        func_matches = re.finditer(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)([^{]*)\{', code)
+        func_matches = re.finditer(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)([^{]*)\{", code)
 
         for match in func_matches:
             func_name = match.group(1)
@@ -49,7 +50,7 @@ class PiSolidityReentrancyGuardOverlapSentry:
 
             # Check if there are multiple reentrancy-like modifiers
             reentrancy_keywords = ["nonReentrant", "noReentrancy", "lock", "mutex", "prevReentrant"]
-            found_keywords = [kw for kw in reentrancy_keywords if re.search(r'\b' + kw + r'\b', attributes)]
+            found_keywords = [kw for kw in reentrancy_keywords if re.search(r"\b" + kw + r"\b", attributes)]
 
             if len(found_keywords) > 1:
                 vulnerable_funcs.append(func_name)
@@ -75,5 +76,5 @@ class PiSolidityReentrancyGuardOverlapSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

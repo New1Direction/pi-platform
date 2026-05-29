@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 #  Topology Primitives
 # ──────────────────────────────
 
+
 class TopologyNode(BaseModel):
     node_id: str
     node_type: str = "UNKNOWN"  # endpoint, service, database, queue
@@ -80,6 +81,7 @@ class TopologyGraph(BaseModel):
 #  Risk Score Models
 # ──────────────────────────────
 
+
 class RiskScore(BaseModel):
     score_id: str
     target_node: str
@@ -134,6 +136,7 @@ class RiskReport(BaseModel):
 # ──────────────────────────────
 #  Pass Results
 # ──────────────────────────────
+
 
 class PassResult(BaseModel):
     pass_name: str

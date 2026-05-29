@@ -26,6 +26,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Heuristic Detection Core for Code/Text Payloads
 def detect_shadow_parameters(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -46,12 +47,24 @@ def detect_shadow_parameters(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. Schema Scanner and Intent Graph Builder
 class PiSchemaGhost:
     """Micro-agent scanning OpenAPI/tool schemas for shadow parameters and mapping intent graphs."""
 
     def __init__(self) -> None:
-        self.keywords = ["admin", "debug", "override", "internal", "bypass", "secret", "test", "shadow", "hidden", "private"]
+        self.keywords = [
+            "admin",
+            "debug",
+            "override",
+            "internal",
+            "bypass",
+            "secret",
+            "test",
+            "shadow",
+            "hidden",
+            "private",
+        ]
 
     def scan(self, spec: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         """Scans OpenAPI dict, injects x-intent-graph, and returns validation errors if strict."""
@@ -112,17 +125,19 @@ class PiSchemaGhost:
                 ep_b = eps_list[j]
                 shared = endpoints_with_params[ep_a] & endpoints_with_params[ep_b]
                 if shared:
-                    edges.append({
-                        "source": ep_a,
-                        "target": ep_b,
-                        "shared_parameters": sorted(shared),
-                        "relationship_type": "shared_shadow_control_plane"
-                    })
+                    edges.append(
+                        {
+                            "source": ep_a,
+                            "target": ep_b,
+                            "shared_parameters": sorted(shared),
+                            "relationship_type": "shared_shadow_control_plane",
+                        }
+                    )
 
         intent_graph = {
             "nodes": nodes,
             "edges": edges,
-            "scanned_at": __import__("datetime").datetime.utcnow().isoformat()
+            "scanned_at": __import__("datetime").datetime.utcnow().isoformat(),
         }
 
         # E. Embed Intent Graph directly into OpenAPI components or root

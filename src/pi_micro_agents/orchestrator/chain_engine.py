@@ -1,13 +1,17 @@
 # src/pi_micro_agents/orchestrator/chain_engine.py
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
+import logging
 import os
 import re
 import time
-from datetime import datetime
-from typing import Any, Dict, List, Tuple, Type
+import traceback
+from typing import Any, Dict, List, Type
+
+_chain_logger = logging.getLogger("pi_chain_engine")
 
 from pydantic import BaseModel
 
@@ -16,7 +20,6 @@ from pi_agent_chain.models import ExecutionTrace
 from pi_micro_agents.orchestrator.consensus import run_with_consensus
 from pi_micro_agents.orchestrator.router import AgentRoute, AgentRouter
 from pi_micro_agents.orchestrator.shield import PiOrchestratorShield
-from pi_micro_agents.pi_spend_hunter import PiSpendAnomalyHunter
 
 
 class AgentChainCompiler:
@@ -35,39 +38,161 @@ class AgentChainCompiler:
             "gateway audit": ["PiAccessControlShadow", "PiApiAuthHardcodedTokenSentry", "PiZeroTrustExecutionDomain"],
             "vault compliance": ["PiERC4626VaultGuard", "PiStorageLayoutDrift", "PiToPrdValidator"],
             "erc4626": ["PiERC4626VaultGuard", "PiStorageLayoutDrift", "PiToPrdValidator"],
-            "container ingress": ["PiNginxReverseProxyHeaderSentry", "PiDockerComposeSecuritySentry", "PiDockerSocketPrivilegeSentry"],
-            "proxy defender": ["PiNginxReverseProxyHeaderSentry", "PiDockerComposeSecuritySentry", "PiDockerSocketPrivilegeSentry"],
+            "container ingress": [
+                "PiNginxReverseProxyHeaderSentry",
+                "PiDockerComposeSecuritySentry",
+                "PiDockerSocketPrivilegeSentry",
+            ],
+            "proxy defender": [
+                "PiNginxReverseProxyHeaderSentry",
+                "PiDockerComposeSecuritySentry",
+                "PiDockerSocketPrivilegeSentry",
+            ],
             "hallucination": ["PiLLMHallucinationDetector", "PiPromptLeakBuster", "PiLLMPromptEgressLeakDetector"],
             "leak buster": ["PiLLMHallucinationDetector", "PiPromptLeakBuster", "PiLLMPromptEgressLeakDetector"],
             "ci/cd release": ["PiGithubActionsUnpinnedVersion", "PiGitSafetyGuardrail", "PiChangelogAuditor"],
             "dependency alignment": ["PiGithubActionsUnpinnedVersion", "PiGitSafetyGuardrail", "PiChangelogAuditor"],
-            "zk-circuit soundness": ["PiZKNonPrimeFieldRangeSentry", "PiZKSignalUnconstrainedConstraint", "PiZKUnusedConstraintVariables"],
-            "zk auditing": ["PiZKNonPrimeFieldRangeSentry", "PiZKSignalUnconstrainedConstraint", "PiZKUnusedConstraintVariables"],
-            "solana cpi": ["PiRustSolanaAccountDataValidation", "PiRustSolanaCPIInstructionSentry", "PiRustSolanaOwnerVerificationGuard"],
-            "solana cpi security": ["PiRustSolanaAccountDataValidation", "PiRustSolanaCPIInstructionSentry", "PiRustSolanaOwnerVerificationGuard"],
-            "database migration": ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"],
-            "qa validation": ["PiMockDataTaintingSentry", "PiDatabaseMigrationUnindexedSentry", "PiTddMockingSanityChecker"],
+            "zk-circuit soundness": [
+                "PiZKNonPrimeFieldRangeSentry",
+                "PiZKSignalUnconstrainedConstraint",
+                "PiZKUnusedConstraintVariables",
+            ],
+            "zk auditing": [
+                "PiZKNonPrimeFieldRangeSentry",
+                "PiZKSignalUnconstrainedConstraint",
+                "PiZKUnusedConstraintVariables",
+            ],
+            "solana cpi": [
+                "PiRustSolanaAccountDataValidation",
+                "PiRustSolanaCPIInstructionSentry",
+                "PiRustSolanaOwnerVerificationGuard",
+            ],
+            "solana cpi security": [
+                "PiRustSolanaAccountDataValidation",
+                "PiRustSolanaCPIInstructionSentry",
+                "PiRustSolanaOwnerVerificationGuard",
+            ],
+            "database migration": [
+                "PiMockDataTaintingSentry",
+                "PiDatabaseMigrationUnindexedSentry",
+                "PiTddMockingSanityChecker",
+            ],
+            "qa validation": [
+                "PiMockDataTaintingSentry",
+                "PiDatabaseMigrationUnindexedSentry",
+                "PiTddMockingSanityChecker",
+            ],
             # 20 New Playbooks Integration
-            "web application vulnerability scanning": ["PiWebVulnScanner", "PiSelfHealingPatchAgent", "PiDeploymentSafetyGuard"],
+            "web application vulnerability scanning": [
+                "PiWebVulnScanner",
+                "PiSelfHealingPatchAgent",
+                "PiDeploymentSafetyGuard",
+            ],
             "cloud cost optimization": ["PiCloudCostAnalyzer", "PiIdleResourceSentry", "PiBudgetAnomalyGuard"],
-            "api security & rate limiting": ["PiAPIRateLimitSentry", "PiApiAuthHardcodedTokenSentry", "PiEndpointAbuseGuard"],
-            "database query optimization": ["PiSlowQueryDetector", "PiSQLInjectionSentry", "PiIndexRecommendationEngine"],
-            "container image security": ["PiDockerImageScanner", "PiDockerComposeSecuritySentry", "PiContainerEscapeDetector"],
-            "ci/cd pipeline integrity": ["PiGithubActionsUnpinnedVersion", "PiGitSecretLeakSentry", "PiPipelineIntegrityAuditor"],
+            "api security & rate limiting": [
+                "PiAPIRateLimitSentry",
+                "PiApiAuthHardcodedTokenSentry",
+                "PiEndpointAbuseGuard",
+            ],
+            "database query optimization": [
+                "PiSlowQueryDetector",
+                "PiSQLInjectionSentry",
+                "PiIndexRecommendationEngine",
+            ],
+            "container image security": [
+                "PiDockerImageScanner",
+                "PiDockerComposeSecuritySentry",
+                "PiContainerEscapeDetector",
+            ],
+            "ci/cd pipeline integrity": [
+                "PiGithubActionsUnpinnedVersion",
+                "PiGitSecretLeakSentry",
+                "PiPipelineIntegrityAuditor",
+            ],
             "frontend supply chain": ["PiNPMDependencyVulnScanner", "PiGitSecScanner", "PiTreeShakingOptimizer"],
-            "llm output sanitization": ["PiLLMOutputSanitizer", "PiLLMHallucinationDetector", "PiLLMPromptEgressLeakDetector"],
+            "llm output sanitization": [
+                "PiLLMOutputSanitizer",
+                "PiLLMHallucinationDetector",
+                "PiLLMPromptEgressLeakDetector",
+            ],
             "data privacy compliance": ["PiDataFlowPrivacyMapper", "PiSensitiveDataScanner", "PiAutomatedAnonymizer"],
-            "logging & observability anomaly": ["PiSensitiveLogLeakSentry", "PiGitSecretEntropyLeakSentry", "PiStructuredLoggingEnforcer"],
-            "access control & privilege escalation": ["PiIAMOverPermissionSentry", "PiAccessControlShadow", "PiLeastPrivilegeRemediator"],
-            "documentation & code comment consistency": ["PiDocsOutdatedChecker", "PiReadmeValidator", "PiAutoDocsGenerator"],
+            "logging & observability anomaly": [
+                "PiSensitiveLogLeakSentry",
+                "PiGitSecretEntropyLeakSentry",
+                "PiStructuredLoggingEnforcer",
+            ],
+            "access control & privilege escalation": [
+                "PiIAMOverPermissionSentry",
+                "PiAccessControlShadow",
+                "PiLeastPrivilegeRemediator",
+            ],
+            "documentation & code comment consistency": [
+                "PiDocsOutdatedChecker",
+                "PiReadmeValidator",
+                "PiAutoDocsGenerator",
+            ],
             "performance profiling": ["PiMemoryLeakDetector", "PiHotPathAllocationAuditor", "PiBottleneckOptimizer"],
             "mobile app security": ["PiMobilePermissionSentry", "PiAppDataLeakDetector", "PiRuntimeHardeningGuard"],
             "network traffic analysis": ["PiNetworkTrafficSentry", "PiDDoSPatternDetector", "PiTrafficOptimizer"],
-            "backup & disaster recovery": ["PiBackupIntegritySentry", "PiRecoveryTimeAuditor", "PiAutomatedRestoreTester"],
-            "accessibility & wcag compliance": ["PiAccessibilityScanner", "PiContrastRatioAuditor", "PiAutoRemediationEngine"],
-            "secrets management & rotation": ["PiHardcodedSecretDetector", "PiGitSecretLeakSentry", "PiAutomatedRotationEngine"],
-            "iac security & drift": ["PiTerraformDriftDetector", "PiTerraformStateCredentialSentry", "PiInfrastructureComplianceAuditor"],
-            "frontend performance & core web vitals": ["PiLighthouseAuditor", "PiBundleSizeSentry", "PiCoreWebVitalsOptimizer"]
+            "backup & disaster recovery": [
+                "PiBackupIntegritySentry",
+                "PiRecoveryTimeAuditor",
+                "PiAutomatedRestoreTester",
+            ],
+            "accessibility & wcag compliance": [
+                "PiAccessibilityScanner",
+                "PiContrastRatioAuditor",
+                "PiAutoRemediationEngine",
+            ],
+            "secrets management & rotation": [
+                "PiHardcodedSecretDetector",
+                "PiGitSecretLeakSentry",
+                "PiAutomatedRotationEngine",
+            ],
+            "iac security & drift": [
+                "PiTerraformDriftDetector",
+                "PiTerraformStateCredentialSentry",
+                "PiInfrastructureComplianceAuditor",
+            ],
+            "frontend performance & core web vitals": [
+                "PiLighthouseAuditor",
+                "PiBundleSizeSentry",
+                "PiCoreWebVitalsOptimizer",
+            ],
+            # Antigravity IDE / Google AI tooling reverse engineering & audit playbooks
+            "antigravity ide reverse engineering": [
+                "PiMagicNumberScanner",
+                "PiHardcodedSecretDetector",
+                "PiApiReverseEngineeredAuth",
+                "PiGrpcProtocolInterceptor",
+                "PiDependencyVulnScanner",
+                "PiThreatModelGenerator",
+                "PiRuntimeAnomalySentry",
+                "PiSensitiveLogLeakSentry",
+                "PiAuditLogTamperDetector",
+            ],
+            "antigravity re": [
+                "PiMagicNumberScanner",
+                "PiHardcodedSecretDetector",
+                "PiApiReverseEngineeredAuth",
+                "PiGrpcProtocolInterceptor",
+                "PiDependencyVulnScanner",
+                "PiThreatModelGenerator",
+                "PiRuntimeAnomalySentry",
+            ],
+            "ide language server audit": [
+                "PiGrpcProtocolInterceptor",
+                "PiGrpcWireProtocolInsecureSentry",
+                "PiApiReverseEngineeredAuth",
+                "PiRuntimeAnomalySentry",
+                "PiThreatModelGenerator",
+            ],
+            "binary ide surface": [
+                "PiMagicNumberScanner",
+                "PiHardcodedSecretDetector",
+                "PiDependencyVulnScanner",
+                "PiThreatModelGenerator",
+            ],
         }
 
         for keyword, chain_names in collaboration_templates.items():
@@ -135,7 +260,16 @@ class AgentChainCompiler:
         domain_mapping = {
             "PiPromptShield": {"prompt shield", "injection", "jailbreak", "shield", "guardrail"},
             "PiGitSecScanner": {"requirements", "package.json", "dependency", "dependencies", "unpinned"},
-            "PiSelfHealingPatchAgent": {"heal", "healer", "patch", "repair", "remediate", "remediation", "self-heal", "fix"},
+            "PiSelfHealingPatchAgent": {
+                "heal",
+                "healer",
+                "patch",
+                "repair",
+                "remediate",
+                "remediation",
+                "self-heal",
+                "fix",
+            },
             "PiArithmeticAuditor": {"arithmetic", "math", "overflow", "underflow", "rounding", "precision"},
             "PiReentrancySentry": {"reentrancy", "checks-effects", "mutex", "reentrant"},
             "PiDeFiSlippageGuard": {"slippage", "swap", "mev", "sandwich", "frontrun"},
@@ -143,7 +277,7 @@ class AgentChainCompiler:
             "PiStorageLayoutDrift": {"storage layout", "drift", "gap", "upgradeable", "initializer", "collision"},
             "PiTokenTaxDetector": {"token tax", "fee-on-transfer", "honeypot", "tax"},
             "PiCentralizationSentry": {"centralization", "multisig", "timelock", "admin", "privilege"},
-            "PiPublisherDispatch": {"publish", "deploy", "dispatch", "commit"}
+            "PiPublisherDispatch": {"publish", "deploy", "dispatch", "commit"},
         }
 
         # Precedence order mapping for clean sequencing (lower value = runs earlier)
@@ -158,15 +292,41 @@ class AgentChainCompiler:
             "PiStorageLayoutDrift": 4,
             "PiTokenTaxDetector": 4,
             "PiCentralizationSentry": 4,
-            "PiPublisherDispatch": 5
+            "PiPublisherDispatch": 5,
         }
 
-        task_indicators = {"scan", "scanner", "check", "checker", "audit", "auditor", "heal", "healer", "patch", "repair", "remediate", "fix", "verify", "verifier", "sentry", "guard", "deploy", "publish", "run", "test", "linter", "scout", "hunter", "shield", "protect"}
+        task_indicators = {
+            "scan",
+            "scanner",
+            "check",
+            "checker",
+            "audit",
+            "auditor",
+            "heal",
+            "healer",
+            "patch",
+            "repair",
+            "remediate",
+            "fix",
+            "verify",
+            "verifier",
+            "sentry",
+            "guard",
+            "deploy",
+            "publish",
+            "run",
+            "test",
+            "linter",
+            "scout",
+            "hunter",
+            "shield",
+            "protect",
+        }
         matched_agent_names = []
 
         for idx, sub_task in enumerate(sub_tasks):
             # Check if this sub-task is valid (is first, or contains at least one task indicator verb)
-            sub_tokens = set(re.findall(r'[a-zA-Z0-9]+', sub_task))
+            sub_tokens = set(re.findall(r"[a-zA-Z0-9]+", sub_task))
             if idx > 0 and not sub_tokens.intersection(task_indicators):
                 continue
 
@@ -208,7 +368,7 @@ class AgentChainCompiler:
                 return (prec, first_idx)
 
             matched_agent_names.sort(key=sort_key)
-            
+
             # Deduplicate while preserving order
             final_agent_names = []
             seen = set()
@@ -223,7 +383,7 @@ class AgentChainCompiler:
                 route = cls._resolve_single_agent(name)
                 if route:
                     routes.append(route)
-            
+
             if len(routes) >= 2:
                 return routes
 
@@ -238,11 +398,17 @@ class AgentChainCompiler:
                 return route
         # Substring/Class match
         for route in AgentRouter.routes:
-            if name_clean in route.agent_name.lower() or name_clean in route.agent_class.__name__.lower():
+            # Word-boundary match rather than substring — prevents "reentrant"
+            # from over-matching "reentracy" (and similar near-collisions).
+            agent_lc = route.agent_name.lower()
+            class_lc = route.agent_class.__name__.lower()
+            if re.search(rf"\b{re.escape(name_clean)}\b", agent_lc) or re.search(
+                rf"\b{re.escape(name_clean)}\b", class_lc
+            ):
                 return route
-        # Keyword match fallback
+        # Keyword match fallback (also word-bounded)
         for route in AgentRouter.routes:
-            if any(kw in name_clean for kw in route.keywords):
+            if any(re.search(rf"\b{re.escape(kw)}\b", name_clean) for kw in route.keywords):
                 return route
         return None
 
@@ -256,7 +422,7 @@ class SchemaParameterMapper:
         prev_output: BaseModel | Dict[str, Any] | None,
         target_route: AgentRoute,
         goal: str,
-        global_context: Dict[str, Any]
+        global_context: Dict[str, Any],
     ) -> BaseModel:
         # Build normalized context
         ctx = {**global_context}
@@ -304,26 +470,41 @@ class SchemaParameterMapper:
                         vuln_type = "UNPINNED_DEP"
 
                 if lines:
-                    ctx["vulnerable_lines"] = sorted(list(set(lines)))
+                    ctx["vulnerable_lines"] = sorted(set(lines))
                 else:
-                    ctx["vulnerable_lines"] = [1]
+                    # Don't fabricate line numbers — downstream agents read
+                    # this as "no specific location known" and act accordingly.
+                    ctx["vulnerable_lines"] = []
                 ctx["vulnerability_type"] = vuln_type
 
         # Instantiate input envelope using route's input factory
         input_envelope = target_route.input_factory(goal, ctx)
 
-        # Secure attribute-level fallback override
+        # Secure attribute-level fallback override. We build an `updates` dict
+        # and apply via model_copy(update=...) which re-runs Pydantic
+        # validation — a raw setattr would let untyped context values
+        # silently land on typed fields.
+        updates: Dict[str, Any] = {}
         for field_name in input_envelope.model_fields.keys():
             current_val = getattr(input_envelope, field_name, None)
-            if current_val is None or current_val == "" or current_val == []:
-                # Try to pull directly from ctx
-                if field_name in ctx:
-                    setattr(input_envelope, field_name, ctx[field_name])
-                # Direct check synonyms fallback
-                elif field_name == "solidity_code" and "source_code" in ctx:
-                    setattr(input_envelope, field_name, ctx["source_code"])
-                elif field_name == "source_code" and "solidity_code" in ctx:
-                    setattr(input_envelope, field_name, ctx["solidity_code"])
+            if current_val is not None and current_val != "" and current_val != []:
+                continue
+            if field_name in ctx:
+                updates[field_name] = ctx[field_name]
+            elif field_name == "solidity_code" and "source_code" in ctx:
+                updates[field_name] = ctx["source_code"]
+            elif field_name == "source_code" and "solidity_code" in ctx:
+                updates[field_name] = ctx["solidity_code"]
+
+        if updates:
+            try:
+                input_envelope = input_envelope.__class__.model_validate({**input_envelope.model_dump(), **updates})
+            except Exception as e:
+                _chain_logger.warning(
+                    "Context fallback rejected by Pydantic validation for %s: %s",
+                    target_route.agent_name,
+                    e,
+                )
 
         return input_envelope
 
@@ -342,24 +523,57 @@ class ChainExecutionEngine:
         is_strict = os.getenv("PI_ORCHESTRATOR_STRICT_MODE", "true").lower() == "true"
         defensive_only = os.getenv("PI_ORCHESTRATOR_DEFENSIVE_ONLY", "false").lower() == "true"
         chain_success = True
+        deadline_exceeded = False
+
+        try:
+            chain_timeout_s = float(os.getenv("PI_CHAIN_EXECUTION_TIMEOUT_SECONDS", "300"))
+        except ValueError:
+            chain_timeout_s = 300.0
+        chain_start = time.perf_counter()
 
         for idx, route in enumerate(routes):
+            elapsed_s = time.perf_counter() - chain_start
+            if chain_timeout_s > 0 and elapsed_s >= chain_timeout_s:
+                _chain_logger.warning(
+                    "Chain execution timeout (%.1fs >= %.1fs) before step %d (%s); halting.",
+                    elapsed_s,
+                    chain_timeout_s,
+                    idx + 1,
+                    route.agent_name,
+                )
+                chain_success = False
+                deadline_exceeded = True
+                step_receipts.append(
+                    {
+                        "step_index": idx + 1,
+                        "agent_name": route.agent_name,
+                        "success": False,
+                        "risk_score": 0.0,
+                        "latency_ms": 0.0,
+                        "summary": "skipped: chain deadline exceeded",
+                        "details": {"deadline_exceeded": True, "elapsed_s": elapsed_s, "timeout_s": chain_timeout_s},
+                        "alerts": ["chain_deadline_exceeded"],
+                        "consensus_telemetry": {},
+                    }
+                )
+                break
+
             start_step = time.perf_counter()
 
             # 1. Map Inputs
+            prev_out_dict = copy.deepcopy(prev_output.model_dump()) if prev_output else {}
             input_envelope = SchemaParameterMapper.map_output_to_input(
-                prev_output, route, goal, {**context, **(prev_output.model_dump() if prev_output else {})}
+                prev_output, route, goal, {**context, **prev_out_dict}
             )
 
             # 2. Strict Ingress safety checks on mapped input/context
-            step_ctx = {
-                **(prev_output.model_dump() if hasattr(prev_output, "model_dump") else {}),
-                **context
-            }
+            step_ctx = {**prev_out_dict, **context}
 
             # Check defensive-only
             if defensive_only or PiOrchestratorShield.check_defensive_only(step_ctx):
-                raise ValueError("Blocked: Defensive-only execution mode rejects shell commands/code execution payloads.")
+                raise ValueError(
+                    "Blocked: Defensive-only execution mode rejects shell commands/code execution payloads."
+                )
 
             # Command Safety
             cmd_viol = PiOrchestratorShield.check_command_safety(step_ctx)
@@ -368,20 +582,48 @@ class ChainExecutionEngine:
 
             # AST Safety
             if route.agent_name not in [
-                "PiGitSecScanner", "PiSelfHealingPatchAgent", "PiReentrancySentry", "PiAccessControlVerifier",
-                "PiFlashLoanDefender", "PiArithmeticAuditor", "PiDelegateCallGuard", "PiSignatureReplayScout",
-                "PiBytecodeDecompiler", "PiVyperSecScanner", "PiSelfDestructHunter", "PiOracleDivergenceAudit",
-                "PiTokenTaxDetector", "PiTxOriginSentry", "PiReadOnlyReentrancySentry", "PiUninitializedStateSentry",
-                "PiShadowedVariableDetector", "PiBlockTimestampSentry", "PiStorageLayoutDrift", "PiERC4626VaultGuard",
-                "PiCrossChainBridgeAuditor", "PiGasGuzzlerDetector", "PiAssemblyLethalWeapons", "PiLogicGatekeeper",
-                "PiPhishingShield", "PiExternalContractGuard", "PiCentralizationSentry", "PiFloatingPragmaSentry",
-                "PiUpgradeDefectDetector", "PiDoSGasLimitsSentry", "PiDeFiSlippageGuard",
-                "PiConstantTimeAuditor", "PiMemoryZeroizeSentry", "PiDimensionalAnalysisSentry",
-                "PiAgentToolExecutionGuard", "PiHotPathAllocationAuditor"
+                "PiGitSecScanner",
+                "PiSelfHealingPatchAgent",
+                "PiReentrancySentry",
+                "PiAccessControlVerifier",
+                "PiFlashLoanDefender",
+                "PiArithmeticAuditor",
+                "PiDelegateCallGuard",
+                "PiSignatureReplayScout",
+                "PiBytecodeDecompiler",
+                "PiVyperSecScanner",
+                "PiSelfDestructHunter",
+                "PiOracleDivergenceAudit",
+                "PiTokenTaxDetector",
+                "PiTxOriginSentry",
+                "PiReadOnlyReentrancySentry",
+                "PiUninitializedStateSentry",
+                "PiShadowedVariableDetector",
+                "PiBlockTimestampSentry",
+                "PiStorageLayoutDrift",
+                "PiERC4626VaultGuard",
+                "PiCrossChainBridgeAuditor",
+                "PiGasGuzzlerDetector",
+                "PiAssemblyLethalWeapons",
+                "PiLogicGatekeeper",
+                "PiPhishingShield",
+                "PiExternalContractGuard",
+                "PiCentralizationSentry",
+                "PiFloatingPragmaSentry",
+                "PiUpgradeDefectDetector",
+                "PiDoSGasLimitsSentry",
+                "PiDeFiSlippageGuard",
+                "PiConstantTimeAuditor",
+                "PiMemoryZeroizeSentry",
+                "PiDimensionalAnalysisSentry",
+                "PiAgentToolExecutionGuard",
+                "PiHotPathAllocationAuditor",
             ]:
                 ast_viols = PiOrchestratorShield.check_ast_safety(step_ctx)
                 if ast_viols and is_strict:
-                    raise ValueError(f"Blocked: Proposed Python code contains forbidden structures: {', '.join(ast_viols)}")
+                    raise ValueError(
+                        f"Blocked: Proposed Python code contains forbidden structures: {', '.join(ast_viols)}"
+                    )
 
             # 3. Run parallel consensus
             success, risk_score, summary, details, alerts = run_with_consensus(
@@ -395,22 +637,26 @@ class ChainExecutionEngine:
             # We want to keep the final verdict output as the step's prev_output
             # Locate the majority output from consensus outcomes
             consensus_telemetry = details.get("consensus_telemetry", {})
-            votes = consensus_telemetry.get("votes", [])
+            consensus_telemetry.get("votes", [])
 
             # Construct clean output matching agent's class output
-            from pi_micro_agents.orchestrator.consensus import get_comparable_dict
-            prev_output = input_envelope # default fallback
-            # Find the actual Pydantic output model
+            prev_output = None  # cleared; will be set to output class or left None
             try:
-                # instantiate standard output class if possible
                 out_cls = self._resolve_output_class(route.agent_name)
                 if out_cls:
                     prev_output = out_cls(**details)
             except Exception:
-                pass
+                _chain_logger.error(
+                    "Output class instantiation failed for %s at step %d: %s",
+                    route.agent_name,
+                    idx + 1,
+                    traceback.format_exc(),
+                )
 
             # 4. Commit Independent Execution Trace to SQLite StateLedger
-            trace_id = "trace_chain_step_" + hashlib.md5(f"{route.agent_name}_{time.time()}".encode()).hexdigest()[:8]
+            trace_id = (
+                "trace_chain_step_" + hashlib.sha256(f"{route.agent_name}_{time.time()}".encode()).hexdigest()[:12]
+            )
             payload_hash = hashlib.sha256(input_envelope.model_dump_json().encode()).hexdigest()
 
             trace = ExecutionTrace(
@@ -421,114 +667,151 @@ class ChainExecutionEngine:
                 llm_temperature=0.0,
                 raw_output=json.dumps(details),
                 is_valid_type=success,
-                error_message=", ".join(alerts) if alerts else None
+                error_message=", ".join(alerts) if alerts else None,
             )
             self.ledger.append(trace)
 
-            step_receipts.append({
-                "step_index": idx + 1,
-                "agent_name": route.agent_name,
-                "success": success,
-                "risk_score": risk_score,
-                "latency_ms": step_latency,
-                "summary": summary,
-                "details": details,
-                "alerts": alerts,
-                "consensus_telemetry": consensus_telemetry
-            })
+            step_receipts.append(
+                {
+                    "step_index": idx + 1,
+                    "agent_name": route.agent_name,
+                    "success": success,
+                    "risk_score": risk_score,
+                    "latency_ms": step_latency,
+                    "summary": summary,
+                    "details": details,
+                    "alerts": alerts,
+                    "consensus_telemetry": consensus_telemetry,
+                }
+            )
 
             # Check strict mode gating for vulnerabilities found by the agent or direct step failure
             if not success or (is_strict and risk_score >= 80.0):
                 chain_success = False
                 break
 
+        # prev_output can be None when the last step's output class couldn't
+        # be instantiated (line 481). Guard before .model_dump().
+        if prev_output is None:
+            final_details: Dict[str, Any] = {}
+        elif hasattr(prev_output, "model_dump"):
+            final_details = prev_output.model_dump()
+        else:
+            try:
+                final_details = dict(prev_output)
+            except (TypeError, ValueError):
+                final_details = {}
+
         return {
             "success": chain_success,
             "chain_receipts": step_receipts,
             "total_latency_ms": sum(latencies),
             "average_latency_ms": sum(latencies) / len(latencies) if latencies else 0.0,
-            "final_details": prev_output.model_dump() if hasattr(prev_output, "model_dump") else dict(prev_output) if prev_output else {}
+            "deadline_exceeded": deadline_exceeded,
+            "chain_timeout_s": chain_timeout_s,
+            "chain_elapsed_s": time.perf_counter() - chain_start,
+            "final_details": final_details,
         }
 
     def _resolve_output_class(self, agent_name: str) -> Type[BaseModel] | None:
-        from pi_micro_agents.pi_web_vuln_scanner import WebVulnOutput
-        from pi_micro_agents.pi_deployment_safety_guard import DeploymentSafetyOutput
-        from pi_micro_agents.pi_pipeline_integrity_auditor import PipelineIntegrityOutput
-        from pi_micro_agents.pi_docker_image_scanner import DockerImageOutput
-        from pi_micro_agents.pi_container_escape_detector import ContainerEscapeOutput
-        from pi_micro_agents.pi_hardcoded_secret_detector import HardcodedSecretOutput
-        from pi_micro_agents.pi_automated_rotation_engine import RotationOutput
-        from pi_micro_agents.pi_llm_output_sanitizer import LLMOutputSanitizerOutput
-        from pi_micro_agents.pi_data_flow_privacy_mapper import PrivacyMapperOutput
-        from pi_micro_agents.pi_sensitive_data_scanner import SensitiveDataOutput
-        from pi_micro_agents.pi_automated_anonymizer import AnonymizerOutput
-        from pi_micro_agents.pi_sensitive_log_leak_sentry import LogLeakOutput
-        from pi_micro_agents.pi_structured_logging_enforcer import StructuredLoggingOutput
         from pi_micro_agents.orchestrator.consensus import (
             AccessControlOutput,
+            AgentToolGuardOutput,
             ArbitrageOutput,
             ArithmeticOutput,
             AssemblySafetyOutput,
+            AstDepthOutput,
             BlockTimestampOutput,
-            BytecodeDecompilerOutput,
-            CentralizationOutput,
             BridgeAuditOutput,
+            BytecodeDecompilerOutput,
+            CavemanCompressorOutput,
+            CentralizationOutput,
+            ChangelogOutput,
+            CommitLinterOutput,
+            ConstantTimeOutput,
+            DeadCodeOutput,
             DeFiSlippageOutput,
+            DepreciationOutput,
+            DesignAnInterfaceOutput,
+            DimensionalAnalysisOutput,
             DoSGasLimitsOutput,
-            VaultGuardOutput,
+            ErrorCatchOutput,
             ExternalContractGuardOutput,
             FlashLoanOutput,
-            PragmaSentryOutput,
             GasGuzzlerOutput,
+            GitSafetyOutput,
             GitSecOutput,
+            GrillMeOutput,
+            HandoffOutput,
+            HotPathAllocationOutput,
+            ImportBoundaryOutput,
             LogicGatekeeperOutput,
+            MagicNumberOutput,
+            MemoryZeroizeOutput,
             MempoolTxOutput,
+            MockDataTaintingOutput,
             OracleDivergenceOutput,
             OracleSentryOutput,
             PhishingShieldOutput,
+            PragmaSentryOutput,
             PublisherOutput,
+            ReadmeOutput,
             ReadOnlyReentrancyOutput,
+            RecursionOutput,
             ReentrancyOutput,
+            RequestRefactorOutput,
             SelfDestructHunterOutput,
             SelfHealingOutput,
             ShadowedVariableOutput,
             StorageDriftOutput,
-            TokenTaxOutput,
-            TxOriginOutput,
-            UninitializedOutput,
-            UpgradeDefectOutput,
-            VyperScannerOutput,
-            ConstantTimeOutput,
-            MemoryZeroizeOutput,
-            DimensionalAnalysisOutput,
-            AgentToolGuardOutput,
-            HotPathAllocationOutput,
-            CavemanCompressorOutput,
-            GrillMeOutput,
-            HandoffOutput,
-            ToPrdOutput,
-            ToIssuesOutput,
-            TriageOutput,
-            ZoomOutOutput,
-            DesignAnInterfaceOutput,
-            RequestRefactorOutput,
-            TddTestFileOutput,
             TddAssertionOutput,
             TddMockingOutput,
-            GitSafetyOutput,
+            TddTestFileOutput,
+            ToIssuesOutput,
+            TokenTaxOutput,
+            ToPrdOutput,
+            TriageOutput,
+            TxOriginOutput,
             TypeScriptWizardryOutput,
-            ImportBoundaryOutput,
-            DepreciationOutput,
-            DeadCodeOutput,
-            MockDataTaintingOutput,
-            ReadmeOutput,
-            ChangelogOutput,
-            AstDepthOutput,
-            RecursionOutput,
-            MagicNumberOutput,
-            ErrorCatchOutput,
-            CommitLinterOutput
+            UninitializedOutput,
+            UpgradeDefectOutput,
+            VaultGuardOutput,
+            VyperScannerOutput,
+            ZoomOutOutput,
         )
+        from pi_micro_agents.pi_api_owasp_scanner import APIOutput
+        from pi_micro_agents.pi_audit_log_tamper_detector import LogOutput
+        from pi_micro_agents.pi_automated_anonymizer import AnonymizerOutput
+        from pi_micro_agents.pi_automated_rotation_engine import RotationOutput
+        from pi_micro_agents.pi_backup_integrity_checker import BackupOutput
+        from pi_micro_agents.pi_certificate_rotation_watcher import CertOutput
+        from pi_micro_agents.pi_cloud_config_auditor import CloudConfigOutput
+        from pi_micro_agents.pi_code_signing_enforcer import SigningOutput
+        from pi_micro_agents.pi_container_escape_detector import ContainerEscapeOutput
+        from pi_micro_agents.pi_data_flow_privacy_mapper import PrivacyMapperOutput
+        from pi_micro_agents.pi_data_retention_policy_enforcer import RetentionOutput
+        from pi_micro_agents.pi_dependency_vuln_scanner import DependencyOutput
+        from pi_micro_agents.pi_deployment_safety_guard import DeploymentSafetyOutput
+        from pi_micro_agents.pi_docker_image_scanner import DockerImageOutput
+        from pi_micro_agents.pi_encryption_compliance_checker import EncryptionOutput
+        from pi_micro_agents.pi_firewall_rule_auditor import FirewallOutput
+        from pi_micro_agents.pi_hardcoded_secret_detector import HardcodedSecretOutput
+        from pi_micro_agents.pi_iac_scanner import IaCOutput
+        from pi_micro_agents.pi_kubernetes_security_auditor import K8sOutput
+        from pi_micro_agents.pi_llm_output_sanitizer import LLMOutputSanitizerOutput
+        from pi_micro_agents.pi_misconfig_pattern_matcher import MisconfigOutput
+        from pi_micro_agents.pi_pipeline_integrity_auditor import PipelineIntegrityOutput
+        from pi_micro_agents.pi_rbac_permission_mapper import RBACOutput
+        from pi_micro_agents.pi_runtime_anomaly_sentry import AnomalyOutput
+        from pi_micro_agents.pi_sbom_validator import SBOMOutput
+        from pi_micro_agents.pi_secrets_manager_completeness_checker import VaultOutput
+        from pi_micro_agents.pi_sensitive_data_scanner import SensitiveDataOutput
+        from pi_micro_agents.pi_sensitive_log_leak_sentry import LogLeakOutput
+        from pi_micro_agents.pi_structured_logging_enforcer import StructuredLoggingOutput
+        from pi_micro_agents.pi_supply_chain_integrity_checker import SupplyChainOutput
+        from pi_micro_agents.pi_threat_model_generator import ThreatModelOutput
+        from pi_micro_agents.pi_web_vuln_scanner import WebVulnOutput
+        from pi_micro_agents.pi_zero_trust_verifier import ZeroTrustOutput
 
         mapping = {
             "PiArbitrageGuard": ArbitrageOutput,
@@ -606,6 +889,26 @@ class ChainExecutionEngine:
             "PiSensitiveDataScanner": SensitiveDataOutput,
             "PiAutomatedAnonymizer": AnonymizerOutput,
             "PiSensitiveLogLeakSentry": LogLeakOutput,
-            "PiStructuredLoggingEnforcer": StructuredLoggingOutput
+            "PiStructuredLoggingEnforcer": StructuredLoggingOutput,
+            "PiIaCScanner": IaCOutput,
+            "PiDependencyVulnScanner": DependencyOutput,
+            "PiCloudConfigAuditor": CloudConfigOutput,
+            "PiRBACPermissionMapper": RBACOutput,
+            "PiEncryptionComplianceChecker": EncryptionOutput,
+            "PiSBOMValidator": SBOMOutput,
+            "PiSupplyChainIntegrityChecker": SupplyChainOutput,
+            "PiAPIOWASPScanner": APIOutput,
+            "PiKubernetesSecurityAuditor": K8sOutput,
+            "PiZeroTrustVerifier": ZeroTrustOutput,
+            "PiCertificateRotationWatcher": CertOutput,
+            "PiFirewallRuleAuditor": FirewallOutput,
+            "PiBackupIntegrityChecker": BackupOutput,
+            "PiAuditLogTamperDetector": LogOutput,
+            "PiMisconfigPatternMatcher": MisconfigOutput,
+            "PiThreatModelGenerator": ThreatModelOutput,
+            "PiSecretsManagerCompletenessChecker": VaultOutput,
+            "PiCodeSigningEnforcer": SigningOutput,
+            "PiDataRetentionPolicyEnforcer": RetentionOutput,
+            "PiRuntimeAnomalySentry": AnomalyOutput,
         }
         return mapping.get(agent_name)

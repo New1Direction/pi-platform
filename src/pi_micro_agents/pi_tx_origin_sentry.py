@@ -27,25 +27,32 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class TxOriginInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level of parsing: STRICT, MEDIUM")
 
+
 class TxOriginOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from unsafe tx.origin authentication")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed tx.origin and EIP-2771 compliance findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed tx.origin and EIP-2771 compliance findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_TXORIGIN_VULNERABILITY, REJECTED_TXORIGIN_VULNERABILITY)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_TXORIGIN_VULNERABILITY, REJECTED_TXORIGIN_VULNERABILITY)"
+    )
+
 
 # Helper to extract functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
     functions = []
     code_len = len(solidity_code)
 
-    pattern = re.compile(r'\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -60,10 +67,10 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             func_name = "receive"
 
         start_idx = match.start()
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -72,9 +79,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -83,6 +90,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 3. Core Micro-Agent Class
 class PiTxOriginSentry:
@@ -104,8 +112,8 @@ class PiTxOriginSentry:
 
         for func_name, func_body, start_line in functions:
             # Clean comments
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Mode 1: tx.origin Phishing Scan
             if "tx.origin" in cleaned_body:
@@ -141,5 +149,5 @@ class PiTxOriginSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

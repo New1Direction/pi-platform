@@ -6,52 +6,45 @@ semantic indexing, and distributed shard coordination.
 
 from __future__ import annotations
 
-import json
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
 
-from pi_extension_governor.manifest import (
-    ExtensionManifest,
-    ExtensionBundle,
-    CapabilityClass,
-    TrustZone,
-    ExtensionStatus,
-)
 from pi_extension_governor.governor import ExtensionGovernor
-
-from pi_interoperability_layer.capability.registry import (
-    SemanticCapabilityRegistry,
-    RegistryEntryStatus,
-    RegistryFingerprints,
-    TrustScore,
-    TrustScoringBasis,
+from pi_extension_governor.manifest import (
+    CapabilityClass,
+    ExtensionBundle,
+    ExtensionManifest,
+    TrustZone,
 )
 from pi_interoperability_layer.capability.graph import (
-    ExtensionCompatibilityGraph,
     CompatibilityEdge,
     CompatibilityType,
     CompatibilityVerdict,
-)
-from pi_interoperability_layer.capability.ingestion import (
-    GovernedIngestionPipeline,
-    IngestionPhase,
+    ExtensionCompatibilityGraph,
 )
 from pi_interoperability_layer.capability.indexing import (
     SemanticIndexWorker,
     SemanticQueryWorker,
-    IndexEntry,
+)
+from pi_interoperability_layer.capability.ingestion import (
+    GovernedIngestionPipeline,
+)
+from pi_interoperability_layer.capability.registry import (
+    RegistryEntryStatus,
+    RegistryFingerprints,
+    SemanticCapabilityRegistry,
+    TrustScore,
+    TrustScoringBasis,
 )
 from pi_interoperability_layer.mesh.shard import (
     DeterministicPartitioner,
     ShardCoordinator,
-    ShardState,
 )
 
-
 # ── Registry Tests ────────────────────────────────────────────────
+
 
 def _make_manifest(extension_id: str, capability: CapabilityClass) -> ExtensionManifest:
     return ExtensionManifest(
@@ -83,9 +76,12 @@ def test_registry_register_and_lookup() -> None:
         reg = SemanticCapabilityRegistry(root_dir=Path(td))
         manifest = _make_manifest("ext_1", CapabilityClass.OPENAPI_TOOLING)
         fingerprints = RegistryFingerprints(
-            manifest_hash="m1", source_hash="s1",
-            determinism_fingerprint="d1", policy_hash="p1",
-            normalization_hash="n1", provenance_chain_hash="c1",
+            manifest_hash="m1",
+            source_hash="s1",
+            determinism_fingerprint="d1",
+            policy_hash="p1",
+            normalization_hash="n1",
+            provenance_chain_hash="c1",
         )
         score = TrustScore().with_evidence(TrustScoringBasis.STATIC_ANALYSIS, 50)
         entry = reg.register(manifest, fingerprints, score, RegistryEntryStatus.ACTIVE)
@@ -101,9 +97,12 @@ def test_registry_query_by_capability() -> None:
         for i, cap in enumerate([CapabilityClass.OPENAPI_TOOLING, CapabilityClass.GRAPHQL_TOOLING]):
             manifest = _make_manifest(f"ext_{i}", cap)
             fingerprints = RegistryFingerprints(
-                manifest_hash=f"m{i}", source_hash=f"s{i}",
-                determinism_fingerprint="d", policy_hash="p",
-                normalization_hash="n", provenance_chain_hash="c",
+                manifest_hash=f"m{i}",
+                source_hash=f"s{i}",
+                determinism_fingerprint="d",
+                policy_hash="p",
+                normalization_hash="n",
+                provenance_chain_hash="c",
             )
             reg.register(manifest, fingerprints, TrustScore())
         results = reg.query(capability_class=CapabilityClass.OPENAPI_TOOLING)
@@ -116,9 +115,12 @@ def test_registry_update_status() -> None:
         reg = SemanticCapabilityRegistry(root_dir=Path(td))
         manifest = _make_manifest("ext_1", CapabilityClass.KUBERNETES_MANIFEST)
         fingerprints = RegistryFingerprints(
-            manifest_hash="m", source_hash="s",
-            determinism_fingerprint="d", policy_hash="p",
-            normalization_hash="n", provenance_chain_hash="c",
+            manifest_hash="m",
+            source_hash="s",
+            determinism_fingerprint="d",
+            policy_hash="p",
+            normalization_hash="n",
+            provenance_chain_hash="c",
         )
         entry = reg.register(manifest, fingerprints, TrustScore())
         updated = reg.update_status("ext_1", RegistryEntryStatus.REVOKED)
@@ -132,9 +134,12 @@ def test_registry_chain_integrity() -> None:
         reg = SemanticCapabilityRegistry(root_dir=Path(td))
         manifest = _make_manifest("ext_1", CapabilityClass.OPENAPI_TOOLING)
         fingerprints = RegistryFingerprints(
-            manifest_hash="m", source_hash="s",
-            determinism_fingerprint="d", policy_hash="p",
-            normalization_hash="n", provenance_chain_hash="c",
+            manifest_hash="m",
+            source_hash="s",
+            determinism_fingerprint="d",
+            policy_hash="p",
+            normalization_hash="n",
+            provenance_chain_hash="c",
         )
         reg.register(manifest, fingerprints, TrustScore())
         ok, errors = reg.verify_chain_integrity()
@@ -148,6 +153,7 @@ def test_registry_trust_score_bounds() -> None:
 
 
 # ── Compatibility Graph Tests ────────────────────────────────────
+
 
 def test_graph_dependency_resolution() -> None:
     g = ExtensionCompatibilityGraph()
@@ -175,9 +181,11 @@ def test_graph_conflict_detection() -> None:
 
 def test_graph_zone_incompatible() -> None:
     g = ExtensionCompatibilityGraph()
+
     # mock registry lookup returning core trusted entry
     class FakeEntry:
         trust_zone = TrustZone.CORE_TRUSTED
+
     g.register_installed("core_1")
     manifest = _make_manifest("sandbox_1", CapabilityClass.OPENAPI_TOOLING)
     manifest = ExtensionManifest(
@@ -241,13 +249,11 @@ def test_graph_hash_determinism() -> None:
 
 # ── Ingestion Pipeline Tests ─────────────────────────────────────
 
+
 def _make_governor(ledger_dir: Path) -> ExtensionGovernor:
     from pi_extension_governor.policy import ExtensionGovernancePolicy
     from pi_extension_governor.provenance import ExtensionProvenanceLedger
     from pi_extension_governor.trust_zones import TrustZoneEnforcer
-    from pi_extension_governor.sandbox import SandboxedExtensionRuntime
-    from pi_extension_governor.inspector import StaticCapabilityInspector
-    from pi_extension_governor.normalizer import SemanticOutputNormalizer
 
     policy = ExtensionGovernancePolicy(
         approved_capability_classes={CapabilityClass.OPENAPI_TOOLING},
@@ -333,6 +339,7 @@ def test_ingestion_pipeline_audit_log() -> None:
 
 # ── Semantic Indexing Tests ───────────────────────────────────────
 
+
 def test_index_worker_basic_index_and_query() -> None:
     with tempfile.TemporaryDirectory() as td:
         idx = SemanticIndexWorker(root_dir=Path(td))
@@ -382,6 +389,7 @@ def test_query_worker_cross_reference() -> None:
 
 
 # ── Shard Coordinator Tests ──────────────────────────────────────
+
 
 def test_partitioner_deterministic() -> None:
     p = DeterministicPartitioner(shard_count=3)

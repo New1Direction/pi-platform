@@ -53,9 +53,9 @@ class PiSolidityPriceFeedFallbackSentry:
         flagged_findings = []
 
         # Find all functions containing oracle calls, such as latestRoundData
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check if latestRoundData is called
             if "latestRoundData" in body or "getPrice" in body:
                 # Scans if there is a secondary/fallback Oracle call or fallback TWAP logic or multi-feed fallback
@@ -90,5 +90,5 @@ class PiSolidityPriceFeedFallbackSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_arithmetic_auditor import (
-    PiArithmeticAuditor,
     ArithmeticInput,
-    ArithmeticOutput,
-    is_strict_mode,
+    PiArithmeticAuditor,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -41,11 +38,7 @@ def test_arithmetic_legacy_vulnerable_contract():
         }
     }
     """
-    inp = ArithmeticInput(
-        file_path="LegacyToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ArithmeticInput(file_path="LegacyToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_arithmetic(inp)
 
@@ -80,11 +73,7 @@ def test_arithmetic_legacy_safemath_contract():
         }
     }
     """
-    inp = ArithmeticInput(
-        file_path="SafeLegacyToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ArithmeticInput(file_path="SafeLegacyToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_arithmetic(inp)
 
@@ -114,11 +103,7 @@ def test_arithmetic_modern_safe_contract():
         }
     }
     """
-    inp = ArithmeticInput(
-        file_path="ModernToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ArithmeticInput(file_path="ModernToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_arithmetic(inp)
 
@@ -149,11 +134,7 @@ def test_arithmetic_modern_unchecked_warning():
         }
     }
     """
-    inp = ArithmeticInput(
-        file_path="ModernUncheckedToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ArithmeticInput(file_path="ModernUncheckedToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_arithmetic(inp)
 
@@ -190,31 +171,27 @@ def test_orchestrator_arithmetic_consensus_passed(monkeypatch):
             "vulnerable_functions": ["add"],
             "flagged_findings": ["Raw arithmetic operator on Line 4"],
             "risk_score": 95.0,
-            "status": "REJECTED_ARITHMETIC_VULNERABILITY"
+            "status": "REJECTED_ARITHMETIC_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["add"],
             "flagged_findings": ["Raw arithmetic operator on Line 4"],
             "risk_score": 95.0,
-            "status": "REJECTED_ARITHMETIC_VULNERABILITY"
+            "status": "REJECTED_ARITHMETIC_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["add"],
             "flagged_findings": ["Raw arithmetic operator on Line 4"],
             "risk_score": 95.0,
-            "status": "REJECTED_ARITHMETIC_VULNERABILITY"
-        }
+            "status": "REJECTED_ARITHMETIC_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
         goal="arithmetic audit on Legacy.sol to scan for legacy math flaws",
-        context={
-            "file_path": "Legacy.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Legacy.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 
@@ -234,7 +211,8 @@ def test_orchestrator_arithmetic_consensus_failed_divergence(monkeypatch):
     """Verify that split vote high-divergence output triggers fail-shut and blocks execution."""
     monkeypatch.setenv("PI_ORCHESTRATOR_STRICT_MODE", "true")
 
-    from pi_semantic_radius.consensus_breaker import PiConsensusBreaker, DivergenceReport
+    from pi_semantic_radius.consensus_breaker import DivergenceReport, PiConsensusBreaker
+
     def mock_evaluate_consensus(self, prompt, responses):
         return DivergenceReport(
             prompt=prompt,
@@ -242,8 +220,9 @@ def test_orchestrator_arithmetic_consensus_failed_divergence(monkeypatch):
             semantic_divergence=85.0,
             structural_divergence=0.0,
             consensus_divergence_score=85.0,
-            is_broken=True
+            is_broken=True,
         )
+
     monkeypatch.setattr(PiConsensusBreaker, "evaluate_consensus", mock_evaluate_consensus)
 
     orchestrator = PiOrchestrator()
@@ -258,36 +237,20 @@ def test_orchestrator_arithmetic_consensus_failed_divergence(monkeypatch):
     """
 
     mock_consensus_runs = [
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        },
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
         {
             "is_secure": False,
             "vulnerable_functions": ["add"],
             "flagged_findings": ["Raw arithmetic operator on Line 4"],
             "risk_score": 95.0,
-            "status": "REJECTED_ARITHMETIC_VULNERABILITY"
+            "status": "REJECTED_ARITHMETIC_VULNERABILITY",
         },
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        }
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
     ]
 
     inp = OrchestratorInput(
         goal="arithmetic audit on Legacy.sol",
-        context={
-            "file_path": "Legacy.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Legacy.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 

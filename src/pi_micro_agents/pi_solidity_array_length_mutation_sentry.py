@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -41,13 +40,13 @@ class PiSolidityArrayLengthMutationSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Look for assembly block modifying array length (e.g. sstore(..., length) or assembly mutating length slot)
             # Or manually changing .length (e.g. arr.length = newLength or arr.length--)
             has_assembly_mutation = "assembly" in body and ("sstore" in body) and ("length" in body or "len" in body)
-            has_direct_length_assignment = re.search(r'\.[a-zA-Z0-9_]+\.length\s*[-+=\/]?=', body)
+            has_direct_length_assignment = re.search(r"\.[a-zA-Z0-9_]+\.length\s*[-+=\/]?=", body)
 
             if has_assembly_mutation or has_direct_length_assignment:
                 vulnerable_funcs.append(name)
@@ -73,5 +72,5 @@ class PiSolidityArrayLengthMutationSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

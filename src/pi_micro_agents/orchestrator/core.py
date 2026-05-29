@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import os
 import re
-from datetime import datetime
 import time
+from datetime import datetime
 from typing import Any, Dict, List
 
 from pydantic import BaseModel, Field
@@ -54,10 +55,16 @@ class OrchestratorInput(BaseModel):
 class OrchestratorOutput(BaseModel):
     success: bool = Field(..., description="Indicates whether the orchestration goal was completed successfully")
     routed_agent: str = Field(..., description="The micro-agent or pipeline chain selected to resolve the goal")
-    risk_score: float = Field(..., description="The highest calculated safety/vulnerability risk score across the chain")
+    risk_score: float = Field(
+        ..., description="The highest calculated safety/vulnerability risk score across the chain"
+    )
     output_summary: str = Field(..., description="Human-readable execution completion summary")
-    result_details: Dict[str, Any] = Field(default_factory=dict, description="Specific details returned by the executed agent")
-    anomalies_detected: List[str] = Field(default_factory=list, description="List of any injection, leak, or cost violations caught")
+    result_details: Dict[str, Any] = Field(
+        default_factory=dict, description="Specific details returned by the executed agent"
+    )
+    anomalies_detected: List[str] = Field(
+        default_factory=list, description="List of any injection, leak, or cost violations caught"
+    )
 
 
 class PiOrchestrator:
@@ -68,7 +75,7 @@ class PiOrchestrator:
         self.ledger = ledger or StateLedger(":memory:")
 
     def _tokenize(self, text: str) -> List[str]:
-        return re.findall(r'[a-zA-Z0-9]+', text.lower())
+        return re.findall(r"[a-zA-Z0-9]+", text.lower())
 
     def _calculate_similarity(self, tokens_goal: List[str], tokens_doc: List[str]) -> float:
         if not tokens_goal or not tokens_doc:
@@ -78,8 +85,8 @@ class PiOrchestrator:
         vec_doc = {w: tokens_doc.count(w) for w in vocab}
 
         dot_product = sum(vec_goal[w] * vec_doc[w] for w in vocab)
-        mag_goal = sum(vec_goal[w]**2 for w in vocab) ** 0.5
-        mag_doc = sum(vec_doc[w]**2 for w in vocab) ** 0.5
+        mag_goal = sum(vec_goal[w] ** 2 for w in vocab) ** 0.5
+        mag_doc = sum(vec_doc[w] ** 2 for w in vocab) ** 0.5
 
         if mag_goal == 0.0 or mag_doc == 0.0:
             return 0.0
@@ -89,12 +96,21 @@ class PiOrchestrator:
         """Auto-enrich execution context by matching natural-language goals against the local Obsidian Wiki vault using cosine similarity."""
         rag_context: Dict[str, Any] = {}
 
-        # 1. Locate Obsidian Wiki directory
-        vault_dir = "/Users/clubpenguin/Documents/pi-platform/PI-Platform"
-        if not os.path.exists(vault_dir):
-            vault_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../PI-Platform"))
+        # 1. Locate Obsidian Wiki directories (PI-Platform + the new dedicated vault/)
+        candidate_vaults = [
+            "/Users/clubpenguin/Documents/pi-platform/PI-Platform",
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "../../PI-Platform")),
+            os.path.abspath(os.path.join(os.path.dirname(__file__), "../../vault")),
+            "vault",
+        ]
 
-        if not os.path.exists(vault_dir) or not os.path.isdir(vault_dir):
+        vault_dir = None
+        for cand in candidate_vaults:
+            if os.path.exists(cand) and os.path.isdir(cand):
+                vault_dir = cand
+                break
+
+        if not vault_dir:
             return rag_context
 
         # 2. Find all markdown files and calculate cosine similarity
@@ -106,28 +122,28 @@ class PiOrchestrator:
         if not goal_tokens:
             return rag_context
 
-        for entry in os.listdir(vault_dir):
-            if entry.endswith(".md"):
-                file_path = os.path.join(vault_dir, entry)
-                try:
-                    with open(file_path, "r", encoding="utf-8") as f:
-                        content = f.read()
+        for entry in list(os.scandir(vault_dir)):  # snapshot prevents issues with concurrent writes
+            if not entry.name.endswith(".md"):
+                continue
+            file_path = entry.path
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    content = f.read()
 
-                    # Combine filename and content tokens
-                    doc_tokens = self._tokenize(entry.replace(".md", " ") + " " + content)
-                    sim = self._calculate_similarity(goal_tokens, doc_tokens)
+                doc_tokens = self._tokenize(entry.name.replace(".md", " ") + " " + content)
+                sim = self._calculate_similarity(goal_tokens, doc_tokens)
 
-                    if sim > best_similarity:
-                        best_similarity = sim
-                        best_doc_path = file_path
-                        best_doc_content = content
-                except Exception:
-                    pass
+                if sim > best_similarity:
+                    best_similarity = sim
+                    best_doc_path = file_path
+                    best_doc_content = content
+            except (OSError, UnicodeDecodeError) as e:
+                logging.getLogger("pi_orchestrator").warning("RAG vault read failed for %s: %s", file_path, e)
 
         # 3. Extract parameter options if similarity is above a threshold
         if best_doc_path and best_similarity > 0.05:
             # Extract generic options from JSON blocks first
-            json_blocks = re.findall(r'```json\s*(\{.*?\})\s*```', best_doc_content, re.DOTALL)
+            json_blocks = re.findall(r"```json\s*(\{.*?\})\s*```", best_doc_content, re.DOTALL)
             for block in json_blocks:
                 try:
                     data = json.loads(block)
@@ -160,7 +176,7 @@ class PiOrchestrator:
                     rag_context["niche"] = niche.upper() if niche != "rust" else "Rust"
 
             # Spend limit mapping from goal
-            spend_match = re.search(r'(?:spend[-_]limit|budget|limit)\s*(?:of\s*)?\$?([0-9]+(?:\.[0-9]+)?)', goal_lower)
+            spend_match = re.search(r"(?:spend[-_]limit|budget|limit)\s*(?:of\s*)?\$?([0-9]+(?:\.[0-9]+)?)", goal_lower)
             if spend_match:
                 try:
                     rag_context["spend_limit"] = float(spend_match.group(1))
@@ -195,7 +211,7 @@ class PiOrchestrator:
                 summary="Blocked: Defensive-only runtime mode rejects any proposed shell commands or python script payloads.",
                 details={},
                 anomalies=["Defensive-only violation: execution payload rejected."],
-                goal=goal
+                goal=goal,
             )
 
         # Step 1: Prompt Shield Check
@@ -210,7 +226,7 @@ class PiOrchestrator:
                     summary=f"Blocked: Prompt injection or jailbreak detected in goal: {', '.join(injection_viols)}",
                     details={},
                     anomalies=anomalies,
-                    goal=goal
+                    goal=goal,
                 )
 
         # Step 2: Spend/Cost Hunter Check
@@ -227,7 +243,7 @@ class PiOrchestrator:
                     summary=f"Blocked: Cost/budget anomaly hunter tripped: {spend_status}",
                     details={},
                     anomalies=anomalies,
-                    goal=goal
+                    goal=goal,
                 )
 
         # Step 2.5: PI Interceptor Proxy Governance Shield
@@ -235,6 +251,7 @@ class PiOrchestrator:
 
         # Intercept and compile dynamic multi-agent execution chain first
         from pi_micro_agents.orchestrator.chain_engine import AgentChainCompiler, ChainExecutionEngine
+
         chain_routes = AgentChainCompiler.compile_chain(goal, context)
 
         routed_route = AgentRouter.resolve(goal, context)
@@ -254,31 +271,73 @@ class PiOrchestrator:
                     summary=f"Blocked: Proposed shell command triggers safety gate: {cmd_candidate}",
                     details={},
                     anomalies=anomalies,
-                    goal=goal
+                    goal=goal,
                 )
 
         # Check for proposed Python script contents
         if len(chain_routes) < 2 and target_agent not in [
-            "PiGitSecScanner", "PiSelfHealingPatchAgent", "PiReentrancySentry", "PiAccessControlVerifier",
-            "PiFlashLoanDefender", "PiArithmeticAuditor", "PiDelegateCallGuard", "PiSignatureReplayScout",
-            "PiBytecodeDecompiler", "PiVyperSecScanner", "PiSelfDestructHunter", "PiOracleDivergenceAudit",
-            "PiTokenTaxDetector", "PiTxOriginSentry", "PiReadOnlyReentrancySentry", "PiUninitializedStateSentry",
-            "PiShadowedVariableDetector", "PiBlockTimestampSentry", "PiStorageLayoutDrift", "PiERC4626VaultGuard",
-            "PiCrossChainBridgeAuditor", "PiGasGuzzlerDetector", "PiAssemblyLethalWeapons", "PiLogicGatekeeper",
-            "PiPhishingShield", "PiExternalContractGuard", "PiCentralizationSentry", "PiFloatingPragmaSentry",
-            "PiUpgradeDefectDetector", "PiDoSGasLimitsSentry", "PiDeFiSlippageGuard",
-            "PiConstantTimeAuditor", "PiMemoryZeroizeSentry", "PiDimensionalAnalysisSentry",
-            "PiAgentToolExecutionGuard", "PiHotPathAllocationAuditor",
+            "PiGitSecScanner",
+            "PiSelfHealingPatchAgent",
+            "PiReentrancySentry",
+            "PiAccessControlVerifier",
+            "PiFlashLoanDefender",
+            "PiArithmeticAuditor",
+            "PiDelegateCallGuard",
+            "PiSignatureReplayScout",
+            "PiBytecodeDecompiler",
+            "PiVyperSecScanner",
+            "PiSelfDestructHunter",
+            "PiOracleDivergenceAudit",
+            "PiTokenTaxDetector",
+            "PiTxOriginSentry",
+            "PiReadOnlyReentrancySentry",
+            "PiUninitializedStateSentry",
+            "PiShadowedVariableDetector",
+            "PiBlockTimestampSentry",
+            "PiStorageLayoutDrift",
+            "PiERC4626VaultGuard",
+            "PiCrossChainBridgeAuditor",
+            "PiGasGuzzlerDetector",
+            "PiAssemblyLethalWeapons",
+            "PiLogicGatekeeper",
+            "PiPhishingShield",
+            "PiExternalContractGuard",
+            "PiCentralizationSentry",
+            "PiFloatingPragmaSentry",
+            "PiUpgradeDefectDetector",
+            "PiDoSGasLimitsSentry",
+            "PiDeFiSlippageGuard",
+            "PiConstantTimeAuditor",
+            "PiMemoryZeroizeSentry",
+            "PiDimensionalAnalysisSentry",
+            "PiAgentToolExecutionGuard",
+            "PiHotPathAllocationAuditor",
             # Cohort 11 Agents
-            "PiCavemanTokenCompressor", "PiGrillMeQuestionnaire", "PiHandoffCheckpointSentry",
-            "PiToPrdValidator", "PiToIssuesBreakdown", "PiTriageBugLabels",
-            "PiZoomOutSystemExplainer", "PiDesignAnInterfaceValidator", "PiRequestRefactorPlanVerifier",
-            "PiTddTestFileVerifier", "PiTddAssertionCoverage", "PiTddMockingSanityChecker",
-            "PiGitSafetyGuardrail", "PiTypeScriptWizardryCheck", "PiArchitectureImportBoundarySentry",
-            "PiDepreciationScanner", "PiDeadCodePruner", "PiMockDataTaintingSentry",
-            "PiReadmeValidator", "PiChangelogAuditor", "PiAstDepthGuard",
-            "PiUncontrolledRecursionSentry", "PiMagicNumberScanner", "PiErrorHandlingCatchAllGuard",
-            "PiSemanticCommitMessageLinter"
+            "PiCavemanTokenCompressor",
+            "PiGrillMeQuestionnaire",
+            "PiHandoffCheckpointSentry",
+            "PiToPrdValidator",
+            "PiToIssuesBreakdown",
+            "PiTriageBugLabels",
+            "PiZoomOutSystemExplainer",
+            "PiDesignAnInterfaceValidator",
+            "PiRequestRefactorPlanVerifier",
+            "PiTddTestFileVerifier",
+            "PiTddAssertionCoverage",
+            "PiTddMockingSanityChecker",
+            "PiGitSafetyGuardrail",
+            "PiTypeScriptWizardryCheck",
+            "PiArchitectureImportBoundarySentry",
+            "PiDepreciationScanner",
+            "PiDeadCodePruner",
+            "PiMockDataTaintingSentry",
+            "PiReadmeValidator",
+            "PiChangelogAuditor",
+            "PiAstDepthGuard",
+            "PiUncontrolledRecursionSentry",
+            "PiMagicNumberScanner",
+            "PiErrorHandlingCatchAllGuard",
+            "PiSemanticCommitMessageLinter",
         ]:
             ast_violations = PiOrchestratorShield.check_ast_safety(context)
             if ast_violations:
@@ -291,7 +350,7 @@ class PiOrchestrator:
                         summary=f"Blocked: Proposed Python code contains forbidden structures: {', '.join(ast_violations)}",
                         details={},
                         anomalies=anomalies,
-                        goal=goal
+                        goal=goal,
                     )
 
         # Step 3: Semantic Intent Routing Decision
@@ -308,7 +367,11 @@ class PiOrchestrator:
             try:
                 chain_result = chain_engine.execute_chain(chain_routes, goal, context)
                 chain_success = chain_result["success"]
-                chain_risk = max(step["risk_score"] for step in chain_result["chain_receipts"]) if chain_result["chain_receipts"] else 0.0
+                chain_risk = (
+                    max(step["risk_score"] for step in chain_result["chain_receipts"])
+                    if chain_result["chain_receipts"]
+                    else 0.0
+                )
                 chain_agent_str = " -> ".join([r.agent_name for r in chain_routes])
                 chain_summary = f"Multi-agent chain completed successfully: {chain_agent_str}"
 
@@ -324,8 +387,8 @@ class PiOrchestrator:
                     "chain_receipts": chain_result["chain_receipts"],
                     "_latency_metrics": {
                         "routing_ms": routing_latency,
-                        "execution_ms": chain_result["total_latency_ms"]
-                    }
+                        "execution_ms": chain_result["total_latency_ms"],
+                    },
                 }
 
                 return self._compile_and_log_output(
@@ -335,7 +398,7 @@ class PiOrchestrator:
                     summary=chain_summary,
                     details=res_details,
                     anomalies=anomalies,
-                    goal=goal
+                    goal=goal,
                 )
             except Exception as e:
                 chain_agent_str = " -> ".join([r.agent_name for r in chain_routes])
@@ -347,7 +410,7 @@ class PiOrchestrator:
                     summary=f"Chain execution failed: {str(e)}",
                     details={},
                     anomalies=anomalies,
-                    goal=goal
+                    goal=goal,
                 )
 
         if routed_route:
@@ -376,19 +439,21 @@ class PiOrchestrator:
 
                 # Run Stylist (Agent 2)
                 stylist = PiCurationStylist()
-                style_out = stylist.format_newsletter(CurationInput(
-                    niche=niche,
-                    tweets=scrap_out.tweets,
-                    github_repos=scrap_out.github_repos,
-                    transcripts=transcripts
-                ))
+                style_out = stylist.format_newsletter(
+                    CurationInput(
+                        niche=niche,
+                        tweets=scrap_out.tweets,
+                        github_repos=scrap_out.github_repos,
+                        transcripts=transcripts,
+                    )
+                )
 
                 # Run Publisher (Agent 3)
                 pub_inp = PublisherInput(
                     substack_title=style_out.substack_title,
                     substack_markdown_body=style_out.substack_markdown_body,
                     x_thread_posts=style_out.x_thread_posts,
-                    draft_only=draft_only
+                    draft_only=draft_only,
                 )
                 pub_success, pub_risk_score, pub_summary, pub_details, pub_alerts = run_with_consensus(
                     self, PiPublisherDispatch, pub_inp, goal, context, "PiPublisherDispatch"
@@ -430,10 +495,7 @@ class PiOrchestrator:
 
         # Inject latency metrics
         execution_latency = (time.perf_counter() - start_execution) * 1000
-        result_details["_latency_metrics"] = {
-            "routing_ms": routing_latency,
-            "execution_ms": execution_latency
-        }
+        result_details["_latency_metrics"] = {"routing_ms": routing_latency, "execution_ms": execution_latency}
 
         return self._compile_and_log_output(
             success=success,
@@ -442,7 +504,7 @@ class PiOrchestrator:
             summary=output_summary,
             details=result_details,
             anomalies=anomalies,
-            goal=goal
+            goal=goal,
         )
 
     def _compile_and_log_output(
@@ -453,7 +515,7 @@ class PiOrchestrator:
         summary: str,
         details: Dict[str, Any],
         anomalies: List[str],
-        goal: str
+        goal: str,
     ) -> OrchestratorOutput:
         """Helper to serialize logs, hash payload, commit trace to StateLedger, and compile return object."""
         res_output = OrchestratorOutput(
@@ -462,11 +524,11 @@ class PiOrchestrator:
             risk_score=risk_score,
             output_summary=summary,
             result_details=details,
-            anomalies_detected=anomalies
+            anomalies_detected=anomalies,
         )
 
         payload_hash = hashlib.sha256(goal.encode("utf-8")).hexdigest()
-        trace_id = "trace_orch_" + hashlib.md5(datetime.utcnow().isoformat().encode()).hexdigest()[:8]
+        trace_id = "trace_orch_" + hashlib.sha256(datetime.utcnow().isoformat().encode()).hexdigest()[:12]
 
         try:
             trace = ExecutionTrace(
@@ -477,7 +539,7 @@ class PiOrchestrator:
                 llm_temperature=0.0,
                 raw_output=res_output.model_dump_json(),
                 is_valid_type=success,
-                error_message=", ".join(anomalies) if anomalies else None
+                error_message=", ".join(anomalies) if anomalies else None,
             )
             self.ledger.append(trace)
         except Exception:

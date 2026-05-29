@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+
 import pytest
 from click.testing import CliRunner
 
@@ -39,20 +40,20 @@ def test_cli_recon_defaults(cli_runner, tmp_path):
             str(output_dir),
         ],
     )
-    
+
     assert result.exit_code == 0
     assert "Recon Mode Active" in result.output
     assert "The Architect" in result.output
     assert "SchemaGhost" in result.output
     assert "Synthesized spec written to" in result.output
-    
+
     # Check that output file exists and is valid JSON containing x-intent-graph
     spec_file = output_dir / "synthesized_openapi.json"
     assert spec_file.exists()
-    
+
     with open(spec_file, "r") as f:
         spec_data = json.load(f)
-    
+
     assert "paths" in spec_data
     assert "x-intent-graph" in spec_data
 
@@ -61,17 +62,17 @@ def test_cli_recon_traffic_file(cli_runner, tmp_path):
     """Verify that recon command loads traffic from a capture file and processes it."""
     output_dir = tmp_path / "recon_logs"
     traffic_file = tmp_path / "traffic.json"
-    
+
     # Create sample request/response trace file
     sample_traffic = [
         [
             "GET /api/v1/health HTTP/1.1\nHost: test.com\n\n",
-            "HTTP/1.1 200 OK\nContent-Type: application/json\n\n{\"status\":\"OK\"}"
+            'HTTP/1.1 200 OK\nContent-Type: application/json\n\n{"status":"OK"}',
         ]
     ]
     with open(traffic_file, "w") as f:
         json.dump(sample_traffic, f)
-        
+
     result = cli_runner.invoke(
         cli,
         [
@@ -82,7 +83,7 @@ def test_cli_recon_traffic_file(cli_runner, tmp_path):
             str(output_dir),
         ],
     )
-    
+
     assert result.exit_code == 0
     assert "Ingesting raw traffic from trace" in result.output
     assert "traffic.json" in result.output
@@ -94,7 +95,7 @@ def test_cli_attack_sim_defaults(cli_runner, tmp_path):
     # Create a temporary Foundry directory with a vulnerable Solidity file
     foundry_dir = tmp_path / "contracts"
     foundry_dir.mkdir()
-    
+
     vuln_file = foundry_dir / "Vulnerable.sol"
     vuln_code = """
 contract Vulnerable {
@@ -109,7 +110,7 @@ contract Vulnerable {
 """
     with open(vuln_file, "w") as f:
         f.write(vuln_code)
-        
+
     result = cli_runner.invoke(
         cli,
         [
@@ -118,7 +119,7 @@ contract Vulnerable {
             str(foundry_dir),
         ],
     )
-    
+
     assert result.exit_code == 0
     assert "Attack-Sim Mode Active" in result.output
     assert "Radius-Fuzzer" in result.output
@@ -126,18 +127,18 @@ contract Vulnerable {
     assert "AST Auditor Risk Assessment" in result.output
     assert "tx.origin" in result.output
     assert "Remediation Patch Synthesized Successfully!" in result.output
-    
+
     # Check that report JSON file was written
     report_file = Path("attack_sim_report.json")
     assert report_file.exists()
-    
+
     with open(report_file, "r") as rf:
         report = json.load(rf)
-        
+
     assert report["risk_score"] >= 80
     assert any("tx.origin" in v for v in report["vulnerabilities_detected"])
     assert "msg.sender" in report["patched_code"]
-    
+
     # Cleanup report file
     if report_file.exists():
         report_file.unlink()

@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_uninitialized_state_sentry import (
     PiUninitializedStateSentry,
     UninitializedInput,
-    UninitializedOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -37,11 +34,7 @@ def test_uninitialized_state_variable():
         }
     }
     """
-    inp = UninitializedInput(
-        file_path="UninitializedVar.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = UninitializedInput(file_path="UninitializedVar.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_uninitialized(inp)
 
@@ -66,11 +59,7 @@ def test_uninitialized_upgradeable_vulnerable():
         }
     }
     """
-    inp = UninitializedInput(
-        file_path="UpgradeableToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = UninitializedInput(file_path="UpgradeableToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_uninitialized(inp)
 
@@ -99,11 +88,7 @@ def test_uninitialized_state_compliant():
         }
     }
     """
-    inp = UninitializedInput(
-        file_path="CompliantVar.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = UninitializedInput(file_path="CompliantVar.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_uninitialized(inp)
 
@@ -135,22 +120,22 @@ def test_orchestrator_uninitialized_state_consensus_passed(monkeypatch):
             "vulnerable_functions": ["admin"],
             "flagged_findings": ["State variable admin is never initialized"],
             "risk_score": 90.0,
-            "status": "REJECTED_UNINITIALIZED_STATE"
+            "status": "REJECTED_UNINITIALIZED_STATE",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["admin"],
             "flagged_findings": ["State variable admin is never initialized"],
             "risk_score": 90.0,
-            "status": "REJECTED_UNINITIALIZED_STATE"
+            "status": "REJECTED_UNINITIALIZED_STATE",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["admin"],
             "flagged_findings": ["State variable admin is never initialized"],
             "risk_score": 90.0,
-            "status": "REJECTED_UNINITIALIZED_STATE"
-        }
+            "status": "REJECTED_UNINITIALIZED_STATE",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -158,8 +143,8 @@ def test_orchestrator_uninitialized_state_consensus_passed(monkeypatch):
         context={
             "file_path": "UninitializedVar.sol",
             "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

@@ -78,7 +78,7 @@ class PiVyperStorageLayoutCollisionSentry:
                     in_fn = False
 
             if not in_fn:
-                match = re.match(r'^([a-zA-Z0-9_]+)\s*:\s*([^#\n]+)', clean_line)
+                match = re.match(r"^([a-zA-Z0-9_]+)\s*:\s*([^#\n]+)", clean_line)
                 if match:
                     var_name = match.group(1)
                     var_type = match.group(2).strip()
@@ -128,5 +128,5 @@ class PiVyperStorageLayoutCollisionSentry:
             vulnerable_variables=vulnerable_vars,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

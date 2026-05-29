@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -35,7 +34,9 @@ class PiTerraformStateCredentialSentry:
     def __init__(self) -> None:
         self.agent_name = "PiTerraformStateCredentialSentry"
 
-    def audit_terraform_credentials(self, input_envelope: TerraformStateCredentialInput) -> TerraformStateCredentialOutput:
+    def audit_terraform_credentials(
+        self, input_envelope: TerraformStateCredentialInput
+    ) -> TerraformStateCredentialOutput:
         code = input_envelope.tf_code
         vulnerable_elements = []
         flagged_findings = []
@@ -48,11 +49,15 @@ class PiTerraformStateCredentialSentry:
 
             # Check for patterns of direct credential declarations in tf files
             # e.g., secret_key = "...", access_key = "...", password = "...", token = "..."
-            match = re.search(r'\b(secret_key|access_key|password|token|api_key|client_secret)\s*=\s*["\']([^"\']+)["\']', clean_line, re.IGNORECASE)
+            match = re.search(
+                r'\b(secret_key|access_key|password|token|api_key|client_secret)\s*=\s*["\']([^"\']+)["\']',
+                clean_line,
+                re.IGNORECASE,
+            )
             if match:
                 var_name = match.group(1)
                 val = match.group(2)
-                
+
                 # If value is not a standard variable reference (like var.xxx or local.xxx)
                 if not val.startswith("var.") and not val.startswith("local.") and len(val) > 4:
                     vulnerable_elements.append(f"Line {idx}")
@@ -78,5 +83,5 @@ class PiTerraformStateCredentialSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -153,10 +153,7 @@ def test_runtime_bounded_violation_truncation():
     runtime = ValidatorRuntime(policy=policy, bounds=bounds)
     report = runtime.run(artifacts)
     # Should contain the bounded truncation violation
-    assert any(
-        v.rule == "BOUNDED_EXECUTION_VIOLATION_LIMIT_EXCEEDED"
-        for v in report.violations
-    )
+    assert any(v.rule == "BOUNDED_EXECUTION_VIOLATION_LIMIT_EXCEEDED" for v in report.violations)
 
 
 def test_run_validator_from_files():

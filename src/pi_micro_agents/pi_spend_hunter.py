@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Static heuristic scanning of proposed code bundles
 def detect_spend_anomalies(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -37,7 +38,10 @@ def detect_spend_anomalies(text: str) -> Tuple[float, List[str]]:
     # Heuristic infinite loop completions / billing drain detection
     loop_patterns = [
         (r"while\s+(?:True|1)\s*:\s*(?:.|\n)*?\bcompletions\b", "infinite completions loop detected"),
-        (r"for\s+\w+\s+in\s+range\(\s*\d{3,}\s*\)\s*:\s*(?:.|\n)*?\bcompletions\b", "excessive completions loop range detected"),
+        (
+            r"for\s+\w+\s+in\s+range\(\s*\d{3,}\s*\)\s*:\s*(?:.|\n)*?\bcompletions\b",
+            "excessive completions loop range detected",
+        ),
     ]
     for pat, desc in loop_patterns:
         if re.search(pat, text, re.IGNORECASE):
@@ -59,6 +63,7 @@ def detect_spend_anomalies(text: str) -> Tuple[float, List[str]]:
                 max_risk = max(max_risk, 90.0)
 
     return max_risk, violations
+
 
 # 3. PiSpendAnomalyHunter core implementation
 class PiSpendAnomalyHunter:

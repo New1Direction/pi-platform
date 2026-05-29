@@ -38,7 +38,9 @@ class ERC7702Input(BaseModel):
 class ERC7702Output(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is secure against ERC-7702 delegation exploits")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed ERC-7702 delegation safety findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed ERC-7702 delegation safety findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_ERC7702_RISK, REJECTED_ERC7702_RISK)")
 
@@ -57,9 +59,9 @@ class PiERC7702DelegationGuard:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check for delegation hooks, authorization setups, or signature checks in EOA context
             if "delegate" in name.lower() or "authorize" in name.lower() or "signature" in body.lower():
                 # EIP-7702 dynamic checks should ensure that signatures are not static and include nonces to prevent replay
@@ -87,5 +89,5 @@ class PiERC7702DelegationGuard:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -38,21 +37,19 @@ class PiLLMSystemPromptHijackSentry:
         flagged_findings = []
 
         hijack_patterns = [
-            r'developer\s+mode',
-            r'jailbreak',
-            r'override\s+instructions',
-            r'you\s+are\s+now\s+a',
-            r'dan\s+mode',
-            r'ignore\s+constraints'
+            r"developer\s+mode",
+            r"jailbreak",
+            r"override\s+instructions",
+            r"you\s+are\s+now\s+a",
+            r"dan\s+mode",
+            r"ignore\s+constraints",
         ]
 
         is_secure = True
         for pattern in hijack_patterns:
             if re.search(pattern, prompt, re.IGNORECASE):
                 is_secure = False
-                flagged_findings.append(
-                    f"Prompt contains phrase matching system prompt hijack pattern '{pattern}'."
-                )
+                flagged_findings.append(f"Prompt contains phrase matching system prompt hijack pattern '{pattern}'.")
 
         risk_score = 90.0 if not is_secure else 0.0
 
@@ -66,8 +63,5 @@ class PiLLMSystemPromptHijackSentry:
                 is_secure = True
 
         return LLMSystemPromptHijackOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

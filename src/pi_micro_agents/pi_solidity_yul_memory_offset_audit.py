@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -24,7 +23,9 @@ class YulMemoryOffsetInput(BaseModel):
 class YulMemoryOffsetOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract Yul memory offset usage is secure")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on Yul memory offset usage")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on Yul memory offset usage"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -41,13 +42,13 @@ class PiSolidityYulMemoryOffsetAudit:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check if there is an assembly block
             if "assembly" in body:
                 # Find all mstore operations in assembly
-                mstores = re.findall(r'mstore\s*\(\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*.*?\)', body)
+                mstores = re.findall(r"mstore\s*\(\s*(0x[0-9a-fA-F]+|\d+)\s*,\s*.*?\)", body)
                 for offset_str in mstores:
                     try:
                         # Convert hex or decimal offset
@@ -82,5 +83,5 @@ class PiSolidityYulMemoryOffsetAudit:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

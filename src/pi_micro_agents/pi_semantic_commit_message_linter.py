@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import os
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_COMMIT_LINTER_STRICT_MODE")
@@ -10,14 +13,17 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class CommitLinterInput(BaseModel):
     commit_message: str = Field(..., description="Commit message to audit")
+
 
 class CommitLinterOutput(BaseModel):
     is_secure: bool = Field(..., description="True if the commit message conforms to Conventional Commits standards")
     formatting_errors: List[str] = Field(default_factory=list, description="List of lint/formatting errors found")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiSemanticCommitMessageLinter:
     """Deterministic micro-agent that audits commit messages against Conventional Commits specification."""
@@ -60,9 +66,4 @@ class PiSemanticCommitMessageLinter:
                 status = "WARN_COMMIT_LINTER"
                 is_secure = True
 
-        return CommitLinterOutput(
-            is_secure=is_secure,
-            formatting_errors=errors,
-            risk_score=risk_score,
-            status=status
-        )
+        return CommitLinterOutput(is_secure=is_secure, formatting_errors=errors, risk_score=risk_score, status=status)

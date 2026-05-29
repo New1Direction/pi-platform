@@ -1,95 +1,186 @@
 from __future__ import annotations
 
 import copy
+
+# ──────────────────────────────────────────────────────────────────────────
+#  Optional Rust agent acceleration (flag-gated, parity-verified, fail-safe).
+#
+#  When PI_USE_RUST_AGENTS is truthy AND a Rust port exists for the agent, the
+#  CPU-bound scan runs in the Rust core (`pi_core`), which releases the GIL —
+#  ~5x on this concurrent fabric (Python's GIL can't parallelize CPU work).
+#  Output parity is proven byte-for-byte in rust/parity. ANY problem (flag off,
+#  pi_core missing, agent not ported, serialization issue) falls back to the
+#  Python agent, so this can never change results or break execution.
+# ──────────────────────────────────────────────────────────────────────────
+import functools as _functools
 import json
 import os
+import threading
+import time
 from typing import Any, Dict, List, Tuple
 
 # Import outputs for Pydantic reconstruction in consensus testing
 from pi_micro_agents.pi_access_control_verifier import AccessControlOutput
+from pi_micro_agents.pi_agent_tool_execution_guard import AgentToolGuardOutput
+from pi_micro_agents.pi_api_owasp_scanner import APIOutput
 from pi_micro_agents.pi_arbitrage_guard import ArbitrageOutput
+from pi_micro_agents.pi_architecture_import_boundary_sentry import ImportBoundaryOutput
 from pi_micro_agents.pi_arithmetic_auditor import ArithmeticOutput
 from pi_micro_agents.pi_assembly_lethal_weapons import AssemblySafetyOutput
+from pi_micro_agents.pi_ast_depth_guard import AstDepthOutput
+from pi_micro_agents.pi_audit_log_tamper_detector import LogOutput
+from pi_micro_agents.pi_automated_anonymizer import AnonymizerOutput
+from pi_micro_agents.pi_automated_rotation_engine import RotationOutput
+from pi_micro_agents.pi_backup_integrity_checker import BackupOutput
 from pi_micro_agents.pi_block_timestamp_sentry import BlockTimestampOutput
 from pi_micro_agents.pi_bytecode_decompiler import BytecodeDecompilerOutput
+
+# Cohort 11 Outputs
+from pi_micro_agents.pi_caveman_token_compressor import CavemanCompressorOutput
 from pi_micro_agents.pi_centralization_sentry import CentralizationOutput
+from pi_micro_agents.pi_certificate_rotation_watcher import CertOutput
+from pi_micro_agents.pi_changelog_auditor import ChangelogOutput
+from pi_micro_agents.pi_cloud_config_auditor import CloudConfigOutput
+from pi_micro_agents.pi_code_signing_enforcer import SigningOutput
+
+# Adopted Skills Agent Outputs
+from pi_micro_agents.pi_constant_time_auditor import ConstantTimeOutput
+from pi_micro_agents.pi_container_escape_detector import ContainerEscapeOutput
 from pi_micro_agents.pi_cross_chain_bridge_auditor import BridgeAuditOutput
+from pi_micro_agents.pi_data_flow_privacy_mapper import PrivacyMapperOutput
+from pi_micro_agents.pi_data_retention_policy_enforcer import RetentionOutput
+from pi_micro_agents.pi_dead_code_pruner import DeadCodeOutput
 from pi_micro_agents.pi_defi_slippage_guard import DeFiSlippageOutput
+from pi_micro_agents.pi_dependency_vuln_scanner import DependencyOutput
+from pi_micro_agents.pi_depreciation_scanner import DepreciationOutput
+from pi_micro_agents.pi_design_an_interface_validator import DesignAnInterfaceOutput
+from pi_micro_agents.pi_dimensional_analysis_sentry import DimensionalAnalysisOutput
+from pi_micro_agents.pi_docker_image_scanner import DockerImageOutput
 from pi_micro_agents.pi_dos_gas_limits_sentry import DoSGasLimitsOutput
+from pi_micro_agents.pi_encryption_compliance_checker import EncryptionOutput
 from pi_micro_agents.pi_erc4626_vault_guard import VaultGuardOutput
+from pi_micro_agents.pi_error_handling_catch_all_guard import ErrorCatchOutput
 from pi_micro_agents.pi_external_contract_guard import ExternalContractGuardOutput
+from pi_micro_agents.pi_firewall_rule_auditor import FirewallOutput
 from pi_micro_agents.pi_flash_loan_defender import FlashLoanOutput
 from pi_micro_agents.pi_floating_pragma_sentry import PragmaSentryOutput
 from pi_micro_agents.pi_gas_guzzler_detector import GasGuzzlerOutput
+from pi_micro_agents.pi_git_safety_guardrail import GitSafetyOutput
 from pi_micro_agents.pi_git_sec_scanner import GitSecOutput
+from pi_micro_agents.pi_grill_me_questionnaire import GrillMeOutput
+from pi_micro_agents.pi_handoff_checkpoint_sentry import HandoffOutput
+from pi_micro_agents.pi_hardcoded_secret_detector import HardcodedSecretOutput
+from pi_micro_agents.pi_hot_path_allocation_auditor import HotPathAllocationOutput
+
+# Phase 4 Outputs
+from pi_micro_agents.pi_iac_scanner import IaCOutput
+from pi_micro_agents.pi_kubernetes_security_auditor import K8sOutput
+from pi_micro_agents.pi_llm_output_sanitizer import LLMOutputSanitizerOutput
 from pi_micro_agents.pi_logic_gatekeeper import LogicGatekeeperOutput
+from pi_micro_agents.pi_magic_number_scanner import MagicNumberOutput
+from pi_micro_agents.pi_memory_zeroize_sentry import MemoryZeroizeOutput
 from pi_micro_agents.pi_mempool_sentry import MempoolTxOutput
+from pi_micro_agents.pi_misconfig_pattern_matcher import MisconfigOutput
+from pi_micro_agents.pi_mock_data_tainting_sentry import MockDataTaintingOutput
 from pi_micro_agents.pi_oracle_divergence_audit import OracleDivergenceOutput
 from pi_micro_agents.pi_oracle_sentry import OracleSentryOutput
 from pi_micro_agents.pi_phishing_shield import PhishingShieldOutput
 from pi_micro_agents.pi_publisher_dispatch import PublisherOutput
+from pi_micro_agents.pi_rbac_permission_mapper import RBACOutput
 from pi_micro_agents.pi_read_only_reentrancy_sentry import ReadOnlyReentrancyOutput
+from pi_micro_agents.pi_readme_validator import ReadmeOutput
 from pi_micro_agents.pi_reentrancy_sentry import ReentrancyOutput
+from pi_micro_agents.pi_request_refactor_plan_verifier import RequestRefactorOutput
+from pi_micro_agents.pi_runtime_anomaly_sentry import AnomalyOutput
+from pi_micro_agents.pi_sbom_validator import SBOMOutput
+from pi_micro_agents.pi_secrets_manager_completeness_checker import VaultOutput
 from pi_micro_agents.pi_self_destruct_hunter import SelfDestructHunterOutput
 from pi_micro_agents.pi_self_healing_patch_agent import SelfHealingOutput
+from pi_micro_agents.pi_semantic_commit_message_linter import CommitLinterOutput
+from pi_micro_agents.pi_sensitive_data_scanner import SensitiveDataOutput
+from pi_micro_agents.pi_sensitive_log_leak_sentry import LogLeakOutput
 from pi_micro_agents.pi_shadowed_variable_detector import ShadowedVariableOutput
 from pi_micro_agents.pi_storage_layout_drift import StorageDriftOutput
+from pi_micro_agents.pi_structured_logging_enforcer import StructuredLoggingOutput
+from pi_micro_agents.pi_supply_chain_integrity_checker import SupplyChainOutput
+from pi_micro_agents.pi_tdd_assertion_coverage import TddAssertionOutput
+from pi_micro_agents.pi_tdd_mocking_sanity_checker import TddMockingOutput
+from pi_micro_agents.pi_tdd_test_file_verifier import TddTestFileOutput
+from pi_micro_agents.pi_threat_model_generator import ThreatModelOutput
+from pi_micro_agents.pi_to_issues_breakdown import ToIssuesOutput
+from pi_micro_agents.pi_to_prd_validator import ToPrdOutput
 from pi_micro_agents.pi_token_tax_detector import TokenTaxOutput
+from pi_micro_agents.pi_triage_bug_labels import TriageOutput
 from pi_micro_agents.pi_tx_origin_sentry import TxOriginOutput
+from pi_micro_agents.pi_typescript_wizardry_check import TypeScriptWizardryOutput
+from pi_micro_agents.pi_uncontrolled_recursion_sentry import RecursionOutput
 from pi_micro_agents.pi_uninitialized_state_sentry import UninitializedOutput
 from pi_micro_agents.pi_upgrade_defect_detector import UpgradeDefectOutput
 from pi_micro_agents.pi_vyper_sec_scanner import VyperScannerOutput
-
-# Adopted Skills Agent Outputs
-from pi_micro_agents.pi_constant_time_auditor import ConstantTimeOutput
-from pi_micro_agents.pi_memory_zeroize_sentry import MemoryZeroizeOutput
-from pi_micro_agents.pi_dimensional_analysis_sentry import DimensionalAnalysisOutput
-from pi_micro_agents.pi_agent_tool_execution_guard import AgentToolGuardOutput
-from pi_micro_agents.pi_hot_path_allocation_auditor import HotPathAllocationOutput
-
-# Cohort 11 Outputs
-from pi_micro_agents.pi_caveman_token_compressor import CavemanCompressorOutput
-from pi_micro_agents.pi_grill_me_questionnaire import GrillMeOutput
-from pi_micro_agents.pi_handoff_checkpoint_sentry import HandoffOutput
-from pi_micro_agents.pi_to_prd_validator import ToPrdOutput
-from pi_micro_agents.pi_to_issues_breakdown import ToIssuesOutput
-from pi_micro_agents.pi_triage_bug_labels import TriageOutput
+from pi_micro_agents.pi_zero_trust_verifier import ZeroTrustOutput
 from pi_micro_agents.pi_zoom_out_system_explainer import ZoomOutOutput
-from pi_micro_agents.pi_design_an_interface_validator import DesignAnInterfaceOutput
-from pi_micro_agents.pi_request_refactor_plan_verifier import RequestRefactorOutput
-from pi_micro_agents.pi_tdd_test_file_verifier import TddTestFileOutput
-from pi_micro_agents.pi_tdd_assertion_coverage import TddAssertionOutput
-from pi_micro_agents.pi_tdd_mocking_sanity_checker import TddMockingOutput
-from pi_micro_agents.pi_git_safety_guardrail import GitSafetyOutput
-from pi_micro_agents.pi_typescript_wizardry_check import TypeScriptWizardryOutput
-from pi_micro_agents.pi_architecture_import_boundary_sentry import ImportBoundaryOutput
-from pi_micro_agents.pi_depreciation_scanner import DepreciationOutput
-from pi_micro_agents.pi_dead_code_pruner import DeadCodeOutput
-from pi_micro_agents.pi_mock_data_tainting_sentry import MockDataTaintingOutput
-from pi_micro_agents.pi_readme_validator import ReadmeOutput
-from pi_micro_agents.pi_changelog_auditor import ChangelogOutput
-from pi_micro_agents.pi_ast_depth_guard import AstDepthOutput
-from pi_micro_agents.pi_uncontrolled_recursion_sentry import RecursionOutput
-from pi_micro_agents.pi_magic_number_scanner import MagicNumberOutput
-from pi_micro_agents.pi_error_handling_catch_all_guard import ErrorCatchOutput
-from pi_micro_agents.pi_semantic_commit_message_linter import CommitLinterOutput
-from pi_micro_agents.pi_docker_image_scanner import DockerImageOutput
-from pi_micro_agents.pi_container_escape_detector import ContainerEscapeOutput
-from pi_micro_agents.pi_hardcoded_secret_detector import HardcodedSecretOutput
-from pi_micro_agents.pi_automated_rotation_engine import RotationOutput
-from pi_micro_agents.pi_llm_output_sanitizer import LLMOutputSanitizerOutput
-from pi_micro_agents.pi_data_flow_privacy_mapper import PrivacyMapperOutput
-from pi_micro_agents.pi_sensitive_data_scanner import SensitiveDataOutput
-from pi_micro_agents.pi_automated_anonymizer import AnonymizerOutput
-from pi_micro_agents.pi_sensitive_log_leak_sentry import LogLeakOutput
-from pi_micro_agents.pi_structured_logging_enforcer import StructuredLoggingOutput
-
 
 # Consensus breaker imports
-from pi_semantic_radius.consensus_breaker import ModelResponse, PiConsensusBreaker as BaseConsensusBreaker
+from pi_semantic_radius.consensus_breaker import ModelResponse
+from pi_semantic_radius.consensus_breaker import PiConsensusBreaker as BaseConsensusBreaker
+
+
+def _rust_enabled() -> bool:
+    return os.getenv("PI_USE_RUST_AGENTS", "").strip().lower() in ("1", "true", "yes", "on")
+
+
+@_functools.lru_cache(maxsize=1)
+def _rust_core():
+    import pi_core  # built via maturin from rust/crates/pi-py
+
+    return pi_core
+
+
+@_functools.lru_cache(maxsize=1)
+def _rust_agent_names() -> frozenset:
+    try:
+        return frozenset(_rust_core().list_agents())
+    except Exception:
+        return frozenset()
+
+
+def _find_output_model(agent_class, result_keys):
+    """The agent module's pydantic model whose field set matches the Rust output."""
+    import sys as _sys
+
+    from pydantic import BaseModel as _BM
+
+    mod = _sys.modules.get(getattr(agent_class, "__module__", "") or "")
+    if mod is None:
+        return None
+    want = set(result_keys)
+    for v in vars(mod).values():
+        if isinstance(v, type) and issubclass(v, _BM) and v is not _BM and set(v.model_fields.keys()) == want:
+            return v
+    return None
+
+
+def _try_rust_agent(agent_name, agent_class, perturbed):
+    """Return a reconstructed Output model from the Rust core, or None to fall
+    back to the Python agent. Never raises (fail-closed to Python)."""
+    if not _rust_enabled():
+        return None
+    try:
+        if agent_name not in _rust_agent_names():
+            return None
+        result = json.loads(_rust_core().run_agent(agent_name, perturbed.model_dump_json()))
+        model = _find_output_model(agent_class, result.keys())
+        return model(**result) if model is not None else None
+    except Exception:
+        return None
+
 
 class PiConsensusBreaker(BaseConsensusBreaker):
+    # Class-level once-flag for the missing-weights warning. Guarded by a
+    # class-level lock so concurrent constructor calls don't print the
+    # warning multiple times (or — worse — miss it entirely).
     _warning_printed = False
+    _warning_lock = threading.Lock()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -100,6 +191,7 @@ class PiConsensusBreaker(BaseConsensusBreaker):
             return
 
         from pathlib import Path
+
         weights_path = Path(__file__).parent.parent.parent.parent / "needle-int4-26m.gguf"
         if not weights_path.exists():
             weights_path_alt = Path(__file__).parent.parent.parent / "needle-int4-26m.gguf"
@@ -107,16 +199,18 @@ class PiConsensusBreaker(BaseConsensusBreaker):
                 weights_path = weights_path_alt
 
         if not weights_path.exists():
-            if not PiConsensusBreaker._warning_printed:
-                try:
-                    from rich.console import Console
-                    Console().print(
-                        "⚠️  [yellow]Needle weights missing – consensus will use legacy cloud fallback[/yellow]",
-                        style="yellow"
-                    )
-                except Exception:
-                    print("⚠️  Needle weights missing – consensus will use legacy cloud fallback")
-                PiConsensusBreaker._warning_printed = True
+            with PiConsensusBreaker._warning_lock:
+                if not PiConsensusBreaker._warning_printed:
+                    try:
+                        from rich.console import Console
+
+                        Console().print(
+                            "⚠️  [yellow]Needle weights missing – consensus will use legacy cloud fallback[/yellow]",
+                            style="yellow",
+                        )
+                    except Exception:
+                        print("⚠️  Needle weights missing – consensus will use legacy cloud fallback")
+                    PiConsensusBreaker._warning_printed = True
             self.use_needle = False
             return
 
@@ -174,11 +268,42 @@ def perturb_input(inp: Any, index: int) -> Any:
 
     # Cohort 11 explicit perturbations
     for attr in [
-        "text_payload", "plan_content", "handoff_content", "prd_content", "spec_content",
-        "log_content", "code_content", "interface_content", "test_code_content",
-        "data_content", "readme_content", "changelog_content", "commit_message",
-        "dockerfile_content", "config_content", "file_content", "target_identifier",
-        "raw_output", "text_content", "raw_payload"
+        "text_payload",
+        "plan_content",
+        "handoff_content",
+        "prd_content",
+        "spec_content",
+        "log_content",
+        "code_content",
+        "interface_content",
+        "test_code_content",
+        "data_content",
+        "readme_content",
+        "changelog_content",
+        "commit_message",
+        "dockerfile_content",
+        "config_content",
+        "file_content",
+        "target_identifier",
+        "raw_output",
+        "text_content",
+        "raw_payload",
+        "iac_content",
+        "lockfile_content",
+        "config_snippet",
+        "sbom_content",
+        "manifest_content",
+        "schema_content",
+        "k8s_content",
+        "network_policy_content",
+        "cert_content",
+        "rules_content",
+        "backup_config",
+        "system_desc",
+        "vault_config",
+        "artifact_metadata",
+        "policy_content",
+        "metrics_content",
     ]:
         if hasattr(new_inp, attr) and isinstance(getattr(new_inp, attr), str):
             val = getattr(new_inp, attr)
@@ -230,28 +355,88 @@ def get_verdict(agent_name: str, d: Dict[str, Any]) -> Any:
     elif agent_name == "PiERC4626VaultGuard":
         return d.get("is_compliant")
     elif agent_name in [
-        "PiBytecodeDecompiler", "PiVyperSecScanner", "PiSelfDestructHunter",
-        "PiOracleDivergenceAudit", "PiTokenTaxDetector", "PiTxOriginSentry",
-        "PiReadOnlyReentrancySentry", "PiUninitializedStateSentry",
-        "PiShadowedVariableDetector", "PiBlockTimestampSentry",
-        "PiCrossChainBridgeAuditor", "PiGasGuzzlerDetector", "PiAssemblyLethalWeapons",
-        "PiLogicGatekeeper", "PiPhishingShield", "PiExternalContractGuard",
-        "PiCentralizationSentry", "PiFloatingPragmaSentry", "PiUpgradeDefectDetector",
-        "PiDoSGasLimitsSentry", "PiDeFiSlippageGuard",
-        "PiConstantTimeAuditor", "PiMemoryZeroizeSentry", "PiDimensionalAnalysisSentry",
-        "PiAgentToolExecutionGuard", "PiHotPathAllocationAuditor",
-        "PiCavemanTokenCompressor", "PiGrillMeQuestionnaire", "PiHandoffCheckpointSentry",
-        "PiToPrdValidator", "PiToIssuesBreakdown", "PiTriageBugLabels",
-        "PiZoomOutSystemExplainer", "PiDesignAnInterfaceValidator", "PiRequestRefactorPlanVerifier",
-        "PiTddTestFileVerifier", "PiTddAssertionCoverage", "PiTddMockingSanityChecker",
-        "PiGitSafetyGuardrail", "PiTypeScriptWizardryCheck", "PiArchitectureImportBoundarySentry",
-        "PiDepreciationScanner", "PiDeadCodePruner", "PiMockDataTaintingSentry",
-        "PiReadmeValidator", "PiChangelogAuditor", "PiAstDepthGuard",
-        "PiUncontrolledRecursionSentry", "PiMagicNumberScanner", "PiErrorHandlingCatchAllGuard",
-        "PiSemanticCommitMessageLinter", "PiWebVulnScanner", "PiPipelineIntegrityAuditor",
-        "PiDockerImageScanner", "PiContainerEscapeDetector", "PiHardcodedSecretDetector",
-        "PiLLMOutputSanitizer", "PiDataFlowPrivacyMapper", "PiSensitiveDataScanner",
-        "PiAutomatedAnonymizer", "PiSensitiveLogLeakSentry", "PiStructuredLoggingEnforcer"
+        "PiBytecodeDecompiler",
+        "PiVyperSecScanner",
+        "PiSelfDestructHunter",
+        "PiOracleDivergenceAudit",
+        "PiTokenTaxDetector",
+        "PiTxOriginSentry",
+        "PiReadOnlyReentrancySentry",
+        "PiUninitializedStateSentry",
+        "PiShadowedVariableDetector",
+        "PiBlockTimestampSentry",
+        "PiCrossChainBridgeAuditor",
+        "PiGasGuzzlerDetector",
+        "PiAssemblyLethalWeapons",
+        "PiLogicGatekeeper",
+        "PiPhishingShield",
+        "PiExternalContractGuard",
+        "PiCentralizationSentry",
+        "PiFloatingPragmaSentry",
+        "PiUpgradeDefectDetector",
+        "PiDoSGasLimitsSentry",
+        "PiDeFiSlippageGuard",
+        "PiConstantTimeAuditor",
+        "PiMemoryZeroizeSentry",
+        "PiDimensionalAnalysisSentry",
+        "PiAgentToolExecutionGuard",
+        "PiHotPathAllocationAuditor",
+        "PiCavemanTokenCompressor",
+        "PiGrillMeQuestionnaire",
+        "PiHandoffCheckpointSentry",
+        "PiToPrdValidator",
+        "PiToIssuesBreakdown",
+        "PiTriageBugLabels",
+        "PiZoomOutSystemExplainer",
+        "PiDesignAnInterfaceValidator",
+        "PiRequestRefactorPlanVerifier",
+        "PiTddTestFileVerifier",
+        "PiTddAssertionCoverage",
+        "PiTddMockingSanityChecker",
+        "PiGitSafetyGuardrail",
+        "PiTypeScriptWizardryCheck",
+        "PiArchitectureImportBoundarySentry",
+        "PiDepreciationScanner",
+        "PiDeadCodePruner",
+        "PiMockDataTaintingSentry",
+        "PiReadmeValidator",
+        "PiChangelogAuditor",
+        "PiAstDepthGuard",
+        "PiUncontrolledRecursionSentry",
+        "PiMagicNumberScanner",
+        "PiErrorHandlingCatchAllGuard",
+        "PiSemanticCommitMessageLinter",
+        "PiWebVulnScanner",
+        "PiPipelineIntegrityAuditor",
+        "PiDockerImageScanner",
+        "PiContainerEscapeDetector",
+        "PiHardcodedSecretDetector",
+        "PiLLMOutputSanitizer",
+        "PiDataFlowPrivacyMapper",
+        "PiSensitiveDataScanner",
+        "PiAutomatedAnonymizer",
+        "PiSensitiveLogLeakSentry",
+        "PiStructuredLoggingEnforcer",
+        "PiIaCScanner",
+        "PiDependencyVulnScanner",
+        "PiCloudConfigAuditor",
+        "PiRBACPermissionMapper",
+        "PiEncryptionComplianceChecker",
+        "PiSBOMValidator",
+        "PiSupplyChainIntegrityChecker",
+        "PiAPIOWASPScanner",
+        "PiKubernetesSecurityAuditor",
+        "PiZeroTrustVerifier",
+        "PiCertificateRotationWatcher",
+        "PiFirewallRuleAuditor",
+        "PiBackupIntegrityChecker",
+        "PiAuditLogTamperDetector",
+        "PiMisconfigPatternMatcher",
+        "PiThreatModelGenerator",
+        "PiSecretsManagerCompletenessChecker",
+        "PiCodeSigningEnforcer",
+        "PiDataRetentionPolicyEnforcer",
+        "PiRuntimeAnomalySentry",
     ]:
         return d.get("is_secure")
     elif agent_name == "PiDeploymentSafetyGuard":
@@ -263,12 +448,7 @@ def get_verdict(agent_name: str, d: Dict[str, Any]) -> Any:
 
 
 def run_with_consensus(
-    orchestrator: Any,
-    agent_class: Any,
-    input_envelope: Any,
-    goal: str,
-    context: Dict[str, Any],
-    agent_name: str
+    orchestrator: Any, agent_class: Any, input_envelope: Any, goal: str, context: Dict[str, Any], agent_name: str
 ) -> Tuple[bool, float, str, Dict[str, Any], List[str]]:
     """Spins up three independent runs, audits outcomes via PiConsensusBreaker, and applies consensus gate."""
     mock_runs = context.get("mock_consensus_runs")
@@ -423,14 +603,60 @@ def run_with_consensus(
                 outputs.append(LogLeakOutput(**r))
             elif agent_name == "PiStructuredLoggingEnforcer":
                 outputs.append(StructuredLoggingOutput(**r))
+            elif agent_name == "PiIaCScanner":
+                outputs.append(IaCOutput(**r))
+            elif agent_name == "PiDependencyVulnScanner":
+                outputs.append(DependencyOutput(**r))
+            elif agent_name == "PiCloudConfigAuditor":
+                outputs.append(CloudConfigOutput(**r))
+            elif agent_name == "PiRBACPermissionMapper":
+                outputs.append(RBACOutput(**r))
+            elif agent_name == "PiEncryptionComplianceChecker":
+                outputs.append(EncryptionOutput(**r))
+            elif agent_name == "PiSBOMValidator":
+                outputs.append(SBOMOutput(**r))
+            elif agent_name == "PiSupplyChainIntegrityChecker":
+                outputs.append(SupplyChainOutput(**r))
+            elif agent_name == "PiAPIOWASPScanner":
+                outputs.append(APIOutput(**r))
+            elif agent_name == "PiKubernetesSecurityAuditor":
+                outputs.append(K8sOutput(**r))
+            elif agent_name == "PiZeroTrustVerifier":
+                outputs.append(ZeroTrustOutput(**r))
+            elif agent_name == "PiCertificateRotationWatcher":
+                outputs.append(CertOutput(**r))
+            elif agent_name == "PiFirewallRuleAuditor":
+                outputs.append(FirewallOutput(**r))
+            elif agent_name == "PiBackupIntegrityChecker":
+                outputs.append(BackupOutput(**r))
+            elif agent_name == "PiAuditLogTamperDetector":
+                outputs.append(LogOutput(**r))
+            elif agent_name == "PiMisconfigPatternMatcher":
+                outputs.append(MisconfigOutput(**r))
+            elif agent_name == "PiThreatModelGenerator":
+                outputs.append(ThreatModelOutput(**r))
+            elif agent_name == "PiSecretsManagerCompletenessChecker":
+                outputs.append(VaultOutput(**r))
+            elif agent_name == "PiCodeSigningEnforcer":
+                outputs.append(SigningOutput(**r))
+            elif agent_name == "PiDataRetentionPolicyEnforcer":
+                outputs.append(RetentionOutput(**r))
+            elif agent_name == "PiRuntimeAnomalySentry":
+                outputs.append(AnomalyOutput(**r))
             else:
                 outputs.append(r)
 
     else:
         # Execute 3 independent perturbed runs (parallel via ThreadPoolExecutor when Needle enabled)
         def run_single_perturbed(idx):
-            agent_inst = agent_class(ledger=orchestrator.ledger) if agent_name == "PiPublisherDispatch" else agent_class()
+            agent_inst = (
+                agent_class(ledger=orchestrator.ledger) if agent_name == "PiPublisherDispatch" else agent_class()
+            )
             perturbed = perturb_input(input_envelope, idx)
+            # Flag-gated Rust acceleration (parity-verified, falls back to Python on any issue).
+            _rust_out = _try_rust_agent(agent_name, agent_class, perturbed)
+            if _rust_out is not None:
+                return _rust_out
             if agent_name == "PiArbitrageGuard":
                 return agent_inst.analyze_spread(perturbed)
             elif agent_name == "PiMempoolSentry":
@@ -581,35 +807,81 @@ def run_with_consensus(
                 return agent_inst.audit_log_leaks(perturbed)
             elif agent_name == "PiStructuredLoggingEnforcer":
                 return agent_inst.enforce_structured_logging(perturbed)
+            elif agent_name == "PiIaCScanner":
+                return agent_inst.scan_iac(perturbed)
+            elif agent_name == "PiDependencyVulnScanner":
+                return agent_inst.scan_dependencies(perturbed)
+            elif agent_name == "PiCloudConfigAuditor":
+                return agent_inst.audit_config(perturbed)
+            elif agent_name == "PiRBACPermissionMapper":
+                return agent_inst.map_rbac_permissions(perturbed)
+            elif agent_name == "PiEncryptionComplianceChecker":
+                return agent_inst.check_encryption_compliance(perturbed)
+            elif agent_name == "PiSBOMValidator":
+                return agent_inst.validate_sbom(perturbed)
+            elif agent_name == "PiSupplyChainIntegrityChecker":
+                return agent_inst.check_supply_chain(perturbed)
+            elif agent_name == "PiAPIOWASPScanner":
+                return agent_inst.scan_api(perturbed)
+            elif agent_name == "PiKubernetesSecurityAuditor":
+                return agent_inst.audit_k8s(perturbed)
+            elif agent_name == "PiZeroTrustVerifier":
+                return agent_inst.verify_zero_trust(perturbed)
+            elif agent_name == "PiCertificateRotationWatcher":
+                return agent_inst.watch_certificate(perturbed)
+            elif agent_name == "PiFirewallRuleAuditor":
+                return agent_inst.audit_firewall(perturbed)
+            elif agent_name == "PiBackupIntegrityChecker":
+                return agent_inst.check_backup(perturbed)
+            elif agent_name == "PiAuditLogTamperDetector":
+                return agent_inst.detect_tampering(perturbed)
+            elif agent_name == "PiMisconfigPatternMatcher":
+                return agent_inst.match_config(perturbed)
+            elif agent_name == "PiThreatModelGenerator":
+                return agent_inst.generate_threat_model(perturbed)
+            elif agent_name == "PiSecretsManagerCompletenessChecker":
+                return agent_inst.check_vault_config(perturbed)
+            elif agent_name == "PiCodeSigningEnforcer":
+                return agent_inst.verify_signing(perturbed)
+            elif agent_name == "PiDataRetentionPolicyEnforcer":
+                return agent_inst.enforce_retention(perturbed)
+            elif agent_name == "PiRuntimeAnomalySentry":
+                return agent_inst.audit_runtime(perturbed)
             raise ValueError(f"Unknown agent: {agent_name}")
 
         from pathlib import Path
+
         weights_path = Path(__file__).parent.parent.parent.parent / "needle-int4-26m.gguf"
         if not weights_path.exists():
             weights_path_alt = Path(__file__).parent.parent.parent / "needle-int4-26m.gguf"
             if weights_path_alt.exists():
                 weights_path = weights_path_alt
 
-        use_needle = os.getenv("PI_LOCAL_NEEDLE_ENGINE", "true").lower() in ("true", "1", "yes") and weights_path.exists()
+        use_needle = (
+            os.getenv("PI_LOCAL_NEEDLE_ENGINE", "true").lower() in ("true", "1", "yes") and weights_path.exists()
+        )
         if use_needle:
             import concurrent.futures
+
+            _timeout = int(os.getenv("PI_CONSENSUS_TIMEOUT_SECONDS", "30"))
             with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
                 futures = [executor.submit(run_single_perturbed, idx) for idx in range(3)]
-                outputs = [f.result() for f in futures]
+                outputs = [f.result(timeout=_timeout) for f in futures]
         else:
             for idx in range(3):
                 outputs.append(run_single_perturbed(idx))
 
-
     # Evaluate consensus via PiConsensusBreaker
     responses = []
     for i, out in enumerate(outputs):
-        content = out.model_dump_json() if hasattr(out, "model_dump_json") else (out.json() if hasattr(out, "json") else json.dumps(out))
-        responses.append(ModelResponse(
-            model_name=f"Agent Run {i+1}",
-            content=content,
-            parsed_json=get_comparable_dict(out)
-        ))
+        content = (
+            out.model_dump_json()
+            if hasattr(out, "model_dump_json")
+            else (out.json() if hasattr(out, "json") else json.dumps(out))
+        )
+        responses.append(
+            ModelResponse(model_name=f"Agent Run {i + 1}", content=content, parsed_json=get_comparable_dict(out))
+        )
 
     breaker = PiConsensusBreaker(divergence_threshold=60.0)
     report = breaker.evaluate_consensus(goal, responses)
@@ -625,20 +897,40 @@ def run_with_consensus(
     consensus_achieved = False
     majority_idx = 0
 
-    if v1 == v2:
+    # Treat None verdicts as unresolvable — two None values must not count as agreement
+    if v1 is not None and v1 == v2:
         consensus_achieved = True
         majority_idx = 0
-    elif v1 == v3:
+    elif v1 is not None and v1 == v3:
         consensus_achieved = True
         majority_idx = 0
-    elif v2 == v3:
+    elif v2 is not None and v2 == v3:
         consensus_achieved = True
         majority_idx = 1
 
+    _ts = time.time()
     votes = [
-        {"agent_name": "Agent Run 1", "verdict": str(v1), "params": str(d1)},
-        {"agent_name": "Agent Run 2", "verdict": str(v2), "params": str(d2)},
-        {"agent_name": "Agent Run 3", "verdict": str(v3), "params": str(d3)}
+        {
+            "agent_name": "Agent Run 1",
+            "verdict": str(v1),
+            "params": str(d1),
+            "recorded_at": _ts,
+            "risk_score": d1.get("risk_score", 0.0),
+        },
+        {
+            "agent_name": "Agent Run 2",
+            "verdict": str(v2),
+            "params": str(d2),
+            "recorded_at": _ts,
+            "risk_score": d2.get("risk_score", 0.0),
+        },
+        {
+            "agent_name": "Agent Run 3",
+            "verdict": str(v3),
+            "params": str(d3),
+            "recorded_at": _ts,
+            "risk_score": d3.get("risk_score", 0.0),
+        },
     ]
 
     success = False
@@ -659,11 +951,12 @@ def run_with_consensus(
             "consensus_telemetry": {
                 "status": "REJECTED_DIVERGENCE_ALARM",
                 "divergence_score": report.consensus_divergence_score,
-                "votes": votes
+                "votes": votes,
             }
         }
     else:
-        success = v1 if majority_idx == 0 else v2
+        majority_verdict = v1 if majority_idx == 0 else v2
+        success = bool(majority_verdict) if majority_verdict is not None else False
         majority_out = outputs[majority_idx]
         majority_dict = get_comparable_dict(majority_out)
 
@@ -695,7 +988,9 @@ def run_with_consensus(
         elif agent_name == "PiSelfHealingPatchAgent":
             alerts.extend(majority_dict.get("remediations", []))
             risk_score = 60.0 if not majority_dict.get("patch_synthesized") else 0.0
-            summary = f"Autonomous self-healing repair complete (Consensus Passed). Status: {majority_dict.get('status')}"
+            summary = (
+                f"Autonomous self-healing repair complete (Consensus Passed). Status: {majority_dict.get('status')}"
+            )
         elif agent_name == "PiReentrancySentry":
             alerts.extend(majority_dict.get("flagged_findings", []))
             risk_score = majority_dict.get("risk_score", 0.0)
@@ -851,7 +1146,9 @@ def run_with_consensus(
         elif agent_name == "PiLLMOutputSanitizer":
             alerts.extend(majority_dict.get("detected_leaks", []))
             risk_score = majority_dict.get("risk_score", 0.0)
-            summary = f"Completed LLM output sanitization audit (Consensus Passed). Status: {majority_dict.get('status')}"
+            summary = (
+                f"Completed LLM output sanitization audit (Consensus Passed). Status: {majority_dict.get('status')}"
+            )
         elif agent_name == "PiDataFlowPrivacyMapper":
             alerts.extend(majority_dict.get("unsecured_flows", []))
             risk_score = majority_dict.get("risk_score", 0.0)
@@ -872,7 +1169,90 @@ def run_with_consensus(
             compliance_score = majority_dict.get("compliance_score", 100.0)
             risk_score = 100.0 - compliance_score
             summary = f"Completed structured logging compliance audit on {input_envelope.file_path} (Consensus Passed). Compliance score: {compliance_score:.1f}. Status: {majority_dict.get('status')}"
-
+        elif agent_name == "PiIaCScanner":
+            alerts.extend(majority_dict.get("detected_misconfigs", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed static IaC security scan on {input_envelope.file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiDependencyVulnScanner":
+            alerts.extend(majority_dict.get("vulnerable_packages", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed dependency vulnerability scan on {input_envelope.lockfile_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiCloudConfigAuditor":
+            alerts.extend(majority_dict.get("misconfigured_resources", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed cloud config security audit on {input_envelope.file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiRBACPermissionMapper":
+            alerts.extend(majority_dict.get("excessive_permissions", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed RBAC least privilege mapping on {input_envelope.policy_file_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiEncryptionComplianceChecker":
+            alerts.extend(majority_dict.get("missing_encryption", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed encryption compliance check on {input_envelope.resource_type} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiSBOMValidator":
+            alerts.extend(majority_dict.get("license_issues", []))
+            alerts.extend(majority_dict.get("missing_attestations", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed SBOM licensing and validation audit on {input_envelope.sbom_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiSupplyChainIntegrityChecker":
+            alerts.extend(majority_dict.get("suspicious_packages", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed software supply chain integrity check on {input_envelope.manifest_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiAPIOWASPScanner":
+            alerts.extend(majority_dict.get("owasp_violations", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed API OWASP security audit on {input_envelope.api_path} (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiKubernetesSecurityAuditor":
+            alerts.extend(majority_dict.get("violations", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed Kubernetes security audit (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiZeroTrustVerifier":
+            alerts.extend(majority_dict.get("violations", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed Zero-Trust network policy verification (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiCertificateRotationWatcher":
+            alerts.extend(majority_dict.get("issues", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed certificate rotation watch (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiFirewallRuleAuditor":
+            alerts.extend(majority_dict.get("open_ports", []))
+            alerts.extend(majority_dict.get("issues", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = (
+                f"Completed firewall rule security audit (Consensus Passed). Status: {majority_dict.get('status')}"
+            )
+        elif agent_name == "PiBackupIntegrityChecker":
+            alerts.extend(majority_dict.get("issues", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed disaster recovery backup integrity check (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiAuditLogTamperDetector":
+            alerts.extend(majority_dict.get("anomalies", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed audit log tampering detection scan (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiMisconfigPatternMatcher":
+            alerts.extend(majority_dict.get("matched_patterns", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed security misconfiguration pattern match (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiThreatModelGenerator":
+            alerts.extend(majority_dict.get("threats", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed dynamic STRIDE threat model generation (Consensus Passed). Categories: {', '.join(majority_dict.get('STRIDE_categories', []))}. Status: {majority_dict.get('status')}"
+        elif agent_name == "PiSecretsManagerCompletenessChecker":
+            alerts.extend(majority_dict.get("gaps", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed secrets vault configuration completeness check (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiCodeSigningEnforcer":
+            alerts.extend(majority_dict.get("issues", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed build artifact code signing enforcement scan (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiDataRetentionPolicyEnforcer":
+            alerts.extend(majority_dict.get("issues", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed data retention lifecycle policy enforcement scan (Consensus Passed). Status: {majority_dict.get('status')}"
+        elif agent_name == "PiRuntimeAnomalySentry":
+            alerts.extend(majority_dict.get("anomalies_detected", []))
+            risk_score = majority_dict.get("risk_score", 0.0)
+            summary = f"Completed runtime container metrics anomaly audit (Consensus Passed). Status: {majority_dict.get('status')}"
 
         if risk_score >= 80.0 and os.getenv("PI_ORCHESTRATOR_STRICT_MODE") == "true":
             success = False
@@ -881,7 +1261,7 @@ def run_with_consensus(
         result_details["consensus_telemetry"] = {
             "status": "CONSENSUS_PASSED",
             "divergence_score": report.consensus_divergence_score,
-            "votes": votes
+            "votes": votes,
         }
         anomalies.extend(alerts)
 

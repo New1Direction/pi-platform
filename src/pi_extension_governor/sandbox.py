@@ -37,8 +37,10 @@ class SandboxRuntimeError(Exception):
 @contextmanager
 def _cpu_timeout(seconds: int):
     """Context manager for CPU time limit using SIGALRM."""
+
     def _handler(signum, frame):
         raise TimeoutError(f"CPU time limit exceeded: {seconds}s")
+
     old_handler = signal.signal(signal.SIGALRM, _handler)
     signal.alarm(seconds)
     try:
@@ -77,6 +79,7 @@ class SandboxedExtensionRuntime:
         This implementation provides resource ceilings as a baseline.
         """
         import time
+
         start_time = time.time()
         memory_peak = 0
         stdout_lines: List[str] = []
@@ -98,15 +101,30 @@ class SandboxedExtensionRuntime:
                 # Execute in restricted namespace
                 safe_globals = {
                     "__builtins__": {
-                        "len": len, "range": range, "enumerate": enumerate,
-                        "zip": zip, "map": map, "filter": filter,
-                        "isinstance": isinstance, "type": type,
+                        "len": len,
+                        "range": range,
+                        "enumerate": enumerate,
+                        "zip": zip,
+                        "map": map,
+                        "filter": filter,
+                        "isinstance": isinstance,
+                        "type": type,
                         "print": lambda *args: stdout_lines.append(" ".join(str(a) for a in args)),
-                        "str": str, "int": int, "float": float, "bool": bool,
-                        "list": list, "dict": dict, "tuple": tuple, "set": set,
-                        "sorted": sorted, "reversed": reversed,
-                        "sum": sum, "min": min, "max": max,
-                        "abs": abs, "round": round,
+                        "str": str,
+                        "int": int,
+                        "float": float,
+                        "bool": bool,
+                        "list": list,
+                        "dict": dict,
+                        "tuple": tuple,
+                        "set": set,
+                        "sorted": sorted,
+                        "reversed": reversed,
+                        "sum": sum,
+                        "min": min,
+                        "max": max,
+                        "abs": abs,
+                        "round": round,
                         "hashlib": __import__("hashlib"),
                         "json": __import__("json"),
                         "datetime": __import__("datetime"),
@@ -142,9 +160,11 @@ class SandboxedExtensionRuntime:
             exc_traceback = traceback.format_exc()
 
         execution_time_ms = int((time.time() - start_time) * 1000)
-        output_hash = hashlib.sha256(
-            json.dumps(output, sort_keys=True, separators=(",", ":"), default=str).encode()
-        ).hexdigest() if output else ""
+        output_hash = (
+            hashlib.sha256(json.dumps(output, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
+            if output
+            else ""
+        )
 
         return SandboxResult(
             status=status,

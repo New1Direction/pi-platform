@@ -71,23 +71,29 @@ class GitHubActionsConnector(BaseConnectorWorker):
         artifacts.append(artifact)
 
         receipt = self._produce_receipt(
-            artifacts=artifacts, tenant_id=tenant_id, actor_id=actor_id,
-            correlation_id=correlation_id, start_time=start, errors=errors,
+            artifacts=artifacts,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            correlation_id=correlation_id,
+            start_time=start,
+            errors=errors,
         )
         return artifacts, receipt
 
     def _extract_deployments(self, raw: Dict[str, Any]) -> List[Dict[str, Any]]:
         deployments: List[Dict[str, Any]] = []
         for run in raw.get("workflow_runs", []):
-            deployments.append({
-                "id": str(run.get("id", "")),
-                "name": run.get("name", ""),
-                "workflow": run.get("path", ""),
-                "branch": run.get("head_branch", ""),
-                "commit": run.get("head_sha", ""),
-                "status": run.get("status", ""),
-                "conclusion": run.get("conclusion", ""),
-                "created_at": run.get("created_at", ""),
-                "updated_at": run.get("updated_at", ""),
-            })
+            deployments.append(
+                {
+                    "id": str(run.get("id", "")),
+                    "name": run.get("name", ""),
+                    "workflow": run.get("path", ""),
+                    "branch": run.get("head_branch", ""),
+                    "commit": run.get("head_sha", ""),
+                    "status": run.get("status", ""),
+                    "conclusion": run.get("conclusion", ""),
+                    "created_at": run.get("created_at", ""),
+                    "updated_at": run.get("updated_at", ""),
+                }
+            )
         return deployments

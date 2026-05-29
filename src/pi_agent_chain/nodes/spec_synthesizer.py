@@ -79,6 +79,7 @@ class SpecSynthesizerNode:
         }
         # One-line SchemaGhost activation
         from pi_micro_agents.pi_schema_ghost import PiSchemaGhost
+
         spec, ghost_errors = PiSchemaGhost().scan(spec)
 
         errors = self._validate_spec(spec) + ghost_errors
@@ -90,9 +91,7 @@ class SpecSynthesizerNode:
             is_valid=len(errors) == 0,
         )
 
-    def _fields_to_schema(
-        self, fields: List[SemanticField], schema_registry: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    def _fields_to_schema(self, fields: List[SemanticField], schema_registry: Dict[str, Any]) -> Dict[str, Any]:
         properties: Dict[str, Any] = {}
         required: List[str] = []
 
@@ -116,10 +115,7 @@ class SpecSynthesizerNode:
                 prop["pattern"] = r"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$"
 
             if field.inferred_type.startswith("UNKNOWN"):
-                prop["description"] = (
-                    f"Unknown format; entropy={field.entropy_score:.2f} "
-                    f"conf={field.confidence:.2f}"
-                )
+                prop["description"] = f"Unknown format; entropy={field.entropy_score:.2f} conf={field.confidence:.2f}"
 
             properties[prop_name] = prop
             required.append(prop_name)
@@ -154,9 +150,7 @@ class SpecSynthesizerNode:
         }
         return mapping.get(inferred, "string")
 
-    def _security_for_endpoint(
-        self, trace: SemanticIRTrace, graph: DependencyGraph
-    ) -> List[Dict[str, List[str]]]:
+    def _security_for_endpoint(self, trace: SemanticIRTrace, graph: DependencyGraph) -> List[Dict[str, List[str]]]:
         ep = f"{trace.method} {trace.endpoint_template}"
         sec: List[Dict[str, List[str]]] = []
         for edge in graph.edges:

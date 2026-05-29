@@ -38,7 +38,9 @@ class ERC7702CodeInput(BaseModel):
 class ERC7702CodeOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if ERC-7702 code checks passed")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed ERC-7702 delegation target findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed ERC-7702 delegation target findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_ERC7702_CODE, REJECTED_ERC7702_CODE)")
 
@@ -57,20 +59,26 @@ class PiSolidityERC7702CodeSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
         for name, args, body in func_blocks:
             # Check if function appears to handle EIP-7702 delegation target setup
             if "delegate" in args or "delegation" in body or "authorized" in body:
                 # Look for a parameter named delegate or target or delegateCode
-                param_matches = re.findall(r'address\s+([a-zA-Z0-9_]*delegate[a-zA-Z0-9_]*|[a-zA-Z0-9_]*target[a-zA-Z0-9_]*)', args, re.IGNORECASE)
+                param_matches = re.findall(
+                    r"address\s+([a-zA-Z0-9_]*delegate[a-zA-Z0-9_]*|[a-zA-Z0-9_]*target[a-zA-Z0-9_]*)",
+                    args,
+                    re.IGNORECASE,
+                )
                 if param_matches:
                     for param in param_matches:
                         # Check if it verifies target contract bytecode or whitelist
                         # e.g., checking if it has a whitelist or checks for selfdestruct code size or extcodesize
-                        has_whitelist_check = re.search(r'whitelist|isWhitelisted|allowed|trusted', body, re.IGNORECASE)
-                        has_destruct_validation = "extcodesize" in body or "code.length" in body or "extcodehash" in body
-                        
+                        has_whitelist_check = re.search(r"whitelist|isWhitelisted|allowed|trusted", body, re.IGNORECASE)
+                        has_destruct_validation = (
+                            "extcodesize" in body or "code.length" in body or "extcodehash" in body
+                        )
+
                         if not (has_whitelist_check or has_destruct_validation):
                             vulnerable_funcs.append(name)
                             flagged_findings.append(
@@ -98,5 +106,5 @@ class PiSolidityERC7702CodeSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

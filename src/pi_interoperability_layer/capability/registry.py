@@ -127,9 +127,7 @@ class RegistryEntry:
 
     def __post_init__(self) -> None:
         # Since dataclass is NOT frozen for post_init, we can set entry_hash
-        object.__setattr__(
-            self, "entry_hash", self.compute_hash()
-        )
+        object.__setattr__(self, "entry_hash", self.compute_hash())
 
 
 class RegistryIndexKey(NamedTuple):
@@ -228,6 +226,7 @@ class SemanticCapabilityRegistry:
         min_trust_score: int = 0,
     ) -> List[RegistryEntry]:
         key = RegistryIndexKey(capability_class, trust_zone, status)
+
         # If any field is None, we need to scan instead of exact index match
         def _match(eid: str) -> bool:
             e = self._entries[eid]

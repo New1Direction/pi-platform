@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -42,7 +41,9 @@ class PiSemanticSchemaDynamicFieldCheck:
 
         # Find dynamic raw JSON or Dict columns inside models
         # e.g., JSONColumn, Column(JSON), Column(pickle), Column(text) representing raw serialized data
-        matches = re.finditer(r'([a-zA-Z0-9_]+)\s*=\s*(?:Column\s*\(\s*(?:JSON|PickleType|text)\s*\)|JSONColumn)', code, re.IGNORECASE)
+        matches = re.finditer(
+            r"([a-zA-Z0-9_]+)\s*=\s*(?:Column\s*\(\s*(?:JSON|PickleType|text)\s*\)|JSONColumn)", code, re.IGNORECASE
+        )
 
         for match in matches:
             col_name = match.group(1)
@@ -73,5 +74,5 @@ class PiSemanticSchemaDynamicFieldCheck:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

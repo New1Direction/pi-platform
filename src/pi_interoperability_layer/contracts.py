@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field
 #  Schema Version Primitive
 # ──────────────────────────────
 
+
 class SchemaVersion(BaseModel):
     """Semantic version for artifact contracts."""
 
@@ -52,6 +53,7 @@ class SchemaVersion(BaseModel):
 # ──────────────────────────────
 #  Artifact Contract Registry
 # ──────────────────────────────
+
 
 class ArtifactContract(BaseModel):
     """A frozen artifact contract definition."""
@@ -132,6 +134,7 @@ class ContractRegistry(BaseModel):
 #  Deterministic Fingerprinting
 # ──────────────────────────────
 
+
 class ArtifactFingerprint(BaseModel):
     """Deterministic fingerprint of an artifact instance."""
 
@@ -181,6 +184,7 @@ def compute_fingerprint(
 # ──────────────────────────────
 #  Append-Only Compatibility Evolution
 # ──────────────────────────────
+
 
 class SchemaEvolutionRecord(BaseModel):
     """Immutable record of a schema evolution event."""

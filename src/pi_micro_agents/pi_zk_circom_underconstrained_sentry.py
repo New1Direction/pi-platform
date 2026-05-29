@@ -53,19 +53,19 @@ class PiZKCircomUnderconstrainedSentry:
         flagged_findings = []
 
         # Find all templates in Circom
-        templates = re.findall(r'template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{([\s\S]*?)(?=\ntemplate|\Z)', code)
+        templates = re.findall(r"template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{([\s\S]*?)(?=\ntemplate|\Z)", code)
 
-        for name, args, body in templates:
+        for name, _args, body in templates:
             # Find assignments without constraints, e.g. x <-- ... or ... --> x
-            left_assigns = re.findall(r'([a-zA-Z0-9_]+)\s*<--', body)
-            right_assigns = re.findall(r'-->\s*([a-zA-Z0-9_]+)', body)
+            left_assigns = re.findall(r"([a-zA-Z0-9_]+)\s*<--", body)
+            right_assigns = re.findall(r"-->\s*([a-zA-Z0-9_]+)", body)
 
             assigned_signals = set(left_assigns + right_assigns)
 
             for sig in assigned_signals:
                 # Check if this signal is constrained in the same body using ===
                 constrained = False
-                if re.search(rf'{sig}\s*===', body) or re.search(rf'===\s*{sig}', body):
+                if re.search(rf"{sig}\s*===", body) or re.search(rf"===\s*{sig}", body):
                     constrained = True
 
                 if not constrained:
@@ -93,5 +93,5 @@ class PiZKCircomUnderconstrainedSentry:
             vulnerable_signals=vulnerable_sigs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -81,7 +80,18 @@ class PiDockerComposeSecuritySentry:
                 # Detect service declarations based on indentation
                 if clean_line.endswith(":"):
                     key = clean_line[:-1].strip()
-                    if key not in ["image", "ports", "volumes", "environment", "build", "deploy", "networks", "depends_on", "command", "restart"]:
+                    if key not in [
+                        "image",
+                        "ports",
+                        "volumes",
+                        "environment",
+                        "build",
+                        "deploy",
+                        "networks",
+                        "depends_on",
+                        "command",
+                        "restart",
+                    ]:
                         if service_indent is None:
                             service_indent = indent
                             current_service = key
@@ -103,7 +113,12 @@ class PiDockerComposeSecuritySentry:
                             f"Exposing the Docker socket allows containers to control the parent Docker daemon and spin up "
                             f"fully privileged root containers, escalating privileges."
                         )
-                    if "/host" in clean_line and (clean_line.startswith("- /:") or clean_line.startswith("- \"/:") or clean_line.startswith("- '/:") or "/:" in clean_line):
+                    if "/host" in clean_line and (
+                        clean_line.startswith("- /:")
+                        or clean_line.startswith('- "/:')
+                        or clean_line.startswith("- '/:")
+                        or "/:" in clean_line
+                    ):
                         is_vuln = True
                         flagged_findings.append(
                             f"Service '{current_service}' mounts the root directory '/' to '/host'. This exposes the "
@@ -130,5 +145,5 @@ class PiDockerComposeSecuritySentry:
             vulnerable_services=vulnerable_services,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

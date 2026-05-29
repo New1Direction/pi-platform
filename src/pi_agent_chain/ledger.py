@@ -51,17 +51,14 @@ class StateLedger:
                     llm_temperature REAL NOT NULL,
                     raw_output TEXT NOT NULL,
                     is_valid_type INTEGER NOT NULL,
+                    is_finding INTEGER NOT NULL DEFAULT 0,
                     timestamp TEXT NOT NULL,
                     error_message TEXT
                 )
                 """
             )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_trace_id ON execution_trace(trace_id)"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_node_name ON execution_trace(node_name)"
-            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_trace_id ON execution_trace(trace_id)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_node_name ON execution_trace(node_name)")
 
     def append(self, trace: ExecutionTrace) -> None:
         with self._conn() as conn:
@@ -69,8 +66,8 @@ class StateLedger:
                 """
                 INSERT INTO execution_trace
                 (trace_id, node_name, input_payload_hash, llm_seed,
-                 llm_temperature, raw_output, is_valid_type, timestamp, error_message)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 llm_temperature, raw_output, is_valid_type, is_finding, timestamp, error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     trace.trace_id,
@@ -80,6 +77,7 @@ class StateLedger:
                     trace.llm_temperature,
                     trace.raw_output,
                     int(trace.is_valid_type),
+                    int(trace.is_finding),
                     trace.timestamp.isoformat(),
                     trace.error_message,
                 ),
@@ -149,6 +147,7 @@ class StateLedger:
             llm_temperature=row["llm_temperature"],
             raw_output=row["raw_output"],
             is_valid_type=bool(row["is_valid_type"]),
+            is_finding=bool(row["is_finding"]) if "is_finding" in row.keys() else False,
             timestamp=datetime.fromisoformat(row["timestamp"]),
             error_message=row["error_message"],
         )

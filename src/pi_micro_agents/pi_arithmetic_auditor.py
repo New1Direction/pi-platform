@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class ArithmeticInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
@@ -34,12 +35,17 @@ class ArithmeticInput(BaseModel):
     check_level: str = Field(default="STRICT", description="Strictness level of parsing: STRICT, MEDIUM")
     allowed_libraries: List[str] = Field(default_factory=list, description="Allowed safe math libraries")
 
+
 class ArithmeticOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from arithmetic vulnerabilities")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed line and violation findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_ARITHMETIC_VULNERABILITY, REJECTED_ARITHMETIC_VULNERABILITY)")
+    status: str = Field(
+        ...,
+        description="Status classification (PASSED, WARN_ARITHMETIC_VULNERABILITY, REJECTED_ARITHMETIC_VULNERABILITY)",
+    )
+
 
 # 3. Helper function to extract concrete Solidity functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
@@ -47,7 +53,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
     code_len = len(solidity_code)
 
     # Pattern matching "function [name] (" or "constructor ("
-    pattern = re.compile(r'\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -57,11 +63,11 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         start_idx = match.start()
 
         # Calculate line number of start_idx
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
         # Semicolons and opening braces determine concrete vs abstract functions
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -71,9 +77,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -82,6 +88,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 4. Core Micro-Agent Class
 class PiArithmeticAuditor:
@@ -99,7 +106,7 @@ class PiArithmeticAuditor:
         flagged_findings = []
 
         # Check Solidity compiler version via pragma
-        pragma_match = re.search(r'pragma\s+solidity\s+([^;]+);', code)
+        pragma_match = re.search(r"pragma\s+solidity\s+([^;]+);", code)
         pragma_version = pragma_match.group(1).strip() if pragma_match else ""
 
         # Determine if compiler version is legacy (<0.8.0)
@@ -108,15 +115,19 @@ class PiArithmeticAuditor:
         if pragma_version:
             version_clean = pragma_version.replace(" ", "")
             # Check for version ranges or bounds
-            if any(v in version_clean for v in ["0.4.", "0.5.", "0.6.", "0.7."]) or "<0.8" in version_clean or "<=0.7" in version_clean:
+            if (
+                any(v in version_clean for v in ["0.4.", "0.5.", "0.6.", "0.7."])
+                or "<0.8" in version_clean
+                or "<=0.7" in version_clean
+            ):
                 is_legacy_version = True
         else:
             # If no pragma specified, strictly treat as legacy/vulnerable for safety
             is_legacy_version = True
 
         # Clean comments from the entire code first to check global properties accurately
-        code_clean = re.sub(r'//.*', '', code)
-        code_clean = re.sub(r'/\*.*?\*/', '', code_clean, flags=re.DOTALL)
+        code_clean = re.sub(r"//.*", "", code)
+        code_clean = re.sub(r"/\*.*?\*/", "", code_clean, flags=re.DOTALL)
         has_safemath_decl = "safemath" in code_clean.lower()
 
         for func_name, func_body, start_line in functions:
@@ -124,8 +135,8 @@ class PiArithmeticAuditor:
                 continue
 
             # Clean comments to avoid false positives
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             body_lower = cleaned_body.lower()
 
@@ -142,7 +153,11 @@ class PiArithmeticAuditor:
 
                 # Check if it performs a mathematical assignment or operation
                 # Exclude comment lines or standard require checks
-                if not stripped.startswith("//") and not stripped.startswith("/*") and not stripped.startswith("import"):
+                if (
+                    not stripped.startswith("//")
+                    and not stripped.startswith("/*")
+                    and not stripped.startswith("import")
+                ):
                     # Look for operators + - * (excluding ++, --, comments)
                     # We match operators not followed by another operator
                     # Matching: + (but not ++), - (but not --), *
@@ -201,5 +216,5 @@ class PiArithmeticAuditor:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

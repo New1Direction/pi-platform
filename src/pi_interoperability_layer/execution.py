@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 #  Event Record Primitives
 # ──────────────────────────────
 
+
 class EventRecord(BaseModel):
     """Immutable event in the execution log."""
 
@@ -68,14 +69,13 @@ class EventRecord(BaseModel):
             "emitted_by": self.emitted_by,
             "emitted_at": self.emitted_at.isoformat(),
         }
-        return hashlib.sha256(
-            json.dumps(data, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        return hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 # ──────────────────────────────
 #  Replay Ledger
 # ──────────────────────────────
+
 
 class ReplayLedger(BaseModel):
     """Append-only deterministic replay ledger.
@@ -162,6 +162,7 @@ class ReplayLedger(BaseModel):
 #  Execution Engine
 # ──────────────────────────────
 
+
 class ExecutionEngine(BaseModel):
     """Deterministic execution engine with event sourcing and replay."""
 
@@ -238,6 +239,7 @@ class ExecutionEngine(BaseModel):
 # ──────────────────────────────
 #  Deterministic Payload Canonicalization
 # ──────────────────────────────
+
 
 def canonical_event_payload(payload: Dict[str, Any]) -> str:
     """Canonical deterministic JSON for event payloads."""

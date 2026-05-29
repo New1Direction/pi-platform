@@ -8,13 +8,21 @@ and the no-mutation replay boundary.
 from __future__ import annotations
 
 import base64
-import hashlib
-import json
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List
 
 import pytest
 
+from pi_interoperability_layer.blast_radius import TopologyEdge, TopologyGraph, TopologyNode
+from pi_interoperability_layer.drift_propagation import (
+    DriftPropagationEngine,
+)
+from pi_interoperability_layer.hyperframes import (
+    HyperFrameRenderEngine,
+    RenderConfig,
+)
+from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
+from pi_interoperability_layer.mesh.receipts import OrchestrationLedger
 from pi_interoperability_layer.snapshot.artifacts import (
     HashChainBreakError,
     RetentionPolicy,
@@ -24,7 +32,6 @@ from pi_interoperability_layer.snapshot.artifacts import (
     SnapshotType,
 )
 from pi_interoperability_layer.snapshot.clock import (
-    ClockSkewViolationError,
     DeterministicClock,
     TimestampMarker,
     canonical_timestamp,
@@ -34,21 +41,8 @@ from pi_interoperability_layer.snapshot.registry import (
     ClockOrderViolationError,
     SnapshotRegistry,
 )
-from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
-from pi_interoperability_layer.mesh.receipts import OrchestrationLedger
-from pi_interoperability_layer.blast_radius import TopologyGraph, TopologyNode, TopologyEdge
-from pi_interoperability_layer.drift_propagation import (
-    DriftPropagationEngine,
-    RiskPropagationGraph,
-)
 from pi_interoperability_layer.temporal_replay import (
-    ReplayCheckpoint,
-    ReplayTimeline,
     TemporalReplayEngine,
-)
-from pi_interoperability_layer.hyperframes import (
-    HyperFrameRenderEngine,
-    RenderConfig,
 )
 from pi_interoperability_layer.workers.pi_observability_diff_worker import (
     DeltaType,
@@ -58,10 +52,10 @@ from pi_interoperability_layer.workers.pi_observability_diff_worker import (
     SemanticDriftReport,
 )
 
-
 # ──────────────────────────────
 #  Snapshot Artifact Tests
 # ──────────────────────────────
+
 
 class TestSnapshotArtifact:
     def _make_artifact(
@@ -151,6 +145,7 @@ class TestSnapshotArtifact:
 # ──────────────────────────────
 #  SnapshotRegistry Tests
 # ──────────────────────────────
+
 
 class TestSnapshotRegistry:
     def _reg(self) -> SnapshotRegistry:
@@ -244,6 +239,7 @@ class TestSnapshotRegistry:
 #  DeterministicClock Tests
 # ──────────────────────────────
 
+
 class TestDeterministicClock:
     def test_canonical_timestamp_format(self) -> None:
         dt = datetime(2026, 5, 19, 12, 30, 45, 123456, tzinfo=timezone.utc)
@@ -283,6 +279,7 @@ class TestDeterministicClock:
 # ──────────────────────────────
 #  SemanticDiffEngine Tests
 # ──────────────────────────────
+
 
 class TestSemanticDiffEngine:
     def _snapshot(
@@ -390,6 +387,7 @@ class TestSemanticDiffEngine:
 #  PiObservabilityDiffWorker Tests
 # ──────────────────────────────
 
+
 class TestPiObservabilityDiffWorker:
     def test_worker_contract_deterministic(self) -> None:
         bus = ArtifactBus()
@@ -427,16 +425,20 @@ class TestPiObservabilityDiffWorker:
             previous_snapshot_hash="",
         )
 
-        slot_base = bus.write(ArtifactSlot(
-            producer_worker_id="input",
-            artifact_type="SnapshotArtifact",
-            payload=base.model_dump(mode="json"),
-        ))
-        slot_mod = bus.write(ArtifactSlot(
-            producer_worker_id="input",
-            artifact_type="SnapshotArtifact",
-            payload=mod.model_dump(mode="json"),
-        ))
+        slot_base = bus.write(
+            ArtifactSlot(
+                producer_worker_id="input",
+                artifact_type="SnapshotArtifact",
+                payload=base.model_dump(mode="json"),
+            )
+        )
+        slot_mod = bus.write(
+            ArtifactSlot(
+                producer_worker_id="input",
+                artifact_type="SnapshotArtifact",
+                payload=mod.model_dump(mode="json"),
+            )
+        )
 
         receipt = worker.execute(phase="DIFF", input_slot_ids=[slot_base.slot_id, slot_mod.slot_id])
         assert receipt.status == "SUCCESS"
@@ -454,6 +456,7 @@ class TestPiObservabilityDiffWorker:
 # ──────────────────────────────
 #  DriftPropagationEngine Tests
 # ──────────────────────────────
+
 
 class TestDriftPropagationEngine:
     def _topology(self) -> TopologyGraph:
@@ -588,6 +591,7 @@ class TestDriftPropagationEngine:
 #  TemporalReplayEngine Tests
 # ──────────────────────────────
 
+
 class TestTemporalReplayEngine:
     def _reg_with_snapshots(self) -> SnapshotRegistry:
         reg = SnapshotRegistry(registry_id="reg_replay")
@@ -671,6 +675,7 @@ class TestTemporalReplayEngine:
 #  HyperFrameRenderEngine Tests
 # ──────────────────────────────
 
+
 class TestHyperFrameRenderEngine:
     def _drift_report(self) -> SemanticDriftReport:
         deltas = [
@@ -753,6 +758,7 @@ class TestHyperFrameRenderEngine:
 #  Integration Tests
 # ──────────────────────────────
 
+
 class TestDigitalTwinIntegration:
     def test_end_to_end_pipeline(self) -> None:
         # Phase 1: Store snapshots
@@ -807,7 +813,9 @@ class TestDigitalTwinIntegration:
 
         # Phase 4: Replay
         replay_engine = TemporalReplayEngine(reg)
-        cp = replay_engine.reconstruct_state_at("t1", "k8s_prod", SnapshotType.CONFIGURATION, datetime(2026, 5, 19, 12, 30, 0, tzinfo=timezone.utc))
+        cp = replay_engine.reconstruct_state_at(
+            "t1", "k8s_prod", SnapshotType.CONFIGURATION, datetime(2026, 5, 19, 12, 30, 0, tzinfo=timezone.utc)
+        )
         assert cp is not None
         assert cp.read_only is True
 
@@ -831,12 +839,14 @@ class TestDigitalTwinIntegration:
                 sequence_number=1,
                 clock_id="iso",
             )
-            reg.store(SnapshotArtifact(
-                snapshot_id=f"snap_{tenant}",
-                timestamp_marker=marker,
-                payload=payload,
-                previous_snapshot_hash="",
-            ))
+            reg.store(
+                SnapshotArtifact(
+                    snapshot_id=f"snap_{tenant}",
+                    timestamp_marker=marker,
+                    payload=payload,
+                    previous_snapshot_hash="",
+                )
+            )
 
         base = reg.get("snap_t1")
         mod = reg.get("snap_t2")
@@ -860,12 +870,14 @@ class TestDigitalTwinIntegration:
                 clock_id="det",
             )
             prev = "" if i == 0 else reg._artifacts["s1"].artifact_hash
-            reg.store(SnapshotArtifact(
-                snapshot_id=snap_id,
-                timestamp_marker=marker,
-                payload=payload,
-                previous_snapshot_hash=prev,
-            ))
+            reg.store(
+                SnapshotArtifact(
+                    snapshot_id=snap_id,
+                    timestamp_marker=marker,
+                    payload=payload,
+                    previous_snapshot_hash=prev,
+                )
+            )
 
         base = reg.get("s1")
         mod = reg.get("s2")
@@ -890,12 +902,14 @@ class TestDigitalTwinIntegration:
             sequence_number=1,
             clock_id="boundary",
         )
-        reg.store(SnapshotArtifact(
-            snapshot_id="snap",
-            timestamp_marker=marker,
-            payload=payload,
-            previous_snapshot_hash="",
-        ))
+        reg.store(
+            SnapshotArtifact(
+                snapshot_id="snap",
+                timestamp_marker=marker,
+                payload=payload,
+                previous_snapshot_hash="",
+            )
+        )
 
         engine = TemporalReplayEngine(reg)
         timeline = engine.build_timeline("t1", "src", SnapshotType.CONFIGURATION)
@@ -922,12 +936,14 @@ class TestDigitalTwinIntegration:
             prev = ""
             if i > 0:
                 prev = reg._artifacts[f"snap_{i}"].artifact_hash
-            reg.store(SnapshotArtifact(
-                snapshot_id=f"snap_{i + 1}",
-                timestamp_marker=marker,
-                payload=payload,
-                previous_snapshot_hash=prev,
-            ))
+            reg.store(
+                SnapshotArtifact(
+                    snapshot_id=f"snap_{i + 1}",
+                    timestamp_marker=marker,
+                    payload=payload,
+                    previous_snapshot_hash=prev,
+                )
+            )
         ok, errs = reg.verify_integrity()
         assert ok is True
         assert errs == []

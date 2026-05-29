@@ -54,32 +54,89 @@ class CapabilityClassifierWorker:
     # Keyword → CapabilityClass mapping
     _KEYWORD_RULES: Dict[CapabilityClass, Set[str]] = {
         CapabilityClass.OPENAPI_TOOLING: {
-            "openapi", "swagger", "api", "rest", "http", "endpoint",
-            "schema", "spec", "contract", "oas", "graphql",
+            "openapi",
+            "swagger",
+            "api",
+            "rest",
+            "http",
+            "endpoint",
+            "schema",
+            "spec",
+            "contract",
+            "oas",
+            "graphql",
         },
         CapabilityClass.KUBERNETES_MANIFEST: {
-            "kubernetes", "k8s", "helm", "container", "pod", "deployment",
-            "namespace", "cluster", "docker", "oci",
+            "kubernetes",
+            "k8s",
+            "helm",
+            "container",
+            "pod",
+            "deployment",
+            "namespace",
+            "cluster",
+            "docker",
+            "oci",
         },
         CapabilityClass.TERRAFORM_ANALYSIS: {
-            "terraform", "iac", "infrastructure", "cloud", "aws", "azure",
-            "gcp", "provider", "resource", "module",
+            "terraform",
+            "iac",
+            "infrastructure",
+            "cloud",
+            "aws",
+            "azure",
+            "gcp",
+            "provider",
+            "resource",
+            "module",
         },
         CapabilityClass.CICD_INTEGRATION: {
-            "ci", "cd", "pipeline", "github-actions", "gitlab", "jenkins",
-            "build", "deploy", "release", "workflow",
+            "ci",
+            "cd",
+            "pipeline",
+            "github-actions",
+            "gitlab",
+            "jenkins",
+            "build",
+            "deploy",
+            "release",
+            "workflow",
         },
         CapabilityClass.VISUALIZATION: {
-            "visualization", "chart", "graph", "diagram", "plot", "render",
-            "svg", "canvas", "dashboard", "ui",
+            "visualization",
+            "chart",
+            "graph",
+            "diagram",
+            "plot",
+            "render",
+            "svg",
+            "canvas",
+            "dashboard",
+            "ui",
         },
         CapabilityClass.OBSERVABILITY_ADAPTER: {
-            "observability", "monitoring", "telemetry", "logging", "metrics",
-            "trace", "alert", "prometheus", "grafana", "dashboard",
+            "observability",
+            "monitoring",
+            "telemetry",
+            "logging",
+            "metrics",
+            "trace",
+            "alert",
+            "prometheus",
+            "grafana",
+            "dashboard",
         },
         CapabilityClass.STATIC_ANALYZER: {
-            "lint", "static", "analysis", "audit", "security", "scan",
-            "vulnerability", "sast", "check", "verify",
+            "lint",
+            "static",
+            "analysis",
+            "audit",
+            "security",
+            "scan",
+            "vulnerability",
+            "sast",
+            "check",
+            "verify",
         },
     }
 
@@ -101,11 +158,13 @@ class CapabilityClassifierWorker:
             matched = {kw for kw in keywords if kw in text}
             if matched:
                 scores[cap_class] += len(matched)
-                evidence.append(ClassificationEvidence(
-                    rule=f"keyword_match_{cap_class.value}",
-                    matched_keywords=tuple(sorted(matched)),
-                    confidence_basis="keyword_match",
-                ))
+                evidence.append(
+                    ClassificationEvidence(
+                        rule=f"keyword_match_{cap_class.value}",
+                        matched_keywords=tuple(sorted(matched)),
+                        confidence_basis="keyword_match",
+                    )
+                )
 
         # Dependency pattern matching
         deps = set(manifest.dependencies)
@@ -113,18 +172,22 @@ class CapabilityClassifierWorker:
             matched = {p for p in patterns if any(p in d for d in deps)}
             if matched:
                 scores[cap_class] += len(matched) * 2  # deps weighted higher
-                evidence.append(ClassificationEvidence(
-                    rule=f"dependency_pattern_{cap_class.value}",
-                    matched_keywords=tuple(sorted(matched)),
-                    confidence_basis="dependency_pattern",
-                ))
+                evidence.append(
+                    ClassificationEvidence(
+                        rule=f"dependency_pattern_{cap_class.value}",
+                        matched_keywords=tuple(sorted(matched)),
+                        confidence_basis="dependency_pattern",
+                    )
+                )
 
         # Tie-breaking: prefer explicit class if already set and has score
         if manifest.capability_class != CapabilityClass.STATIC_ANALYZER:
             if scores.get(manifest.capability_class, 0) > 0:
                 assigned = manifest.capability_class
             else:
-                assigned = max(scores, key=lambda c: scores[c]) if any(scores.values()) else CapabilityClass.STATIC_ANALYZER
+                assigned = (
+                    max(scores, key=lambda c: scores[c]) if any(scores.values()) else CapabilityClass.STATIC_ANALYZER
+                )
         else:
             assigned = max(scores, key=lambda c: scores[c]) if any(scores.values()) else CapabilityClass.STATIC_ANALYZER
 

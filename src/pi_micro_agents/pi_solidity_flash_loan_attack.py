@@ -54,14 +54,14 @@ class PiSolidityFlashLoanAttack:
 
         # Find all functions doing flashloan-related callbacks
         # E.g. executeOperation, flashLoan, receiveFlashLoan
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
         for name, args, body in func_blocks:
             if any(x in name.lower() for x in ["executeoperation", "flashloan", "receiveflashloan"]):
                 # Look for calls to pool state modifications or swaps without explicit validation of sender
                 # E.g. lacks require(msg.sender == pool) or modifier checks
                 has_sender_verification = False
-                if re.search(r'(msg\.sender\s*==\s*[a-zA-Z0-9_]+)', body):
+                if re.search(r"(msg\.sender\s*==\s*[a-zA-Z0-9_]+)", body):
                     has_sender_verification = True
                 if "onlyPool" in args or "onlyLendingPool" in args or "onlyPool" in body or "onlyLendingPool" in body:
                     has_sender_verification = True
@@ -91,5 +91,5 @@ class PiSolidityFlashLoanAttack:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

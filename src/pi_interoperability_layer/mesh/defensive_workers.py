@@ -51,42 +51,56 @@ class TelemetryGovernorWorker(WorkerBase):
                 for trace in slot.payload.get("traces", []):
                     ep = trace.get("endpoint_template", "")
                     # Debug endpoint exposure
-                    if any(seg in ep for seg in ("/debug", ".debug", "/__debug__", "/admin/debug", "/swagger", "/openapi")):
+                    if any(
+                        seg in ep for seg in ("/debug", ".debug", "/__debug__", "/admin/debug", "/swagger", "/openapi")
+                    ):
                         debug_endpoints.append(ep)
-                        findings.append({
-                            "severity": "HIGH",
-                            "rule": "debug_endpoint_exposure",
-                            "endpoint": ep,
-                            "detail": f"Debug/introspection endpoint exposed: {ep}"
-                        })
+                        findings.append(
+                            {
+                                "severity": "HIGH",
+                                "rule": "debug_endpoint_exposure",
+                                "endpoint": ep,
+                                "detail": f"Debug/introspection endpoint exposed: {ep}",
+                            }
+                        )
 
                     # Auth metadata expansion
                     fields = trace.get("fields", [])
-                    auth_fields = [f for f in fields if f.get("name", "").lower() in ("authorization", "x-api-key", "token", "jwt", "cookie")]
+                    auth_fields = [
+                        f
+                        for f in fields
+                        if f.get("name", "").lower() in ("authorization", "x-api-key", "token", "jwt", "cookie")
+                    ]
                     if len(auth_fields) > 2:
-                        auth_metadata_expansions.append({
-                            "endpoint": ep,
-                            "auth_field_count": len(auth_fields),
-                            "fields": [f.get("name") for f in auth_fields]
-                        })
-                        findings.append({
-                            "severity": "MEDIUM",
-                            "rule": "auth_metadata_expansion",
-                            "endpoint": ep,
-                            "detail": f"Auth metadata expanded to {len(auth_fields)} fields"
-                        })
+                        auth_metadata_expansions.append(
+                            {
+                                "endpoint": ep,
+                                "auth_field_count": len(auth_fields),
+                                "fields": [f.get("name") for f in auth_fields],
+                            }
+                        )
+                        findings.append(
+                            {
+                                "severity": "MEDIUM",
+                                "rule": "auth_metadata_expansion",
+                                "endpoint": ep,
+                                "detail": f"Auth metadata expanded to {len(auth_fields)} fields",
+                            }
+                        )
 
                     # Stack trace exposure in response fields
                     for f in fields:
                         fname = f.get("name", "").lower()
                         if any(k in fname for k in ("stack", "traceback", "error_detail", "debug_info")):
                             stack_trace_exposures.append(ep)
-                            findings.append({
-                                "severity": "HIGH",
-                                "rule": "stack_trace_exposure",
-                                "endpoint": ep,
-                                "detail": f"Response field '{f.get('name')}' may expose stack traces"
-                            })
+                            findings.append(
+                                {
+                                    "severity": "HIGH",
+                                    "rule": "stack_trace_exposure",
+                                    "endpoint": ep,
+                                    "detail": f"Response field '{f.get('name')}' may expose stack traces",
+                                }
+                            )
 
             if slot.artifact_type == "DependencyGraph":
                 for edge in slot.payload.get("edges", []):
@@ -95,23 +109,27 @@ class TelemetryGovernorWorker(WorkerBase):
                     # Internal topology disclosure if downstream leaks internal service names
                     if any(k in down.lower() for k in ("internal-", "svc-", "backend-", "db-", "queue-")):
                         topology_disclosures.append(f"{up} -> {down}")
-                        findings.append({
-                            "severity": "MEDIUM",
-                            "rule": "internal_topology_disclosure",
-                            "edge": f"{up} -> {down}",
-                            "detail": "Dependency edge exposes internal service naming"
-                        })
+                        findings.append(
+                            {
+                                "severity": "MEDIUM",
+                                "rule": "internal_topology_disclosure",
+                                "edge": f"{up} -> {down}",
+                                "detail": "Dependency edge exposes internal service naming",
+                            }
+                        )
 
         # Token leakage: scan all input slot payloads for high-entropy strings
         token_leaks = self._scan_for_token_leaks(input_slot_ids)
         for leak in token_leaks:
-            findings.append({
-                "severity": "CRITICAL",
-                "rule": "token_leakage",
-                "slot_id": leak["slot_id"],
-                "context": leak["context"],
-                "detail": "High-entropy token-like string detected in payload"
-            })
+            findings.append(
+                {
+                    "severity": "CRITICAL",
+                    "rule": "token_leakage",
+                    "slot_id": leak["slot_id"],
+                    "context": leak["context"],
+                    "detail": "High-entropy token-like string detected in payload",
+                }
+            )
 
         slot = ArtifactSlot(
             producer_worker_id=self.worker_id,
@@ -146,11 +164,13 @@ class TelemetryGovernorWorker(WorkerBase):
             payload_str = json.dumps(slot.payload, sort_keys=True, default=str)
             for pattern in token_patterns:
                 for match in pattern.finditer(payload_str):
-                    leaks.append({
-                        "slot_id": sid,
-                        "pattern": pattern.pattern[:20],
-                        "context": payload_str[max(0, match.start()-20):match.end()+20],
-                    })
+                    leaks.append(
+                        {
+                            "slot_id": sid,
+                            "pattern": pattern.pattern[:20],
+                            "context": payload_str[max(0, match.start() - 20) : match.end() + 20],
+                        }
+                    )
         return leaks
 
 
@@ -179,12 +199,14 @@ class ReplaySanitizerWorker(WorkerBase):
             if redactions:
                 redaction_log.extend(redactions)
 
-            sanitized_slots.append({
-                "original_slot_id": sid,
-                "artifact_type": slot.artifact_type,
-                "sanitized_payload": payload,
-                "redaction_count": len(redactions),
-            })
+            sanitized_slots.append(
+                {
+                    "original_slot_id": sid,
+                    "artifact_type": slot.artifact_type,
+                    "sanitized_payload": payload,
+                    "redaction_count": len(redactions),
+                }
+            )
 
         slot = ArtifactSlot(
             producer_worker_id=self.worker_id,
@@ -209,28 +231,34 @@ class ReplaySanitizerWorker(WorkerBase):
                 val = payload[key]
                 # Check JWT first (before sensitive key, since a "token" key may hold a JWT)
                 if isinstance(val, str) and self._is_jwt(val):
-                    redactions.append({
-                        "path": key,
-                        "rule": "jwt_masking",
-                        "original_type": "jwt",
-                        "mask": self._deterministic_mask(key, val),
-                    })
+                    redactions.append(
+                        {
+                            "path": key,
+                            "rule": "jwt_masking",
+                            "original_type": "jwt",
+                            "mask": self._deterministic_mask(key, val),
+                        }
+                    )
                     payload[key] = self._deterministic_mask(key, val)
                 elif isinstance(val, str) and self._is_api_key(val):
-                    redactions.append({
-                        "path": key,
-                        "rule": "api_key_masking",
-                        "original_type": "api_key",
-                        "mask": self._deterministic_mask(key, val),
-                    })
+                    redactions.append(
+                        {
+                            "path": key,
+                            "rule": "api_key_masking",
+                            "original_type": "api_key",
+                            "mask": self._deterministic_mask(key, val),
+                        }
+                    )
                     payload[key] = self._deterministic_mask(key, val)
                 elif self._is_sensitive_key(key):
-                    redactions.append({
-                        "path": key,
-                        "rule": "sensitive_key_masking",
-                        "original_type": type(val).__name__,
-                        "mask": self._deterministic_mask(key, val),
-                    })
+                    redactions.append(
+                        {
+                            "path": key,
+                            "rule": "sensitive_key_masking",
+                            "original_type": type(val).__name__,
+                            "mask": self._deterministic_mask(key, val),
+                        }
+                    )
                     payload[key] = self._deterministic_mask(key, val)
                 elif isinstance(val, (dict, list)):
                     nested = self._sanitize_payload(val, artifact_type)
@@ -244,9 +272,21 @@ class ReplaySanitizerWorker(WorkerBase):
 
     def _is_sensitive_key(self, key: str) -> bool:
         normalized = key.lower().replace("-", "_")
-        return normalized in ("password", "secret", "api_key", "token", "jwt",
-                             "authorization", "cookie", "session", "credit_card",
-                             "ssn", "email", "phone", "pii")
+        return normalized in (
+            "password",
+            "secret",
+            "api_key",
+            "token",
+            "jwt",
+            "authorization",
+            "cookie",
+            "session",
+            "credit_card",
+            "ssn",
+            "email",
+            "phone",
+            "pii",
+        )
 
     def _is_jwt(self, value: str) -> bool:
         parts = value.split(".")
@@ -290,12 +330,14 @@ class SensitiveFlowTrackerWorker(WorkerBase):
                         fname = field.get("name", "")
                         if self._is_sensitive_field(fname):
                             secret_fields.add(fname)
-                            field_propagation.append({
-                                "field": fname,
-                                "endpoint": trace.get("endpoint_template"),
-                                "event": "origin",
-                                "trust_zone": self._classify_trust_zone(trace.get("endpoint_template", "")),
-                            })
+                            field_propagation.append(
+                                {
+                                    "field": fname,
+                                    "endpoint": trace.get("endpoint_template"),
+                                    "event": "origin",
+                                    "trust_zone": self._classify_trust_zone(trace.get("endpoint_template", "")),
+                                }
+                            )
 
         # Second pass: trace propagation across dependency edges
         for sid in input_slot_ids:
@@ -307,12 +349,14 @@ class SensitiveFlowTrackerWorker(WorkerBase):
                     up_zone = self._classify_trust_zone(up)
                     down_zone = self._classify_trust_zone(down)
                     if up_zone != down_zone and secret_fields:
-                        trust_boundary_crossings.append({
-                            "edge": f"{up} -> {down}",
-                            "sensitive_fields_crossed": sorted(secret_fields),
-                            "from_zone": up_zone,
-                            "to_zone": down_zone,
-                        })
+                        trust_boundary_crossings.append(
+                            {
+                                "edge": f"{up} -> {down}",
+                                "sensitive_fields_crossed": sorted(secret_fields),
+                                "from_zone": up_zone,
+                                "to_zone": down_zone,
+                            }
+                        )
 
         slot = ArtifactSlot(
             producer_worker_id=self.worker_id,
@@ -329,9 +373,19 @@ class SensitiveFlowTrackerWorker(WorkerBase):
 
     def _is_sensitive_field(self, name: str) -> bool:
         normalized = name.lower().replace("-", "_")
-        return normalized in ("password", "secret", "token", "api_key", "jwt",
-                             "authorization", "credit_card", "ssn", "pii",
-                             "session_id", "cookie")
+        return normalized in (
+            "password",
+            "secret",
+            "token",
+            "api_key",
+            "jwt",
+            "authorization",
+            "credit_card",
+            "ssn",
+            "pii",
+            "session_id",
+            "cookie",
+        )
 
     def _classify_trust_zone(self, endpoint: str) -> str:
         ep = endpoint.lower()
@@ -390,25 +444,31 @@ class ObservabilityDiffWorker(WorkerBase):
 
         findings = []
         if verbosity_expansion > 100:
-            findings.append({
-                "rule": "verbosity_expansion",
-                "baseline_lines": baseline_log_lines,
-                "modified_lines": modified_log_lines,
-                "delta": verbosity_expansion,
-                "detail": f"Log volume expanded by {verbosity_expansion} lines"
-            })
+            findings.append(
+                {
+                    "rule": "verbosity_expansion",
+                    "baseline_lines": baseline_log_lines,
+                    "modified_lines": modified_log_lines,
+                    "delta": verbosity_expansion,
+                    "detail": f"Log volume expanded by {verbosity_expansion} lines",
+                }
+            )
         if new_sensitive_fields:
-            findings.append({
-                "rule": "new_sensitive_fields_in_telemetry",
-                "fields": new_sensitive_fields,
-                "detail": f"New sensitive fields entered telemetry: {new_sensitive_fields}"
-            })
+            findings.append(
+                {
+                    "rule": "new_sensitive_fields_in_telemetry",
+                    "fields": new_sensitive_fields,
+                    "detail": f"New sensitive fields entered telemetry: {new_sensitive_fields}",
+                }
+            )
         if len(new_metadata_keys) > 3:
-            findings.append({
-                "rule": "metadata_growth",
-                "new_keys": new_metadata_keys,
-                "detail": f"Metadata keys expanded by {len(new_metadata_keys)}"
-            })
+            findings.append(
+                {
+                    "rule": "metadata_growth",
+                    "new_keys": new_metadata_keys,
+                    "detail": f"Metadata keys expanded by {len(new_metadata_keys)}",
+                }
+            )
 
         slot = ArtifactSlot(
             producer_worker_id=self.worker_id,
@@ -470,55 +530,67 @@ class ComplianceEngineWorker(WorkerBase):
                 fname = field.get("name", "").lower()
                 if fname in ("email", "phone", "ssn", "pii", "personal_data"):
                     if field.get("data_classification", "") != "SENSITIVE":
-                        violations.append({
-                            "framework": "GDPR",
-                            "rule": "personal_data_classification",
-                            "endpoint": trace.get("endpoint_template"),
-                            "field": fname,
-                            "detail": f"Personal data field '{fname}' lacks SENSITIVE classification"
-                        })
+                        violations.append(
+                            {
+                                "framework": "GDPR",
+                                "rule": "personal_data_classification",
+                                "endpoint": trace.get("endpoint_template"),
+                                "field": fname,
+                                "detail": f"Personal data field '{fname}' lacks SENSITIVE classification",
+                            }
+                        )
         return violations
 
     def _evaluate_hipaa_rules(self, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         violations = []
         for trace in payload.get("traces", []):
             fields = trace.get("fields", [])
-            phi_fields = [f for f in fields if f.get("name", "").lower() in ("ssn", "medical_record", "diagnosis", "patient_id")]
+            phi_fields = [
+                f for f in fields if f.get("name", "").lower() in ("ssn", "medical_record", "diagnosis", "patient_id")
+            ]
             if phi_fields and trace.get("mutation_class", "") != "IDEMPOTENT_READ":
-                violations.append({
-                    "framework": "HIPAA",
-                    "rule": "phi_mutation_audit",
-                    "endpoint": trace.get("endpoint_template"),
-                    "detail": "PHI field present in non-read endpoint without explicit audit field"
-                })
+                violations.append(
+                    {
+                        "framework": "HIPAA",
+                        "rule": "phi_mutation_audit",
+                        "endpoint": trace.get("endpoint_template"),
+                        "detail": "PHI field present in non-read endpoint without explicit audit field",
+                    }
+                )
         return violations
 
     def _evaluate_soc2_rules(self, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         violations = []
         if payload.get("pass", True) is False:
-            violations.append({
-                "framework": "SOC2",
-                "rule": "boundary_integrity",
-                "detail": "Boundary validation failed — trust boundary controls not effective"
-            })
+            violations.append(
+                {
+                    "framework": "SOC2",
+                    "rule": "boundary_integrity",
+                    "detail": "Boundary validation failed — trust boundary controls not effective",
+                }
+            )
         return violations
 
     def _evaluate_pci_rules(self, payload: Dict[str, Any]) -> List[Dict[str, Any]]:
         violations = []
         token_leaks = payload.get("token_leaks", [])
         if token_leaks:
-            violations.append({
-                "framework": "PCI-DSS",
-                "rule": "token_exposure",
-                "detail": f"{len(token_leaks)} token leakage instances detected in telemetry"
-            })
+            violations.append(
+                {
+                    "framework": "PCI-DSS",
+                    "rule": "token_exposure",
+                    "detail": f"{len(token_leaks)} token leakage instances detected in telemetry",
+                }
+            )
         debug_endpoints = payload.get("debug_endpoints", [])
         if debug_endpoints:
-            violations.append({
-                "framework": "PCI-DSS",
-                "rule": "debug_endpoint_exposure",
-                "detail": f"Debug endpoints exposed: {debug_endpoints}"
-            })
+            violations.append(
+                {
+                    "framework": "PCI-DSS",
+                    "rule": "debug_endpoint_exposure",
+                    "detail": f"Debug endpoints exposed: {debug_endpoints}",
+                }
+            )
         return violations
 
 
@@ -542,12 +614,24 @@ class SecuritySimulationWorker(WorkerBase):
     """
 
     DETERMINISTIC_TEST_CORPUS: List[Dict[str, Any]] = [
-        {"name": "malformed_jwt", "input": {"Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJzdWIiOiIxMjM0NTY3ODkwIn0."}, "expected_detection": True},
+        {
+            "name": "malformed_jwt",
+            "input": {"Authorization": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJub25lIn0.eyJzdWIiOiIxMjM0NTY3ODkwIn0."},
+            "expected_detection": True,
+        },
         {"name": "null_byte_injection", "input": {"path": "/api/users%00"}, "expected_detection": True},
         {"name": "oversized_payload", "input": {"body": "A" * 10001}, "expected_detection": True},
-        {"name": "replay_reuse_attempt", "input": {"replay_id": "replay_abc", "replay_class": "NON_REPLAYABLE"}, "expected_detection": True},
+        {
+            "name": "replay_reuse_attempt",
+            "input": {"replay_id": "replay_abc", "replay_class": "NON_REPLAYABLE"},
+            "expected_detection": True,
+        },
         {"name": "auth_bypass_header", "input": {"X-Original-URL": "/admin/users"}, "expected_detection": True},
-        {"name": "valid_request", "input": {"Authorization": "Bearer MASKED_1234", "path": "/api/users"}, "expected_detection": False},
+        {
+            "name": "valid_request",
+            "input": {"Authorization": "Bearer MASKED_1234", "path": "/api/users"},
+            "expected_detection": False,
+        },
     ]
 
     def _run(self, phase: str, input_slot_ids: List[str]) -> List[ArtifactSlot]:
@@ -560,12 +644,14 @@ class SecuritySimulationWorker(WorkerBase):
         # Run deterministic test corpus through governance rule validation
         for test in self.DETERMINISTIC_TEST_CORPUS:
             detected = self._apply_defensive_rules(test["input"], governance_rules)
-            detection_validations.append({
-                "test_name": test["name"],
-                "expected": test["expected_detection"],
-                "actual": detected,
-                "pass": detected == test["expected_detection"],
-            })
+            detection_validations.append(
+                {
+                    "test_name": test["name"],
+                    "expected": test["expected_detection"],
+                    "actual": detected,
+                    "pass": detected == test["expected_detection"],
+                }
+            )
 
         # Validate replay containment guarantees
         containment_validations = self._validate_replay_containment(input_slot_ids, governance_rules)
@@ -617,6 +703,7 @@ class SecuritySimulationWorker(WorkerBase):
                 header = jwt_candidate.split(".")[0]
                 try:
                     import base64
+
                     padding = 4 - len(header) % 4
                     if padding != 4:
                         header += "=" * padding
@@ -642,7 +729,9 @@ class SecuritySimulationWorker(WorkerBase):
             return True
         return False
 
-    def _validate_replay_containment(self, input_slot_ids: List[str], rules: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _validate_replay_containment(
+        self, input_slot_ids: List[str], rules: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Validate that replay containment guarantees hold."""
         validations = []
         for sid in input_slot_ids:
@@ -650,15 +739,21 @@ class SecuritySimulationWorker(WorkerBase):
             if slot and slot.artifact_type == "SanitizedReplayBundle":
                 sanitized = slot.payload.get("sanitized_slots", [])
                 has_masking = any(s.get("redaction_count", 0) > 0 for s in sanitized)
-                validations.append({
-                    "rule": "replay_data_masked",
-                    "pass": has_masking,
-                    "detail": "Sanitized replay bundle contains masking" if has_masking else "NO MASKING DETECTED IN REPLAY BUNDLE"
-                })
+                validations.append(
+                    {
+                        "rule": "replay_data_masked",
+                        "pass": has_masking,
+                        "detail": "Sanitized replay bundle contains masking"
+                        if has_masking
+                        else "NO MASKING DETECTED IN REPLAY BUNDLE",
+                    }
+                )
         if not validations:
-            validations.append({
-                "rule": "replay_data_masked",
-                "pass": True,
-                "detail": "No replay bundle present — containment not applicable"
-            })
+            validations.append(
+                {
+                    "rule": "replay_data_masked",
+                    "pass": True,
+                    "detail": "No replay bundle present — containment not applicable",
+                }
+            )
         return validations

@@ -10,6 +10,11 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from pi_extension_governor.governor import ExtensionGovernor
+from pi_extension_governor.inspector import (
+    CapabilityClassification,
+    StaticCapabilityInspector,
+)
 from pi_extension_governor.manifest import (
     CapabilityClass,
     ExtensionBundle,
@@ -17,22 +22,17 @@ from pi_extension_governor.manifest import (
     ExtensionStatus,
     TrustZone,
 )
-from pi_extension_governor.inspector import (
-    CapabilityClassification,
-    StaticCapabilityInspector,
-)
-from pi_extension_governor.sandbox import SandboxedExtensionRuntime
-from pi_extension_governor.policy import ExtensionGovernancePolicy
 from pi_extension_governor.normalizer import SemanticOutputNormalizer
+from pi_extension_governor.policy import ExtensionGovernancePolicy
 from pi_extension_governor.provenance import (
     ExtensionExecutionReceipt,
     ExtensionProvenanceLedger,
 )
+from pi_extension_governor.sandbox import SandboxedExtensionRuntime
 from pi_extension_governor.trust_zones import TrustZoneEnforcer
-from pi_extension_governor.governor import ExtensionGovernor
-
 
 # ── Manifest Tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_manifest_compute_hash_determinism() -> None:
     m = ExtensionManifest(
@@ -59,7 +59,7 @@ def test_manifest_frozen_immutable() -> None:
     )
     try:
         m.package_name = "modified"
-        assert False, "Manifest should be frozen"
+        raise AssertionError("Manifest should be frozen")
     except Exception:
         pass
 
@@ -80,12 +80,14 @@ def test_bundle_compute_hash() -> None:
 
 # ── Static Capability Inspector Tests ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_inspector_detects_eval() -> None:
     inspector = StaticCapabilityInspector()
     source = "x = eval('1 + 1')"
-    report = inspector.inspect_package(Path("."), "hash1")
+    inspector.inspect_package(Path("."), "hash1")
     # inspect_package on empty dir won't find eval; test via direct tree inspection
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_eval_exec(node, Path("test.py"))
@@ -98,6 +100,7 @@ def test_inspector_detects_subprocess() -> None:
     inspector = StaticCapabilityInspector()
     source = "import subprocess; subprocess.Popen(['ls'])"
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_calls(node, Path("test.py"), source)
@@ -110,6 +113,7 @@ def test_inspector_detects_network() -> None:
     inspector = StaticCapabilityInspector()
     source = "import socket; s = socket.socket(); s.connect(('1.2.3.4', 80))"
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_calls(node, Path("test.py"), source)
@@ -121,6 +125,7 @@ def test_inspector_detects_file_write() -> None:
     inspector = StaticCapabilityInspector()
     source = "with open('/tmp/test', 'w') as f: f.write('x')"
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_file_operations(node, Path("test.py"))
@@ -149,6 +154,7 @@ def test_inspector_package_hash_deterministic() -> None:
 
 
 # ── Sandbox Runtime Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_sandbox_successful_execution() -> None:
     sandbox = SandboxedExtensionRuntime()
@@ -196,6 +202,7 @@ OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'n': random.randint(1,
 
 
 # ── Policy Engine Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_policy_allows_good_extension() -> None:
     policy = ExtensionGovernancePolicy()
@@ -289,6 +296,7 @@ def test_policy_evaluation_deterministic_hash() -> None:
 
 # ── Semantic Normalizer Tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_normalizer_accepts_canonical_type() -> None:
     normalizer = SemanticOutputNormalizer()
     manifest = ExtensionManifest(
@@ -334,6 +342,7 @@ def test_normalizer_schema_validation() -> None:
 
 # ── Provenance Ledger Tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_ledger_append_and_verify() -> None:
     with tempfile.TemporaryDirectory() as td:
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td))
@@ -353,8 +362,24 @@ def test_ledger_append_and_verify() -> None:
 def test_ledger_chain_integrity() -> None:
     with tempfile.TemporaryDirectory() as td:
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td))
-        r1 = ExtensionExecutionReceipt(receipt_id="rcpt_1", extension_id="ext1", package_hash="hash1", worker_contract_version="1.0.0", execution_duration_ms=100, output_hash="h1", deterministic_fingerprint="f1")
-        r2 = ExtensionExecutionReceipt(receipt_id="rcpt_2", extension_id="ext2", package_hash="hash2", worker_contract_version="1.0.0", execution_duration_ms=200, output_hash="h2", deterministic_fingerprint="f2")
+        r1 = ExtensionExecutionReceipt(
+            receipt_id="rcpt_1",
+            extension_id="ext1",
+            package_hash="hash1",
+            worker_contract_version="1.0.0",
+            execution_duration_ms=100,
+            output_hash="h1",
+            deterministic_fingerprint="f1",
+        )
+        r2 = ExtensionExecutionReceipt(
+            receipt_id="rcpt_2",
+            extension_id="ext2",
+            package_hash="hash2",
+            worker_contract_version="1.0.0",
+            execution_duration_ms=200,
+            output_hash="h2",
+            deterministic_fingerprint="f2",
+        )
         ledger.append_receipt(r1)
         ledger.append_receipt(r2)
         assert ledger.verify_chain() is True
@@ -365,6 +390,7 @@ def test_ledger_chain_integrity() -> None:
 
 
 # ── Trust Zone Tests ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_trust_zone_experimental_stays_experimental() -> None:
     enforcer = TrustZoneEnforcer()
@@ -424,6 +450,7 @@ def test_trust_zone_experimental_no_governance_authority() -> None:
 
 
 # ── Extension Governor Integration Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_governor_admits_safe_extension() -> None:
     with tempfile.TemporaryDirectory() as td:

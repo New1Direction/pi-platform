@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pi_semantic_radius import (
-    PiConsensusBreaker,
     ModelResponse,
-    DivergenceReport,
+    PiConsensusBreaker,
 )
 from pi_semantic_radius.consensus_breaker import (
-    simple_token_vector,
     calculate_cosine_distance,
 )
 
@@ -56,15 +52,13 @@ def test_consensus_divergence_evaluation():
     # Case 1: Consensual/stable mock responses (identical structure and meaning)
     responses_stable = [
         ModelResponse(
-            model_name="GPT-4",
-            content="Active transaction created.",
-            parsed_json={"id": "abc", "status": "active"}
+            model_name="GPT-4", content="Active transaction created.", parsed_json={"id": "abc", "status": "active"}
         ),
         ModelResponse(
             model_name="Claude-3",
             content="Created active transaction successfully.",
-            parsed_json={"id": "abc", "status": "active"}
-        )
+            parsed_json={"id": "abc", "status": "active"},
+        ),
     ]
     report_stable = breaker.evaluate_consensus(prompt, responses_stable)
     assert report_stable.is_broken is False
@@ -75,15 +69,14 @@ def test_consensus_divergence_evaluation():
         ModelResponse(
             model_name="GPT-4",
             content="Active transaction created successfully.",
-            parsed_json={"id": "abc", "status": "active"}
+            parsed_json={"id": "abc", "status": "active"},
         ),
         ModelResponse(
             model_name="Gemini-1.5",
             content="Transaction creation failed.",
-            parsed_json={"error": "failed", "code": 500}
-        )
+            parsed_json={"error": "failed", "code": 500},
+        ),
     ]
     report_divergent = breaker.evaluate_consensus(prompt, responses_divergent)
     assert report_divergent.is_broken is True
     assert report_divergent.consensus_divergence_score >= breaker.threshold
-

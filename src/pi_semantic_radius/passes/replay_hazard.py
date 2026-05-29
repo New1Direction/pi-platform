@@ -30,9 +30,7 @@ class ReplayHazardPass:
 
             # Degradation: replayable -> non-replayable
             if b_replay in ("PURE_REPLAYABLE", "IDEMPOTENT") and m_replay in ("NON_REPLAYABLE", "SIDE_EFFECT_RISK"):
-                violations.append(
-                    f"Node {node_id} replay class degraded from {b_replay} to {m_replay}"
-                )
+                violations.append(f"Node {node_id} replay class degraded from {b_replay} to {m_replay}")
 
             # Propagation depth check
             reachable = modified.reachable(node_id)

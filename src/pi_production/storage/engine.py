@@ -156,6 +156,7 @@ CREATE TABLE IF NOT EXISTS health_records (
 #  Connection Pool
 # ──────────────────────────────
 
+
 class ConnectionPool:
     """Thread-safe SQLite connection pool with deterministic settings."""
 
@@ -199,9 +200,7 @@ class ConnectionPool:
                 conn.commit()
                 return cur.lastrowid or 0
 
-    def execute_read(
-        self, sql: str, params: Tuple[Any, ...] = ()
-    ) -> List[sqlite3.Row]:
+    def execute_read(self, sql: str, params: Tuple[Any, ...] = ()) -> List[sqlite3.Row]:
         with self.get() as conn:
             return conn.execute(sql, params).fetchall()
 
@@ -261,6 +260,7 @@ def install_append_only_triggers(pool: ConnectionPool) -> None:
 #  Snapshot Persist
 # ──────────────────────────────
 
+
 class SnapshotPersister:
     """Deterministic, append-only snapshot persistence with hash chaining."""
 
@@ -289,13 +289,21 @@ class SnapshotPersister:
                 created_at, sequence_number, payload_hash, payload_json, previous_hash, artifact_hash)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (snapshot_id, tenant_id, source_id, snapshot_type, created_at,
-             sequence_number, payload_hash, payload_json, previous_hash, artifact_hash),
+            (
+                snapshot_id,
+                tenant_id,
+                source_id,
+                snapshot_type,
+                created_at,
+                sequence_number,
+                payload_hash,
+                payload_json,
+                previous_hash,
+                artifact_hash,
+            ),
         )
 
-    def get_latest(
-        self, tenant_id: str, source_id: str, snapshot_type: str
-    ) -> Optional[Dict[str, Any]]:
+    def get_latest(self, tenant_id: str, source_id: str, snapshot_type: str) -> Optional[Dict[str, Any]]:
         rows = self.pool.execute_read(
             """
             SELECT * FROM snapshots
@@ -306,9 +314,7 @@ class SnapshotPersister:
         )
         return dict(rows[0]) if rows else None
 
-    def get_chain(
-        self, tenant_id: str, source_id: str, snapshot_type: str
-    ) -> List[Dict[str, Any]]:
+    def get_chain(self, tenant_id: str, source_id: str, snapshot_type: str) -> List[Dict[str, Any]]:
         rows = self.pool.execute_read(
             """
             SELECT * FROM snapshots
@@ -339,6 +345,7 @@ class SnapshotPersister:
 #  Audit Logger
 # ──────────────────────────────
 
+
 class AuditLogger:
     """Append-only audit logger with hash chaining and correlation IDs."""
 
@@ -351,7 +358,7 @@ class AuditLogger:
         self,
         tenant_id: str,
         actor_id: str,
-        actor_type: str,      # CONSOLE | API | WORKER | SYSTEM
+        actor_type: str,  # CONSOLE | API | WORKER | SYSTEM
         action: str,
         resource_type: str,
         resource_id: str,
@@ -365,16 +372,20 @@ class AuditLogger:
         timestamp = datetime.now(timezone.utc).isoformat()
         prev_hash = self._last_audit_hash.get(tenant_id, "")
 
-        payload = json.dumps({
-            "audit_id": audit_id,
-            "tenant_id": tenant_id,
-            "actor_id": actor_id,
-            "action": action,
-            "resource_type": resource_type,
-            "resource_id": resource_id,
-            "timestamp": timestamp,
-            "correlation_id": correlation_id,
-        }, sort_keys=True, separators=(",", ":"))
+        payload = json.dumps(
+            {
+                "audit_id": audit_id,
+                "tenant_id": tenant_id,
+                "actor_id": actor_id,
+                "action": action,
+                "resource_type": resource_type,
+                "resource_id": resource_id,
+                "timestamp": timestamp,
+                "correlation_id": correlation_id,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         audit_hash = hashlib.sha256(f"{prev_hash}:{payload}".encode()).hexdigest()
 
         self.pool.execute_write(
@@ -385,22 +396,28 @@ class AuditLogger:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                audit_id, tenant_id, actor_id, actor_type, action,
-                resource_type, resource_id,
+                audit_id,
+                tenant_id,
+                actor_id,
+                actor_type,
+                action,
+                resource_type,
+                resource_id,
                 json.dumps(request_payload, sort_keys=True),
                 json.dumps(response_summary, sort_keys=True),
-                timestamp, correlation_id, session_id or "",
+                timestamp,
+                correlation_id,
+                session_id or "",
                 json.dumps(risk_assessment or {}, sort_keys=True),
-                prev_hash, audit_hash,
+                prev_hash,
+                audit_hash,
             ),
         )
 
         self._last_audit_hash[tenant_id] = audit_hash
         return audit_id
 
-    def query(
-        self, tenant_id: str, limit: int = 100, offset: int = 0
-    ) -> List[Dict[str, Any]]:
+    def query(self, tenant_id: str, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         rows = self.pool.execute_read(
             "SELECT * FROM audit_log WHERE tenant_id = ? ORDER BY row_id DESC LIMIT ? OFFSET ?",
             (tenant_id, limit, offset),
@@ -411,6 +428,7 @@ class AuditLogger:
 # ──────────────────────────────
 #  Receipt Persister
 # ──────────────────────────────
+
 
 class ReceiptPersister:
     """Deterministic receipt persistence for provenance chains."""
@@ -440,10 +458,16 @@ class ReceiptPersister:
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                receipt_id, tenant_id, worker_id, phase, status,
-                intent_hash, determinism_proof,
+                receipt_id,
+                tenant_id,
+                worker_id,
+                phase,
+                status,
+                intent_hash,
+                determinism_proof,
                 json.dumps(output_slot_ids, sort_keys=True),
-                provenance_hash, timestamp,
+                provenance_hash,
+                timestamp,
                 json.dumps(metadata or {}, sort_keys=True),
             ),
         )
@@ -459,6 +483,7 @@ class ReceiptPersister:
 # ──────────────────────────────
 #  Rate Limiter (Sliding Window)
 # ──────────────────────────────
+
 
 class RateLimiter:
     """Deterministic sliding-window rate limiter per tenant + actor."""
@@ -494,12 +519,15 @@ class RateLimiter:
                 "UPDATE rate_windows SET rejected_count = rejected_count + 1 WHERE window_id = ?",
                 (key,),
             )
-        return (allowed, {
-            "window_id": key,
-            "count": count,
-            "limit": self.default_max,
-            "remaining": max(0, self.default_max - count),
-        })
+        return (
+            allowed,
+            {
+                "window_id": key,
+                "count": count,
+                "limit": self.default_max,
+                "remaining": max(0, self.default_max - count),
+            },
+        )
 
     def get_stats(self, tenant_id: str) -> List[Dict[str, Any]]:
         rows = self.pool.execute_read(
@@ -517,6 +545,7 @@ class RateLimiter:
 #  Tenant Registry
 # ──────────────────────────────
 
+
 class TenantRegistry:
     """Immutable tenant configuration with soft-disable support."""
 
@@ -531,7 +560,8 @@ class TenantRegistry:
             ON CONFLICT(tenant_id) DO NOTHING
             """,
             (
-                tenant_id, tenant_name,
+                tenant_id,
+                tenant_name,
                 datetime.now(timezone.utc).isoformat(),
                 json.dumps(policy, sort_keys=True),
                 json.dumps(quota, sort_keys=True),
@@ -539,9 +569,7 @@ class TenantRegistry:
         )
 
     def get(self, tenant_id: str) -> Optional[Dict[str, Any]]:
-        rows = self.pool.execute_read(
-            "SELECT * FROM tenants WHERE tenant_id = ?", (tenant_id,)
-        )
+        rows = self.pool.execute_read("SELECT * FROM tenants WHERE tenant_id = ?", (tenant_id,))
         return dict(rows[0]) if rows else None
 
     def is_active(self, tenant_id: str) -> bool:
@@ -552,6 +580,7 @@ class TenantRegistry:
 # ──────────────────────────────
 #  Health Recorder
 # ──────────────────────────────
+
 
 class HealthRecorder:
     """Structured health records for liveness/readiness probes."""

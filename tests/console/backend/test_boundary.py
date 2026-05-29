@@ -11,15 +11,14 @@ These tests verify the non-negotiable architectural boundaries:
 
 from __future__ import annotations
 
-import json
 import pytest
 from fastapi.testclient import TestClient
 
 from pi_console.main import create_app
 from pi_console.schemas import (
     AuditLogEntry,
-    CompositionNode,
     CompositionEdge,
+    CompositionNode,
     ExplicitCompositionRequest,
 )
 from pi_console.services import ConsoleAuditStore, ConsoleSessionStore, QuotaTracker
@@ -29,7 +28,8 @@ from pi_console.services import ConsoleAuditStore, ConsoleSessionStore, QuotaTra
 def client(tmp_path):
     app = create_app()
     # Inject fresh ephemeral stores for test isolation
-    from pi_console.routers import composition_router, session_router, audit_router, tenant_router, capabilities_router
+    from pi_console.routers import audit_router, composition_router, session_router, tenant_router
+
     store = ConsoleAuditStore(tmp_path / "audit")
     session_store = ConsoleSessionStore()
     quota_tracker = QuotaTracker()
@@ -46,7 +46,9 @@ class TestBoundaryCompositionRequestOnly:
     """Boundary: Core ONLY receives ExplicitCompositionRequest."""
 
     def test_submit_rejects_plain_dict(self, client):
-        resp = client.post("/api/v1/compositions/submit", json={"composition": {"bad": "data"}, "user_confirmation": True})
+        resp = client.post(
+            "/api/v1/compositions/submit", json={"composition": {"bad": "data"}, "user_confirmation": True}
+        )
         assert resp.status_code == 422  # Pydantic validation failure
 
     def test_simulate_rejects_missing_tenant(self, client):
@@ -57,7 +59,9 @@ class TestBoundaryCompositionRequestOnly:
         )
         payload = comp.model_dump()
         del payload["tenant_id"]  # Pydantic still serializes default; test schema rejection via missing nodes
-        resp = client.post("/api/v1/compositions/simulate", json={"composition": {"tenant_id": "abc", "console_session_id": "x"}})
+        resp = client.post(
+            "/api/v1/compositions/simulate", json={"composition": {"tenant_id": "abc", "console_session_id": "x"}}
+        )
         assert resp.status_code == 422
 
     def test_explicit_request_is_frozen(self, client):
@@ -86,6 +90,7 @@ class TestBoundaryNoDirectMutation:
 
     def test_console_router_has_no_db_models(self):
         import pi_console.routers.composition_router as cr
+
         src = open(cr.__file__).read()
         assert "sqlite" not in src.lower()
         assert "sqlalchemy" not in src.lower()
@@ -93,8 +98,10 @@ class TestBoundaryNoDirectMutation:
         assert "worker" not in src.lower() or "worker" in src.lower()  # string may appear in comments
 
     def test_core_adapter_is_typed(self):
-        from pi_console.services import CoreAdapter
         import inspect
+
+        from pi_console.services import CoreAdapter
+
         sig = inspect.signature(CoreAdapter.submit)
         params = list(sig.parameters.keys())
         assert params == ["self", "request"]
@@ -155,8 +162,12 @@ class TestBoundaryTenantIsolation:
 
     def test_audit_log_segregated_by_tenant(self, tmp_path):
         store = ConsoleAuditStore(tmp_path)
-        store.append(AuditLogEntry(tenant_id="t1", console_session_id="s1", request_id="r1", action="COMPOSITION_SUBMITTED"))
-        store.append(AuditLogEntry(tenant_id="t2", console_session_id="s2", request_id="r2", action="COMPOSITION_SUBMITTED"))
+        store.append(
+            AuditLogEntry(tenant_id="t1", console_session_id="s1", request_id="r1", action="COMPOSITION_SUBMITTED")
+        )
+        store.append(
+            AuditLogEntry(tenant_id="t2", console_session_id="s2", request_id="r2", action="COMPOSITION_SUBMITTED")
+        )
         t1_logs = store.query("t1")
         t2_logs = store.query("t2")
         assert len(t1_logs) == 1
@@ -170,6 +181,7 @@ class TestBoundaryAuditTrail:
 
     def test_simulate_logged(self, client, tmp_path):
         from pi_console.routers import composition_router
+
         store = ConsoleAuditStore(tmp_path)
         composition_router.audit_store = store
         comp = ExplicitCompositionRequest(
@@ -189,6 +201,7 @@ class TestBoundaryAuditTrail:
 
     def test_audit_log_contains_exact_request(self, client, tmp_path):
         from pi_console.routers import composition_router
+
         store = ConsoleAuditStore(tmp_path)
         composition_router.audit_store = store
         comp = ExplicitCompositionRequest(
@@ -216,6 +229,7 @@ class TestSimulationDeterminism:
 
     def test_simulation_report_hash(self):
         from pi_console.schemas import SimulationReport
+
         report = SimulationReport(request_id="r1", tenant_id="t1")
         h1 = report.compute_hash()
         h2 = report.compute_hash()
@@ -249,7 +263,9 @@ class TestSimulationDeterminism:
         comp = ExplicitCompositionRequest(
             tenant_id="default",
             console_session_id="sess_1",
-            nodes=[CompositionNode(node_id=f"n{i}", runtime="pi-semantic-recon", operation="VALIDATE") for i in range(70)],
+            nodes=[
+                CompositionNode(node_id=f"n{i}", runtime="pi-semantic-recon", operation="VALIDATE") for i in range(70)
+            ],
             global_bounds={"max_total_nodes": 64, "max_depth": 8, "max_fanout": 16, "max_execution_time_ms": 300000},
         )
         resp = client.post(
@@ -267,6 +283,7 @@ class TestQuotaEnforcement:
 
     def test_quota_exceeded_blocks_submission(self, client):
         from pi_console.routers import composition_router, tenant_router
+
         q = QuotaTracker()
         q._quotas["exceeded"] = q.get("exceeded")
         q._quotas["exceeded"].current_hour_compositions = 101

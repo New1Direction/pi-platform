@@ -53,12 +53,14 @@ class PiRustSolanaReentrancySentry:
         flagged_findings = []
 
         # Find all structures annotated with #[derive(Accounts)]
-        account_structs = re.findall(r'#\[derive\([^)]*Accounts[^)]*\)\][\s\S]*?pub struct\s+([a-zA-Z0-9_]+)\s*<[\s\S]*?\{([\s\S]*?)\}', code)
+        account_structs = re.findall(
+            r"#\[derive\([^)]*Accounts[^)]*\)\][\s\S]*?pub struct\s+([a-zA-Z0-9_]+)\s*<[\s\S]*?\{([\s\S]*?)\}", code
+        )
 
         for struct_name, struct_body in account_structs:
             # Look for mutable account fields
-            mut_fields = re.findall(r'#\[account\([^)]*mut[^)]*\)\]\s*pub\s+([a-zA-Z0-9_]+)\s*:', struct_body)
-            
+            mut_fields = re.findall(r"#\[account\([^)]*mut[^)]*\)\]\s*pub\s+([a-zA-Z0-9_]+)\s*:", struct_body)
+
             # If there are multiple mutable accounts declared, look for comparison constraints or assertions
             if len(mut_fields) > 1:
                 # Check if there are constraints matching key uniqueness
@@ -66,7 +68,7 @@ class PiRustSolanaReentrancySentry:
                 has_uniqueness_check = False
                 for field in mut_fields:
                     # Is there a constraint containing "!=" and referencing other field keys in the struct body?
-                    if re.search(rf'constraint\s*=.*{field}.*!=', struct_body) or "assert_ne!" in code:
+                    if re.search(rf"constraint\s*=.*{field}.*!=", struct_body) or "assert_ne!" in code:
                         has_uniqueness_check = True
                         break
 
@@ -95,5 +97,5 @@ class PiRustSolanaReentrancySentry:
             vulnerable_instructions=vulnerable_instructions,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

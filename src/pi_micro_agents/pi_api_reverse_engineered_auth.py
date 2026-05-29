@@ -54,8 +54,10 @@ class PiApiReverseEngineeredAuth:
 
         # Find weakly signed custom JWT signatures or insecure hardcoded authentication headers
         # E.g. "Authorization": "Bearer ", secret keys, "HS256" without key rotation
-        weak_auth_pattern = re.search(r'(jwt\.sign\([\s\S]*?,\s*["\'][a-zA-Z0-9_\-]+["\']|algorithm\s*:\s*["\']none["\']|["\']?Authorization["\']?\s*:\s*["\']Bearer\s+ey[a-zA-Z0-9_\-\.]*["\'])', code)
-
+        weak_auth_pattern = re.search(
+            r'(jwt\.sign\([\s\S]*?,\s*["\'][a-zA-Z0-9_\-]+["\']|algorithm\s*:\s*["\']none["\']|["\']?Authorization["\']?\s*:\s*["\']Bearer\s+ey[a-zA-Z0-9_\-\.]*["\'])',
+            code,
+        )
 
         if weak_auth_pattern:
             vulnerable_elements.append(weak_auth_pattern.group(1))
@@ -81,5 +83,5 @@ class PiApiReverseEngineeredAuth:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

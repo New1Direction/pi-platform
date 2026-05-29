@@ -52,14 +52,17 @@ class PiGitSecretLeakSentry:
 
         # Target explicit high-risk hardcoded patterns
         secret_patterns = [
-            (r'-----BEGIN\s+RSA\s+PRIVATE\s+KEY-----', "RSA Private Key"),
-            (r'-----BEGIN\s+PRIVATE\s+KEY-----', "Generic Private Key"),
-            (r'sk_live_[a-zA-Z0-9]{24}', "Stripe Live API Key"),
-            (r'amzn\.mws\.[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}', "AWS MWS Client Token"),
-            (r'AIzaSy[a-zA-Z0-9_-]{33}', "Google API Key"),
+            (r"-----BEGIN\s+RSA\s+PRIVATE\s+KEY-----", "RSA Private Key"),
+            (r"-----BEGIN\s+PRIVATE\s+KEY-----", "Generic Private Key"),
+            (r"sk_live_[a-zA-Z0-9]{24}", "Stripe Live API Key"),
+            (
+                r"amzn\.mws\.[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+                "AWS MWS Client Token",
+            ),
+            (r"AIzaSy[a-zA-Z0-9_-]{33}", "Google API Key"),
             (r'aws_secret_access_key\s*=\s*["\']?[a-zA-Z0-9/+=]{40}["\']?', "AWS Secret Access Key"),
             # Seed phrase mnemonic matching (simple heuristic for common mnemonics in tests/config)
-            (r'(?:[a-zA-Z]+\s+){11}[a-zA-Z]+', "Potential Mnemonic Seed Phrase (12 words)")
+            (r"(?:[a-zA-Z]+\s+){11}[a-zA-Z]+", "Potential Mnemonic Seed Phrase (12 words)"),
         ]
 
         is_secure = True
@@ -72,7 +75,7 @@ class PiGitSecretLeakSentry:
                 # Specific verification for the 12-words to avoid high false positives on regular English paragraphs
                 if label == "Potential Mnemonic Seed Phrase (12 words)":
                     # Only flag if there is contextual reference like "seed", "mnemonic", "private", "key", "secret" in the surrounding text
-                    surrounding = content[max(0, match.start() - 100): min(len(content), match.end() + 100)].lower()
+                    surrounding = content[max(0, match.start() - 100) : min(len(content), match.end() + 100)].lower()
                     if any(x in surrounding for x in ["seed", "mnemonic", "bip39", "key", "secret", "private"]):
                         is_secure = False
                         flagged_findings.append(
@@ -99,8 +102,5 @@ class PiGitSecretLeakSentry:
                 is_secure = True
 
         return GitSecretLeakOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

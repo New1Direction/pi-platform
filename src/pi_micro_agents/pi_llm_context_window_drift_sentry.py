@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -44,7 +43,7 @@ class PiLLMContextWindowDriftSentry:
             flagged_findings.append(
                 f"Prompt context size ({len(prompt)} chars) exceeds standard bounds, risking instruction drift or dilution of security constraints."
             )
-        elif len(re.findall(r'(\b\w+\b)(?=.*\1)', prompt)) > 1000:
+        elif len(re.findall(r"(\b\w+\b)(?=.*\1)", prompt)) > 1000:
             # Check for excessive repetition (e.g. repeating a word hundreds of times)
             is_secure = False
             flagged_findings.append(
@@ -63,8 +62,5 @@ class PiLLMContextWindowDriftSentry:
                 is_secure = True
 
         return LLMContextWindowDriftOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

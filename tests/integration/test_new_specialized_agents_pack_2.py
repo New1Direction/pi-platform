@@ -2,58 +2,47 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
-from pi_micro_agents.pi_vyper_external_call_sentry import (
-    PiVyperExternalCallSentry,
-    VyperExternalCallInput,
-    VyperExternalCallOutput,
-)
-from pi_micro_agents.pi_solidity_signature_malleability_sentry import (
-    PiSoliditySignatureMalleabilitySentry,
-    SignatureMalleabilityInput,
-    SignatureMalleabilityOutput,
-)
-from pi_micro_agents.pi_zk_circom_division_sentry import (
-    PiZKCircomDivisionSentry,
-    ZKCircomDivisionInput,
-    ZKCircomDivisionOutput,
-)
 from pi_micro_agents.pi_eip712_domain_separator_sentry import (
-    PiEIP712DomainSeparatorSentry,
     DomainSeparatorInput,
-    DomainSeparatorOutput,
-)
-from pi_micro_agents.pi_solidity_arbitrary_transfer_sentry import (
-    PiSolidityArbitraryTransferSentry,
-    ArbitraryTransferInput,
-    ArbitraryTransferOutput,
-)
-from pi_micro_agents.pi_solidity_delegatecall_storage_sentry import (
-    PiSolidityDelegatecallStorageSentry,
-    DelegatecallStorageInput,
-    DelegatecallStorageOutput,
-)
-from pi_micro_agents.pi_solidity_oracle_liveness_sentry import (
-    PiSolidityOracleLivenessSentry,
-    OracleLivenessInput,
-    OracleLivenessOutput,
+    PiEIP712DomainSeparatorSentry,
 )
 from pi_micro_agents.pi_llm_system_prompt_drift_sentry import (
     PiLLMSystemPromptDriftSentry,
     SystemPromptDriftInput,
-    SystemPromptDriftOutput,
+)
+from pi_micro_agents.pi_solidity_arbitrary_transfer_sentry import (
+    ArbitraryTransferInput,
+    PiSolidityArbitraryTransferSentry,
+)
+from pi_micro_agents.pi_solidity_delegatecall_storage_sentry import (
+    DelegatecallStorageInput,
+    PiSolidityDelegatecallStorageSentry,
 )
 from pi_micro_agents.pi_solidity_dirty_memory_sentry import (
-    PiSolidityDirtyMemorySentry,
     DirtyMemoryInput,
-    DirtyMemoryOutput,
+    PiSolidityDirtyMemorySentry,
 )
 from pi_micro_agents.pi_solidity_erc7702_code_sentry import (
-    PiSolidityERC7702CodeSentry,
     ERC7702CodeInput,
-    ERC7702CodeOutput,
+    PiSolidityERC7702CodeSentry,
+)
+from pi_micro_agents.pi_solidity_oracle_liveness_sentry import (
+    OracleLivenessInput,
+    PiSolidityOracleLivenessSentry,
+)
+from pi_micro_agents.pi_solidity_signature_malleability_sentry import (
+    PiSoliditySignatureMalleabilitySentry,
+    SignatureMalleabilityInput,
+)
+from pi_micro_agents.pi_vyper_external_call_sentry import (
+    PiVyperExternalCallSentry,
+    VyperExternalCallInput,
+)
+from pi_micro_agents.pi_zk_circom_division_sentry import (
+    PiZKCircomDivisionSentry,
+    ZKCircomDivisionInput,
 )
 
 
@@ -113,7 +102,9 @@ def test_solidity_signature_malleability_sentry():
         }
     }
     """
-    res_vuln = agent.audit_signature_malleability(SignatureMalleabilityInput(file_path="sig.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_signature_malleability(
+        SignatureMalleabilityInput(file_path="sig.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "verify" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_MALLEABLE_SIG"
@@ -127,7 +118,9 @@ def test_solidity_signature_malleability_sentry():
         }
     }
     """
-    res_safe = agent.audit_signature_malleability(SignatureMalleabilityInput(file_path="sig.sol", solidity_code=code_safe_lz))
+    res_safe = agent.audit_signature_malleability(
+        SignatureMalleabilityInput(file_path="sig.sol", solidity_code=code_safe_lz)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -245,7 +238,9 @@ def test_solidity_delegatecall_storage_sentry():
         }
     }
     """
-    res_vuln = agent.audit_delegatecall_storage(DelegatecallStorageInput(file_path="proxy.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_delegatecall_storage(
+        DelegatecallStorageInput(file_path="proxy.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "fallback" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_DELEGATECALL_STORAGE"
@@ -260,7 +255,9 @@ def test_solidity_delegatecall_storage_sentry():
         }
     }
     """
-    res_safe = agent.audit_delegatecall_storage(DelegatecallStorageInput(file_path="proxy.sol", solidity_code=code_safe))
+    res_safe = agent.audit_delegatecall_storage(
+        DelegatecallStorageInput(file_path="proxy.sol", solidity_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 

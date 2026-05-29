@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Static heuristic scanning of mempool raw transactions
 def detect_mempool_exploits(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -51,11 +52,12 @@ def detect_mempool_exploits(text: str) -> Tuple[float, List[str]]:
         slippage_match = re.search(r"slippage\s*[:=]\s*(\d+(\.\d+)?)", text, re.IGNORECASE)
         if slippage_match:
             val = float(slippage_match.group(1))
-            if val > 5.0: # high slippage limit > 5% represents sandwich vulnerability
+            if val > 5.0:  # high slippage limit > 5% represents sandwich vulnerability
                 violations.append(f"excessive slippage configuration '{val}%' flagged")
                 max_risk = max(max_risk, 90.0)
 
     return max_risk, violations
+
 
 # 3. Pydantic-Enforced Input/Output Envelopes
 class MempoolTxInput(BaseModel):
@@ -65,11 +67,13 @@ class MempoolTxInput(BaseModel):
     value_eth: float = 0.0
     slippage_limit: float = Field(default=0.5, description="Slippage percentage cap")
 
+
 class MempoolTxOutput(BaseModel):
     is_admitted: bool
     risk_score: float
     status: str
     alerts: List[str] = Field(default_factory=list)
+
 
 # 4. Core Micro-Agent Class
 class PiMempoolSentry:
@@ -103,9 +107,4 @@ class PiMempoolSentry:
             else:
                 status = "WARN_EXPLOIT"
 
-        return MempoolTxOutput(
-            is_admitted=is_admitted,
-            risk_score=risk,
-            status=status,
-            alerts=violations
-        )
+        return MempoolTxOutput(is_admitted=is_admitted, risk_score=risk, status=status, alerts=violations)

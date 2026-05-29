@@ -34,10 +34,10 @@ class PayloadNormalizer:
 
     # Magic byte signatures for heuristic detection
     MAGIC_SIGNATURES = {
-        b"\x1f\x8b": CompressionType.GZIP,          # gzip magic
-        b"\x78\x9c": CompressionType.DEFLATE,     # zlib/deflate (raw)
-        b"\x78\x01": CompressionType.DEFLATE,      # zlib no compression
-        b"\x78\xda": CompressionType.DEFLATE,      # zlib best compression
+        b"\x1f\x8b": CompressionType.GZIP,  # gzip magic
+        b"\x78\x9c": CompressionType.DEFLATE,  # zlib/deflate (raw)
+        b"\x78\x01": CompressionType.DEFLATE,  # zlib no compression
+        b"\x78\xda": CompressionType.DEFLATE,  # zlib best compression
         b"\x28\xb5\x2f\xfd": CompressionType.ZSTD,  # zstd magic
         # Brotli has no magic bytes — detection from content-encoding only
     }
@@ -79,9 +79,7 @@ class PayloadNormalizer:
         )
 
         # Step 1: Detect and apply compression
-        compression, detected_from = cls._detect_compression(
-            raw_bytes, content_encoding
-        )
+        compression, detected_from = cls._detect_compression(raw_bytes, content_encoding)
         result.compression = compression
         result.compression_detected_from = detected_from
 
@@ -101,9 +99,7 @@ class PayloadNormalizer:
         working_bytes = result.decompressed_bytes or b""
 
         # Step 2: Detect format
-        fmt, confidence = cls._detect_format(
-            working_bytes, content_type
-        )
+        fmt, confidence = cls._detect_format(working_bytes, content_type)
         result.format_detected = fmt
         result.format_confidence = confidence
 
@@ -177,19 +173,17 @@ class PayloadNormalizer:
             if header_name.lower() == "content-type":
                 m = re.search(r"charset=([^;\s]+)", header_value, re.IGNORECASE)
                 if m:
-                    meta.charset = m.group(1).strip('"\'')
+                    meta.charset = m.group(1).strip("\"'")
                 # Extract boundary for multipart
-                m = re.search(r'boundary=([^;\s]+)', header_value, re.IGNORECASE)
+                m = re.search(r"boundary=([^;\s]+)", header_value, re.IGNORECASE)
                 if m:
-                    meta.boundary = m.group(1).strip('"\'')
+                    meta.boundary = m.group(1).strip("\"'")
                 # Continue — do NOT break; both request and response may carry Content-Type
 
         return meta
 
     @classmethod
-    def _detect_compression(
-        cls, raw_bytes: bytes, content_encoding: str
-    ) -> Tuple[str, str]:
+    def _detect_compression(cls, raw_bytes: bytes, content_encoding: str) -> Tuple[str, str]:
         """Detect compression from content-encoding header or magic bytes.
 
         Returns (compression_type, detected_from_source).
@@ -232,6 +226,7 @@ class PayloadNormalizer:
         elif compression == CompressionType.BROTLI:
             try:
                 import brotli
+
                 return brotli.decompress(data)
             except ImportError:
                 return None  # brotli optional dependency
@@ -240,6 +235,7 @@ class PayloadNormalizer:
         elif compression == CompressionType.ZSTD:
             try:
                 import zstandard as zstd
+
                 dctx = zstd.ZstdDecompressor()
                 return dctx.decompress(data)
             except ImportError:
@@ -249,9 +245,7 @@ class PayloadNormalizer:
         return data
 
     @classmethod
-    def _detect_format(
-        cls, data: bytes, content_type: str
-    ) -> Tuple[str, float]:
+    def _detect_format(cls, data: bytes, content_type: str) -> Tuple[str, float]:
         """Detect payload format from Content-Type header and heuristics.
 
         Confidence scoring:
@@ -346,6 +340,7 @@ class PayloadNormalizer:
         try:
             text = data.decode("utf-8", errors="replace")
             from urllib.parse import parse_qs
+
             parsed = parse_qs(text, keep_blank_values=True)
             # Flatten single-value lists
             return {k: v[0] if len(v) == 1 else v for k, v in parsed.items()}

@@ -45,12 +45,16 @@ class DigitalTwinImport:
         self._artifacts[artifact.artifact_hash] = artifact
         self._cross_system.register_artifact(artifact)
         nodes = self._topology.add_artifact(artifact)
-        return nodes[0] if nodes else TopologyNode(
-            node_id=artifact.artifact_id,
-            node_type=artifact.artifact_family,
-            system=artifact.source_system,
-            tenant_id=self.tenant_id,
-            artifact_hash=artifact.artifact_hash,
+        return (
+            nodes[0]
+            if nodes
+            else TopologyNode(
+                node_id=artifact.artifact_id,
+                node_type=artifact.artifact_family,
+                system=artifact.source_system,
+                tenant_id=self.tenant_id,
+                artifact_hash=artifact.artifact_hash,
+            )
         )
 
     def import_receipt(self, receipt: IngestionReceipt) -> None:
@@ -116,14 +120,21 @@ class DigitalTwinImport:
             "removed_edges": removed_edges,
             "node_delta": len(added_nodes) - len(removed_nodes),
             "edge_delta": len(added_edges) - len(removed_edges),
-            "stable": len(added_nodes) == 0 and len(removed_nodes) == 0 and len(added_edges) == 0 and len(removed_edges) == 0,
+            "stable": len(added_nodes) == 0
+            and len(removed_nodes) == 0
+            and len(added_edges) == 0
+            and len(removed_edges) == 0,
             "drift_hash": hashlib.sha256(
-                json.dumps({
-                    "added_nodes": added_nodes,
-                    "removed_nodes": removed_nodes,
-                    "added_edges": added_edges,
-                    "removed_edges": removed_edges,
-                }, sort_keys=True, separators=(",", ":")).encode()
+                json.dumps(
+                    {
+                        "added_nodes": added_nodes,
+                        "removed_nodes": removed_nodes,
+                        "added_edges": added_edges,
+                        "removed_edges": removed_edges,
+                    },
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ).encode()
             ).hexdigest(),
         }
         return drift_data
@@ -143,11 +154,9 @@ class DigitalTwinImport:
             "origin": origin_node,
             "tenant_id": self.tenant_id,
             "blast_radius": blast,
-            "affected_systems": sorted({
-                self._topology.get_node(n).system
-                for n in blast["reachable_nodes"]
-                if self._topology.get_node(n)
-            }),
+            "affected_systems": sorted(
+                {self._topology.get_node(n).system for n in blast["reachable_nodes"] if self._topology.get_node(n)}
+            ),
             "reconstruction_at": datetime.now(timezone.utc).isoformat(),
         }
 
@@ -163,9 +172,7 @@ class DigitalTwinImport:
         snapshots: List[Dict[str, Any]] = []
         for i, receipt in enumerate(receipts):
             # Rebuild state up to this receipt
-            step_artifacts = [
-                self._artifacts[h] for h in receipt.artifact_hashes if h in self._artifacts
-            ]
+            step_artifacts = [self._artifacts[h] for h in receipt.artifact_hashes if h in self._artifacts]
             step_topology = UnifiedTopologyGraph(
                 tenant_id=self.tenant_id,
                 correlation_id=f"replay_{i}",
@@ -173,14 +180,16 @@ class DigitalTwinImport:
             for artifact in step_artifacts:
                 step_topology.add_artifact(artifact)
 
-            snapshots.append({
-                "step": i,
-                "receipt_id": receipt.receipt_id,
-                "artifact_count": len(step_artifacts),
-                "node_count": len(step_topology._nodes),
-                "edge_count": len(step_topology._edges),
-                "graph_hash": step_topology.graph_hash(),
-            })
+            snapshots.append(
+                {
+                    "step": i,
+                    "receipt_id": receipt.receipt_id,
+                    "artifact_count": len(step_artifacts),
+                    "node_count": len(step_topology._nodes),
+                    "edge_count": len(step_topology._edges),
+                    "graph_hash": step_topology.graph_hash(),
+                }
+            )
 
         return {
             "steps": len(snapshots),

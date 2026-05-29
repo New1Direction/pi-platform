@@ -70,9 +70,7 @@ class AcquisitionGatewayNode:
         )
 
         # Compute raw packet hash (includes volatile metadata)
-        packet_hash = hashlib.sha256(
-            packet.model_dump_json().encode()
-        ).hexdigest()
+        packet_hash = hashlib.sha256(packet.model_dump_json().encode()).hexdigest()
 
         # Compute canonical hash (excludes volatile metadata, sorted deterministically)
         canonical_payload = json.dumps(
@@ -125,9 +123,7 @@ class AcquisitionGatewayNode:
         parser = IngressParserNode()
         packet = parser.parse_raw(raw_request, raw_response, url_override=url_override)
 
-        packet_hash = hashlib.sha256(
-            packet.model_dump_json().encode()
-        ).hexdigest()
+        packet_hash = hashlib.sha256(packet.model_dump_json().encode()).hexdigest()
 
         canonical_payload = json.dumps(
             {
@@ -144,9 +140,7 @@ class AcquisitionGatewayNode:
         )
         canonical_hash = hashlib.sha256(canonical_payload.encode()).hexdigest()
 
-        replay_class = self._classify_replay_safety(
-            packet.method, packet.endpoint_path_template, packet.raw_headers
-        )
+        replay_class = self._classify_replay_safety(packet.method, packet.endpoint_path_template, packet.raw_headers)
 
         truth = RuntimeTruthEnvelope(
             capture_id=str(uuid.uuid4()),
@@ -260,8 +254,16 @@ class AcquisitionGatewayNode:
 
         # Pure replayable: GET/HEAD/OPTIONS on read-only paths
         read_only_indicators = [
-            "get", "list", "fetch", "search", "query", "read",
-            "find", "lookup", "retrieve", "view",
+            "get",
+            "list",
+            "fetch",
+            "search",
+            "query",
+            "read",
+            "find",
+            "lookup",
+            "retrieve",
+            "view",
         ]
         path_lower = path.lower()
         is_read_path = any(ind in path_lower for ind in read_only_indicators)
@@ -278,8 +280,18 @@ class AcquisitionGatewayNode:
 
         # Side-effect risk: POST/PUT/PATCH that look like mutations
         mutation_indicators = [
-            "create", "post", "submit", "write", "update", "delete",
-            "remove", "destroy", "add", "insert", "modify", "change",
+            "create",
+            "post",
+            "submit",
+            "write",
+            "update",
+            "delete",
+            "remove",
+            "destroy",
+            "add",
+            "insert",
+            "modify",
+            "change",
         ]
         if any(ind in path_lower for ind in mutation_indicators):
             return ReplayClass.SIDE_EFFECT_RISK

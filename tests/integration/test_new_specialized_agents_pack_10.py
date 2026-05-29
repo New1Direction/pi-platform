@@ -2,30 +2,29 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents import (
-    PiGitSecretEntropyLeakSentry,
-    GitSecretEntropyLeakInput,
-    PiDockerComposePortExposureSentry,
-    DockerComposePortExposureInput,
-    PiGithubActionsUnpinnedVersion,
-    GithubActionsUnpinnedInput,
-    PiTerraformStateCredentialSentry,
-    TerraformStateCredentialInput,
-    PiNginxReverseProxyHeaderSentry,
-    NginxReverseProxyHeaderInput,
-    PiDatabaseMigrationUnindexedSentry,
-    DatabaseMigrationUnindexedInput,
-    PiApiAuthJWTNoneAlgorithmSentry,
-    ApiAuthJWTNoneAlgorithmInput,
-    PiSemanticSchemaDynamicFieldCheck,
-    SemanticSchemaDynamicFieldInput,
-    PiApiAuthHardcodedTokenSentry,
     ApiAuthHardcodedTokenInput,
-    PiGrpcWireProtocolInsecureSentry,
+    ApiAuthJWTNoneAlgorithmInput,
+    DatabaseMigrationUnindexedInput,
+    DockerComposePortExposureInput,
+    GithubActionsUnpinnedInput,
+    GitSecretEntropyLeakInput,
     GrpcWireProtocolInsecureInput,
+    NginxReverseProxyHeaderInput,
+    PiApiAuthHardcodedTokenSentry,
+    PiApiAuthJWTNoneAlgorithmSentry,
+    PiDatabaseMigrationUnindexedSentry,
+    PiDockerComposePortExposureSentry,
+    PiGithubActionsUnpinnedVersion,
+    PiGitSecretEntropyLeakSentry,
+    PiGrpcWireProtocolInsecureSentry,
+    PiNginxReverseProxyHeaderSentry,
+    PiSemanticSchemaDynamicFieldCheck,
+    PiTerraformStateCredentialSentry,
+    SemanticSchemaDynamicFieldInput,
+    TerraformStateCredentialInput,
 )
 
 
@@ -81,13 +80,17 @@ def test_docker_compose_port_exposure_sentry(monkeypatch):
         ports:
           - "3306:3306"
     """
-    res_vuln = agent.audit_docker_compose_ports(DockerComposePortExposureInput(file_path="docker-compose.yml", compose_code=code_vuln))
+    res_vuln = agent.audit_docker_compose_ports(
+        DockerComposePortExposureInput(file_path="docker-compose.yml", compose_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "db" in res_vuln.vulnerable_services
     assert res_vuln.status == "REJECTED_DOCKER_COMPOSE_PORT"
 
     monkeypatch.setenv("PI_DOCKER_COMPOSE_PORT_STRICT_MODE", "false")
-    res_warn = agent.audit_docker_compose_ports(DockerComposePortExposureInput(file_path="docker-compose.yml", compose_code=code_vuln))
+    res_warn = agent.audit_docker_compose_ports(
+        DockerComposePortExposureInput(file_path="docker-compose.yml", compose_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_DOCKER_COMPOSE_PORT"
 
@@ -98,7 +101,9 @@ def test_docker_compose_port_exposure_sentry(monkeypatch):
         ports:
           - "127.0.0.1:3306:3306"
     """
-    res_safe = agent.audit_docker_compose_ports(DockerComposePortExposureInput(file_path="docker-compose.yml", compose_code=code_safe))
+    res_safe = agent.audit_docker_compose_ports(
+        DockerComposePortExposureInput(file_path="docker-compose.yml", compose_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -219,13 +224,17 @@ def test_database_migration_unindexed_sentry(monkeypatch):
         tenant_id INT
     );
     """
-    res_vuln = agent.audit_migration_indexes(DatabaseMigrationUnindexedInput(file_path="migration.sql", migration_code=code_vuln))
+    res_vuln = agent.audit_migration_indexes(
+        DatabaseMigrationUnindexedInput(file_path="migration.sql", migration_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "Line 4" in res_vuln.vulnerable_elements
     assert res_vuln.status == "REJECTED_DATABASE_MIGRATION_UNINDEXED"
 
     monkeypatch.setenv("PI_DATABASE_MIGRATION_UNINDEXED_STRICT_MODE", "false")
-    res_warn = agent.audit_migration_indexes(DatabaseMigrationUnindexedInput(file_path="migration.sql", migration_code=code_vuln))
+    res_warn = agent.audit_migration_indexes(
+        DatabaseMigrationUnindexedInput(file_path="migration.sql", migration_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_DATABASE_MIGRATION_UNINDEXED"
 
@@ -236,7 +245,9 @@ def test_database_migration_unindexed_sentry(monkeypatch):
     );
     CREATE INDEX idx_users_tenant ON users(tenant_id);
     """
-    res_safe = agent.audit_migration_indexes(DatabaseMigrationUnindexedInput(file_path="migration.sql", migration_code=code_safe))
+    res_safe = agent.audit_migration_indexes(
+        DatabaseMigrationUnindexedInput(file_path="migration.sql", migration_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 

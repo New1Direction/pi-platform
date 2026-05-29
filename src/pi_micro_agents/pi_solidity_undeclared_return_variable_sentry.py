@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -24,7 +23,9 @@ class UndeclaredReturnVariableInput(BaseModel):
 class UndeclaredReturnVariableOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract returns are secure and properly assigned")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on unassigned return slots")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on unassigned return slots"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -43,7 +44,9 @@ class PiSolidityUndeclaredReturnVariableSentry:
         # Find all functions with named return variables
         # e.g., function getVal() public returns (uint256 value) { ... }
         # Match: function name ( args ) ... returns ( ... [var_name] ) { body }
-        func_matches = re.finditer(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*?returns\s*\((.*?)\)\s*\{([\s\S]*?)\}', code)
+        func_matches = re.finditer(
+            r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*?returns\s*\((.*?)\)\s*\{([\s\S]*?)\}", code
+        )
 
         for match in func_matches:
             name = match.group(1)
@@ -61,9 +64,9 @@ class PiSolidityUndeclaredReturnVariableSentry:
                     # Exclude keywords like memory, storage, calldata
                     if var_name not in ["memory", "storage", "calldata", "payable"]:
                         # Check if var_name is assigned anywhere in the body, or if there is a return statement containing var_name
-                        is_assigned = re.search(r'\b' + re.escape(var_name) + r'\b\s*[-+=\/]?=', body)
-                        is_returned = re.search(r'\breturn\b\s+[^;]*?\b' + re.escape(var_name) + r'\b', body)
-                        
+                        is_assigned = re.search(r"\b" + re.escape(var_name) + r"\b\s*[-+=\/]?=", body)
+                        is_returned = re.search(r"\breturn\b\s+[^;]*?\b" + re.escape(var_name) + r"\b", body)
+
                         if not is_assigned and not is_returned:
                             vulnerable_funcs.append(name)
                             flagged_findings.append(
@@ -89,5 +92,5 @@ class PiSolidityUndeclaredReturnVariableSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

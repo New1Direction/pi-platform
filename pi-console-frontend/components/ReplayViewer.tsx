@@ -491,17 +491,19 @@ export default function ReplayViewer() {
 
               {/* Navigation Tabs */}
               <div className="flex border-b border-white/10 bg-slate-950/20 px-3 pt-1">
-                {[
-                  { id: "consensus", label: "Consensus Votes", icon: Layers },
-                  { id: "ast", label: "AST Shield Gates", icon: ShieldAlert },
-                  { id: "payload", label: "DB Payload", icon: Terminal }
-                ].map((t) => {
+                {(
+                  [
+                    { id: "consensus", label: "Consensus Votes", icon: Layers },
+                    { id: "ast", label: "AST Shield Gates", icon: ShieldAlert },
+                    { id: "payload", label: "DB Payload", icon: Terminal },
+                  ] as const
+                ).map((t) => {
                   const Icon = t.icon;
                   const isActive = activeTab === t.id;
                   return (
                     <button
                       key={t.id}
-                      onClick={() => setActiveTab(t.id as any)}
+                      onClick={() => setActiveTab(t.id)}
                       className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wider border-b-2 transition-all duration-300 ${
                         isActive
                           ? "border-emerald-500 text-emerald-400 bg-white/5"
@@ -745,7 +747,11 @@ export default function ReplayViewer() {
                       </div>
 
                       <pre className="p-4 rounded-xl border border-white/10 bg-slate-950 text-[10px] font-mono text-emerald-400/90 leading-relaxed overflow-auto max-h-96 scrollbar-thin">
-                        {JSON.stringify(selectedTrace.parsed_output || JSON.parse(selectedTrace.raw_output), null, 2)}
+                        {JSON.stringify(
+                          selectedTrace.parsed_output ||
+                            (() => { try { return JSON.parse(selectedTrace.raw_output) } catch { return selectedTrace.raw_output } })(),
+                          null, 2
+                        )}
                       </pre>
                     </div>
 

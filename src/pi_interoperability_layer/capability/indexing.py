@@ -110,10 +110,7 @@ class SemanticIndexWorker:
         return results
 
     def query_by_provenance(self, provenance_hash: str) -> List[IndexEntry]:
-        return [
-            e for e in self._entries.values()
-            if e.provenance_hash == provenance_hash
-        ]
+        return [e for e in self._entries.values() if e.provenance_hash == provenance_hash]
 
     def lookup(self, artifact_id: str) -> Optional[IndexEntry]:
         return self._entries.get(artifact_id)

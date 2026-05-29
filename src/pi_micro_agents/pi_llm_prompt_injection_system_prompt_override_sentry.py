@@ -51,11 +51,11 @@ class PiLLMPromptInjectionSystemPromptOverrideSentry:
 
         # Target adversarial system prompt overrides
         override_patterns = [
-            r'ignore\s+(all\s+)?(previous\s+)?(system\s+)?(instructions|commands|rules)',
-            r'system\s+update\s*:\s*(the\s+)?rules\s+have\s+changed',
-            r'you\s+must\s+now\s+act\s+as',
-            r'new\s+rule\s*:\s*ignore\s+previous',
-            r'bypass\s+(all\s+)?system\s+constraints'
+            r"ignore\s+(all\s+)?(previous\s+)?(system\s+)?(instructions|commands|rules)",
+            r"system\s+update\s*:\s*(the\s+)?rules\s+have\s+changed",
+            r"you\s+must\s+now\s+act\s+as",
+            r"new\s+rule\s*:\s*ignore\s+previous",
+            r"bypass\s+(all\s+)?system\s+constraints",
         ]
 
         is_secure = True
@@ -79,8 +79,5 @@ class PiLLMPromptInjectionSystemPromptOverrideSentry:
                 is_secure = True
 
         return SystemPromptOverrideOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

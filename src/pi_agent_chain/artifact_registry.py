@@ -54,9 +54,7 @@ class ArtifactRegistry:
     def __init__(self, db_path: Path | str = ":memory:") -> None:
         self.db_path = str(db_path)
         # Keep a persistent connection for :memory: so the schema survives across operations
-        self._conn: Optional[sqlite3.Connection] = (
-            sqlite3.connect(self.db_path) if self.db_path == ":memory:" else None
-        )
+        self._conn: Optional[sqlite3.Connection] = sqlite3.connect(self.db_path) if self.db_path == ":memory:" else None
         self._ensure_schema()
 
     def _ensure_schema(self) -> None:
@@ -86,15 +84,9 @@ class ArtifactRegistry:
                 )
                 """
             )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_hash ON artifacts(semantic_hash)"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_state ON artifacts(epistemic_state)"
-            )
-            conn.execute(
-                "CREATE INDEX IF NOT EXISTS idx_parent ON artifacts(parent_artifact_ids)"
-            )
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_hash ON artifacts(semantic_hash)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_state ON artifacts(epistemic_state)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_parent ON artifacts(parent_artifact_ids)")
             conn.commit()
         finally:
             if self._conn is None:
@@ -168,9 +160,7 @@ class ArtifactRegistry:
     def all_artifacts(self) -> List[SemanticArtifact]:
         conn = self._conn or sqlite3.connect(self.db_path)
         try:
-            rows = conn.execute(
-                "SELECT * FROM artifacts ORDER BY captured_at DESC"
-            ).fetchall()
+            rows = conn.execute("SELECT * FROM artifacts ORDER BY captured_at DESC").fetchall()
             return [self._row_to_artifact(r) for r in rows]
         finally:
             if self._conn is None:
@@ -199,9 +189,7 @@ class ArtifactRegistry:
             schema_version=row[17] if row[17] else "1.0.0",
         )
 
-    def promote(
-        self, artifact: SemanticArtifact, new_state: str, trust_delta: float = 0.1
-    ) -> SemanticArtifact:
+    def promote(self, artifact: SemanticArtifact, new_state: str, trust_delta: float = 0.1) -> SemanticArtifact:
         """Create a new artifact entry with updated epistemic state.
 
         Preserves immutability — the original artifact remains untouched.
@@ -249,9 +237,7 @@ class ArtifactRegistry:
         payload = json.dumps(obj.model_dump(), sort_keys=True, default=str)
         sem_hash = hashlib.sha256(payload.encode()).hexdigest()
         return SemanticArtifact(
-            artifact_id=hashlib.sha256(
-                (sem_hash + generated_by).encode()
-            ).hexdigest()[:16],
+            artifact_id=hashlib.sha256((sem_hash + generated_by).encode()).hexdigest()[:16],
             artifact_type=artifact_type,
             epistemic_state=getattr(obj, "epistemic_state", EpistemicState.OBSERVED),
             trust_score=getattr(obj, "trust_score", 0.0),

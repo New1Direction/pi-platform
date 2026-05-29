@@ -25,6 +25,7 @@ from pi_semantic_diff.models import (
 #  Endpoint Deltas
 # ──────────────────────────────
 
+
 def _trace_key(t: SemanticIRTrace) -> str:
     return f"{t.method}:{t.endpoint_template}"
 
@@ -176,6 +177,7 @@ def _replay_transition(base: SemanticIRTrace, mod: SemanticIRTrace) -> bool:
 #  Dependency Graph Deltas
 # ──────────────────────────────
 
+
 def _edge_key(e: StateEdge) -> str:
     return f"{e.upstream_endpoint}:{e.upstream_field}->{e.downstream_endpoint}:{e.downstream_field}"
 
@@ -240,6 +242,7 @@ def compute_dependency_deltas(
 #  Auth Deltas
 # ──────────────────────────────
 
+
 def compute_auth_deltas(
     baseline: List[AuthInvariant],
     modified: List[AuthInvariant],
@@ -300,6 +303,7 @@ def compute_auth_deltas(
 #  Replay Surface Deltas
 # ──────────────────────────────
 
+
 def compute_replay_surface_deltas(
     baseline: List[SemanticIRTrace],
     modified: List[SemanticIRTrace],
@@ -351,6 +355,7 @@ def compute_replay_surface_deltas(
 # ──────────────────────────────
 #  Scoring Functions
 # ──────────────────────────────
+
 
 def compute_structural_delta_score(
     endpoint_deltas: List[EndpointDelta],

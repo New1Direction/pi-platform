@@ -27,18 +27,24 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class SignatureInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level of parsing: STRICT, MEDIUM")
 
+
 class SignatureOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from signature replay issues")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed line and violation findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_SIGNATURE_REPLAY_VULNERABILITY, REJECTED_SIGNATURE_REPLAY_VULNERABILITY)")
+    status: str = Field(
+        ...,
+        description="Status classification (PASSED, WARN_SIGNATURE_REPLAY_VULNERABILITY, REJECTED_SIGNATURE_REPLAY_VULNERABILITY)",
+    )
+
 
 # 3. Helper function to extract concrete Solidity functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
@@ -46,7 +52,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
     code_len = len(solidity_code)
 
     # Pattern matching "function [name] (", "constructor (", "fallback (", or "receive ("
-    pattern = re.compile(r'\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -63,11 +69,11 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         start_idx = match.start()
 
         # Calculate line number of start_idx
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
         # Semicolons and opening braces determine concrete vs abstract functions
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -77,9 +83,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -88,6 +94,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 4. Core Micro-Agent Class
 class PiSignatureReplayScout:
@@ -101,8 +108,8 @@ class PiSignatureReplayScout:
         code = input_envelope.solidity_code
 
         # Clean comments to avoid false positives in global analysis
-        code_clean = re.sub(r'//.*', '', code)
-        code_clean = re.sub(r'/\*.*?\*/', '', code_clean, flags=re.DOTALL)
+        code_clean = re.sub(r"//.*", "", code)
+        code_clean = re.sub(r"/\*.*?\*/", "", code_clean, flags=re.DOTALL)
 
         functions = extract_solidity_functions(code)
 
@@ -117,8 +124,8 @@ class PiSignatureReplayScout:
                 continue
 
             # Clean comments for this function body
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             body_lower = cleaned_body.lower()
 
@@ -171,5 +178,5 @@ class PiSignatureReplayScout:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

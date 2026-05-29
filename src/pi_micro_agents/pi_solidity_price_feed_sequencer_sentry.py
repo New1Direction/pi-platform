@@ -53,12 +53,12 @@ class PiSolidityPriceFeedSequencerSentry:
         flagged_findings = []
 
         # Find all functions reading latestRoundData or price feeds
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             if "latestRoundData" in body or "feed" in body.lower():
                 # Check if sequencer liveness check is performed (checking variable containing 'sequencer')
-                if not re.search(r'sequencer', body, re.IGNORECASE):
+                if not re.search(r"sequencer", body, re.IGNORECASE):
                     vulnerable_funcs.append(name)
                     flagged_findings.append(
                         f"Function '{name}' queries an oracle feed but does not perform a Sequencer Uptime Feed liveness check. "
@@ -82,5 +82,5 @@ class PiSolidityPriceFeedSequencerSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

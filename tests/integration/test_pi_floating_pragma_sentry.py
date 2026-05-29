@@ -1,16 +1,13 @@
 """Integration tests for PiFloatingPragmaSentry — dual-use compiler version auditor."""
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_floating_pragma_sentry import (
     PiFloatingPragmaSentry,
     PragmaSentryInput,
     PragmaSentryOutput,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
-
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 # ── Fixtures & Mock Contracts ───────────────────────────────────────────────
 
@@ -54,14 +51,16 @@ def clean_env(monkeypatch):
 
 # ── Tests: FloatingPragmaSentry Heuristics ───────────────────────────────────
 
-class TestFloatingPragmaSentry:
 
+class TestFloatingPragmaSentry:
     def test_vulnerable_floating_pragma_detected(self) -> None:
         agent = PiFloatingPragmaSentry()
-        result = agent.audit_pragma(PragmaSentryInput(
-            file_path="FloatingContract.sol",
-            solidity_code=VULNERABLE_FLOATING,
-        ))
+        result = agent.audit_pragma(
+            PragmaSentryInput(
+                file_path="FloatingContract.sol",
+                solidity_code=VULNERABLE_FLOATING,
+            )
+        )
         assert isinstance(result, PragmaSentryOutput)
         assert result.is_secure is False
         assert "file_header" in result.vulnerable_functions
@@ -71,30 +70,36 @@ class TestFloatingPragmaSentry:
 
     def test_vulnerable_buggy_compiler_detected(self) -> None:
         agent = PiFloatingPragmaSentry()
-        result = agent.audit_pragma(PragmaSentryInput(
-            file_path="BuggyCompilerContract.sol",
-            solidity_code=VULNERABLE_BUGGY_LOCKED,
-        ))
+        result = agent.audit_pragma(
+            PragmaSentryInput(
+                file_path="BuggyCompilerContract.sol",
+                solidity_code=VULNERABLE_BUGGY_LOCKED,
+            )
+        )
         assert isinstance(result, PragmaSentryOutput)
         assert result.is_secure is True  # Warning on outdated/buggy version, low risk
         assert any("bug" in finding or "0.8.20" in finding for finding in result.flagged_findings)
 
     def test_vulnerable_outdated_compiler_detected(self) -> None:
         agent = PiFloatingPragmaSentry()
-        result = agent.audit_pragma(PragmaSentryInput(
-            file_path="OutdatedCompilerContract.sol",
-            solidity_code=VULNERABLE_OUTDATED_LOCKED,
-        ))
+        result = agent.audit_pragma(
+            PragmaSentryInput(
+                file_path="OutdatedCompilerContract.sol",
+                solidity_code=VULNERABLE_OUTDATED_LOCKED,
+            )
+        )
         assert isinstance(result, PragmaSentryOutput)
         assert result.is_secure is True
         assert any("outdated" in finding or "0.8.0" in finding for finding in result.flagged_findings)
 
     def test_safe_locked_pragma_passes(self) -> None:
         agent = PiFloatingPragmaSentry()
-        result = agent.audit_pragma(PragmaSentryInput(
-            file_path="SafePragmaContract.sol",
-            solidity_code=SAFE_LOCKED,
-        ))
+        result = agent.audit_pragma(
+            PragmaSentryInput(
+                file_path="SafePragmaContract.sol",
+                solidity_code=SAFE_LOCKED,
+            )
+        )
         assert isinstance(result, PragmaSentryOutput)
         assert result.is_secure is True
         assert len(result.vulnerable_functions) == 0
@@ -103,20 +108,24 @@ class TestFloatingPragmaSentry:
     def test_warn_only_mode(self, monkeypatch) -> None:
         monkeypatch.setenv("PI_PRAGMA_STRICT_MODE", "false")
         agent = PiFloatingPragmaSentry()
-        result = agent.audit_pragma(PragmaSentryInput(
-            file_path="FloatingContract.sol",
-            solidity_code=VULNERABLE_FLOATING,
-        ))
+        result = agent.audit_pragma(
+            PragmaSentryInput(
+                file_path="FloatingContract.sol",
+                solidity_code=VULNERABLE_FLOATING,
+            )
+        )
         assert isinstance(result, PragmaSentryOutput)
         assert result.is_secure is True
         assert result.status == "WARN_PRAGMA_RISK"
 
     def test_model_dump_and_serialization(self) -> None:
         agent = PiFloatingPragmaSentry()
-        result = agent.audit_pragma(PragmaSentryInput(
-            file_path="SafePragmaContract.sol",
-            solidity_code=SAFE_LOCKED,
-        ))
+        result = agent.audit_pragma(
+            PragmaSentryInput(
+                file_path="SafePragmaContract.sol",
+                solidity_code=SAFE_LOCKED,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -125,16 +134,19 @@ class TestFloatingPragmaSentry:
 
 # ── Tests: Orchestration NLP & Consensus Integration ────────────────────────
 
+
 def test_orchestrator_nlp_routing_to_pragma_sentry() -> None:
     orchestrator = PiOrchestrator()
-    result = orchestrator.execute_goal(OrchestratorInput(
-        goal="Perform a floating pragma compiler check on solidity header files.",
-        context={
-            "file_path": "FloatingContract.sol",
-            "solidity_code": VULNERABLE_FLOATING,
-            "check_level": "STRICT"
-        }
-    ))
+    result = orchestrator.execute_goal(
+        OrchestratorInput(
+            goal="Perform a floating pragma compiler check on solidity header files.",
+            context={
+                "file_path": "FloatingContract.sol",
+                "solidity_code": VULNERABLE_FLOATING,
+                "check_level": "STRICT",
+            },
+        )
+    )
     assert result.success is False
     assert "PiFloatingPragmaSentry" in result.routed_agent
     assert result.risk_score == 80.0

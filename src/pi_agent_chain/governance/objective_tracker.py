@@ -26,9 +26,7 @@ class ObjectiveTracker:
         self.objective_scope = objective_scope
         self._scope_hash = self._hash_scope(objective_scope)
 
-    def validate_worker_response(
-        self, worker_response: WorkerResponse
-    ) -> Optional[GovernanceViolation]:
+    def validate_worker_response(self, worker_response: WorkerResponse) -> Optional[GovernanceViolation]:
         """Check that a worker response preserves objective integrity.
 
         Returns None if valid. Returns GovernanceViolation on drift.
@@ -76,5 +74,6 @@ class ObjectiveTracker:
     def _hash_scope(scope: Dict[str, Any]) -> str:
         import hashlib
         import json
+
         payload = json.dumps(scope, sort_keys=True, default=str)
         return hashlib.sha256(payload.encode()).hexdigest()

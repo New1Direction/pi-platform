@@ -1,17 +1,25 @@
 from __future__ import annotations
 
-import uuid
-import time
-import queue
+import atexit
 import logging
+import queue
+import time
+import uuid
+import weakref
+from concurrent.futures import Future, ThreadPoolExecutor
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional, Tuple
-from concurrent.futures import ThreadPoolExecutor, Future
+from typing import Any, Callable, Dict, List, Tuple
 
 from pydantic import BaseModel, Field
 
 # Setup logging
 logger = logging.getLogger("pi_platform.scheduler")
+
+
+def _atexit_shutdown(sched_ref: "weakref.ref[Any]") -> None:
+    sched = sched_ref()
+    if sched is not None:
+        sched.shutdown(wait=False, cancel_futures=True)
 
 
 class AgentExecutionClass(str, Enum):
@@ -41,7 +49,7 @@ class SchedulerTask(BaseModel):
 
 class PiCognitiveExecutionScheduler:
     """High-performance programmable cognitive execution scheduler.
-    
+
     Manages priority queues, speculative execution execution-branches, backpressure bounds,
     and cancellation signals with absolute determinism.
     """
@@ -51,11 +59,16 @@ class PiCognitiveExecutionScheduler:
         self.backpressure_threshold = backpressure_threshold
         self.executor = ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="pi_scheduler")
         self.queue: queue.PriorityQueue[Tuple[int, SchedulerTask]] = queue.PriorityQueue()
-        
-        # Thread-safe mappings for running tasks and cancellation signals
+
+        # Mutations to active_tasks/cancellation_events must hold _state_lock
+        # otherwise the wrapper's finally-pop can race with cancel_task() and
+        # leak a cancellation event for a task that already finished.
+        import threading as _threading
+
+        self._state_lock = _threading.RLock()
         self.active_tasks: Dict[str, Future[Any]] = {}
-        self.cancellation_events: Dict[str, Any] = {} # Dict[task_id, threading.Event]
-        
+        self.cancellation_events: Dict[str, Any] = {}  # Dict[task_id, threading.Event]
+
         # Performance and governance metrics
         self.stats = {
             "total_scheduled": 0,
@@ -66,24 +79,48 @@ class PiCognitiveExecutionScheduler:
             "degradations_applied": 0,
         }
 
+        self._shutdown = False
+        # Register a weakref-based atexit hook so an abandoned scheduler does
+        # not leak its worker threads at interpreter shutdown.
+        atexit.register(_atexit_shutdown, weakref.ref(self))
+
+    def shutdown(self, wait: bool = True, cancel_futures: bool = False) -> None:
+        """Idempotent shutdown of the worker pool."""
+        if self._shutdown:
+            return
+        self._shutdown = True
+        try:
+            self.executor.shutdown(wait=wait, cancel_futures=cancel_futures)
+        except Exception:
+            logger.exception("scheduler executor shutdown failed")
+
+    def __enter__(self) -> "PiCognitiveExecutionScheduler":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> None:
+        self.shutdown(wait=True)
+
+    def __del__(self) -> None:
+        # Best-effort: if the user never called shutdown, do it on GC.
+        if not getattr(self, "_shutdown", True):
+            try:
+                self.shutdown(wait=False, cancel_futures=True)
+            except Exception:
+                pass
+
     def schedule(
         self,
         goal: str,
         execution_class: AgentExecutionClass,
         priority: int,
         payload: Dict[str, Any],
-        execute_fn: Callable[[SchedulerTask], Any]
+        execute_fn: Callable[[SchedulerTask], Any],
     ) -> Future[Any]:
         """Schedules a task with priority, execution class, and backpressure bounds."""
-        task = SchedulerTask(
-            goal=goal,
-            execution_class=execution_class,
-            priority=priority,
-            payload=payload
-        )
-        
+        task = SchedulerTask(goal=goal, execution_class=execution_class, priority=priority, payload=payload)
+
         self.stats["total_scheduled"] += 1
-        
+
         # Check backpressure limits
         if self.queue.qsize() >= self.backpressure_threshold:
             self.stats["backpressure_tripped"] += 1
@@ -91,61 +128,70 @@ class PiCognitiveExecutionScheduler:
             logger.warning(f"Backpressure threshold breached ({self.queue.qsize()}). Degrading task: {task.task_id}")
             # Dynamic degradation: degrade soft-real-time or blocking task to fallback immediate response
             fallback_future = Future()
-            fallback_future.set_result({
-                "status": "DEGRADED_FALLBACK",
-                "success": True,
-                "risk_score": 0.0,
-                "summary": f"Fallback degraded execution completed for {task.goal}",
-                "details": {"degradation_timestamp": time.time()}
-            })
+            # From the caller's perspective the degraded fallback IS a
+            # completed result — `success` reflects "we returned something"
+            # not "we ran the real task". Risk is elevated and the summary
+            # marks it unverified so downstream consumers can branch.
+            fallback_future.set_result(
+                {
+                    "status": "DEGRADED_FALLBACK",
+                    "success": True,
+                    "executed": False,
+                    "risk_score": 50.0,
+                    "summary": f"Backpressure limit reached — task {task.task_id} was NOT executed. Result is unverified.",
+                    "details": {"degradation_timestamp": time.time()},
+                }
+            )
             return fallback_future
 
         # Put in priority queue
         self.queue.put((task.priority, task))
-        
+
         # Submit to pool
         future = self.executor.submit(self._run_task_wrapper, task, execute_fn)
-        self.active_tasks[task.task_id] = future
+        with self._state_lock:
+            self.active_tasks[task.task_id] = future
         return future
 
     def cancel_task(self, task_id: str) -> bool:
         """Propagates a thread-safe cancellation signal to the execution tree."""
-        if task_id in self.cancellation_events:
-            self.cancellation_events[task_id].set()
+        with self._state_lock:
+            event = self.cancellation_events.get(task_id)
+            future = self.active_tasks.get(task_id)
+        if event is not None:
+            event.set()
             self.stats["total_cancelled"] += 1
-            
-        future = self.active_tasks.get(task_id)
-        if future:
+        if future is not None:
             future.cancel()
             return True
         return False
 
     def run_speculative(
-        self,
-        tasks: List[SchedulerTask],
-        execute_fn: Callable[[SchedulerTask], Any],
-        timeout_seconds: float = 5.0
+        self, tasks: List[SchedulerTask], execute_fn: Callable[[SchedulerTask], Any], timeout_seconds: float = 5.0
     ) -> Dict[str, Any]:
         """Runs multiple tasks concurrently in parallel speculative branches.
-        
-        Validates output consensus or retrieves the earliest/safest outcome deterministically.
+
+        Each branch gets its own cancellation event so a slow branch is not
+        cancelled by a peer branch completing first — the parent decides
+        when to call ``cancel`` after collecting results.
         """
         import threading
-        
+
         self.stats["speculative_runs"] += 1
         futures: List[Tuple[SchedulerTask, Future[Any]]] = []
-        cancellation_event = threading.Event()
-        
-        # Submit speculative branches
+
+        # Submit speculative branches with per-task events
         for t in tasks:
-            self.cancellation_events[t.task_id] = cancellation_event
+            with self._state_lock:
+                self.cancellation_events[t.task_id] = threading.Event()
             fut = self.executor.submit(self._run_task_wrapper, t, execute_fn)
-            self.active_tasks[t.task_id] = fut
+            with self._state_lock:
+                self.active_tasks[t.task_id] = fut
             futures.append((t, fut))
-            
+
         completed_results: List[Tuple[SchedulerTask, Any]] = []
         start_time = time.time()
-        
+
         # Wait and compile results
         while len(completed_results) < len(tasks) and (time.time() - start_time) < timeout_seconds:
             for t, fut in futures:
@@ -156,10 +202,13 @@ class PiCognitiveExecutionScheduler:
                     except Exception as e:
                         completed_results.append((t, {"error": str(e), "success": False}))
             time.sleep(0.01)
-            
-        # Cancel unfinished speculative paths
-        cancellation_event.set()
-        for _, fut in futures:
+
+        # Cancel only the branches we still own.
+        for t, fut in futures:
+            with self._state_lock:
+                ev = self.cancellation_events.get(t.task_id)
+            if ev is not None:
+                ev.set()
             if not fut.done():
                 fut.cancel()
 
@@ -170,7 +219,7 @@ class PiCognitiveExecutionScheduler:
         risk_scores: List[float] = []
         anomalies: List[str] = []
         success = True
-        
+
         for t, res in completed_results:
             if isinstance(res, dict):
                 success = success and res.get("success", True)
@@ -183,23 +232,24 @@ class PiCognitiveExecutionScheduler:
                 merged_details[t.task_id] = str(res)
 
         avg_risk = sum(risk_scores) / len(risk_scores) if risk_scores else 0.0
-        
+
         return {
             "success": success,
             "risk_score": avg_risk,
             "anomalies_detected": list(set(anomalies)),
             "branches_completed": len(completed_results),
-            "merged_details": merged_details
+            "merged_details": merged_details,
         }
 
     def _run_task_wrapper(self, task: SchedulerTask, execute_fn: Callable[[SchedulerTask], Any]) -> Any:
         import threading
-        
-        if task.task_id not in self.cancellation_events:
-            self.cancellation_events[task.task_id] = threading.Event()
-            
-        cancel_evt = self.cancellation_events[task.task_id]
-        
+
+        with self._state_lock:
+            cancel_evt = self.cancellation_events.get(task.task_id)
+            if cancel_evt is None:
+                cancel_evt = threading.Event()
+                self.cancellation_events[task.task_id] = cancel_evt
+
         # Check pre-execution cancellation
         if cancel_evt.is_set():
             return {"status": "CANCELLED", "success": False, "risk_score": 0.0}
@@ -212,8 +262,9 @@ class PiCognitiveExecutionScheduler:
             logger.error(f"Task {task.task_id} execution failed: {e}")
             return {"status": "FAILED", "success": False, "risk_score": 100.0, "error": str(e)}
         finally:
-            self.active_tasks.pop(task.task_id, None)
-            self.cancellation_events.pop(task.task_id, None)
+            with self._state_lock:
+                self.active_tasks.pop(task.task_id, None)
+                self.cancellation_events.pop(task.task_id, None)
 
     def get_stats(self) -> Dict[str, Any]:
         """Returns live scheduler queue sizes and thread performance metrics."""

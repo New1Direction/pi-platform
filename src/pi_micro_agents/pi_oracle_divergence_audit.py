@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class OracleDivergenceInput(BaseModel):
     file_path: str = Field(..., description="Pricing aggregator or contract file path")
@@ -35,12 +36,16 @@ class OracleDivergenceInput(BaseModel):
     max_deviation_percent: float = Field(default=2.0, description="Maximum permitted deviation percent")
     solidity_code: str = Field(default="", description="Solidity code of pricing aggregator (optional)")
 
+
 class OracleDivergenceOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if price deviation is within safe limits and math is correct")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names or assets")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed deviation and formulation findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_ORACLE_DIVERGENCE, REJECTED_ORACLE_DIVERGENCE)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_ORACLE_DIVERGENCE, REJECTED_ORACLE_DIVERGENCE)"
+    )
+
 
 # 3. Core Micro-Agent Class
 class PiOracleDivergenceAudit:
@@ -78,8 +83,8 @@ class PiOracleDivergenceAudit:
         if code:
             code_lower = code.lower()
             # Clean comments
-            code_clean = re.sub(r'//.*', '', code_lower)
-            code_clean = re.sub(r'/\*.*?\*/', '', code_clean, flags=re.DOTALL)
+            code_clean = re.sub(r"//.*", "", code_lower)
+            code_clean = re.sub(r"/\*.*?\*/", "", code_clean, flags=re.DOTALL)
 
             # Look for simple average patterns (addition divided by count) which can be manipulated in illiquid pools
             if "sum" in code_clean and "/" in code_clean and "length" in code_clean:
@@ -108,5 +113,5 @@ class PiOracleDivergenceAudit:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

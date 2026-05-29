@@ -7,7 +7,6 @@ from pydantic import BaseModel
 
 from pi_interoperability_layer.contracts import (
     ArtifactContract,
-    ArtifactFingerprint,
     ContractRegistry,
     SchemaEvolutionLog,
     SchemaEvolutionRecord,

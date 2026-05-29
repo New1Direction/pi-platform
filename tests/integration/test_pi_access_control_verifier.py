@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_access_control_verifier import (
-    PiAccessControlVerifier,
     AccessControlInput,
-    AccessControlOutput,
-    is_strict_mode,
+    PiAccessControlVerifier,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -43,11 +40,7 @@ def test_access_control_vulnerable_contract():
         }
     }
     """
-    inp = AccessControlInput(
-        file_path="Token.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = AccessControlInput(file_path="Token.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_access_control(inp)
 
@@ -87,11 +80,7 @@ def test_access_control_safe_contract():
         }
     }
     """
-    inp = AccessControlInput(
-        file_path="SecureToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = AccessControlInput(file_path="SecureToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_access_control(inp)
 
@@ -112,17 +101,13 @@ def test_access_control_uninitialized_owner():
     solidity_code = """
     contract Uninitialized {
         address public owner;
-        
+
         function setOwner(address newOwner) public onlyOwner {
             owner = newOwner;
         }
     }
     """
-    inp = AccessControlInput(
-        file_path="Uninitialized.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = AccessControlInput(file_path="Uninitialized.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_access_control(inp)
 
@@ -150,17 +135,13 @@ def test_access_control_privilege_elevation():
         function becomeAdmin() public {
             isAdmin[msg.sender] = true;
         }
-        
+
         function takeover() public {
             owner = msg.sender;
         }
     }
     """
-    inp = AccessControlInput(
-        file_path="PrivilegeElevator.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = AccessControlInput(file_path="PrivilegeElevator.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_access_control(inp)
 
@@ -193,31 +174,27 @@ def test_orchestrator_access_control_consensus_passed(monkeypatch):
             "vulnerable_functions": ["mint"],
             "flagged_findings": ["Missing modifier on mint"],
             "risk_score": 95.0,
-            "status": "REJECTED_ACCESS_CONTROL"
+            "status": "REJECTED_ACCESS_CONTROL",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["mint"],
             "flagged_findings": ["Missing modifier on mint"],
             "risk_score": 95.0,
-            "status": "REJECTED_ACCESS_CONTROL"
+            "status": "REJECTED_ACCESS_CONTROL",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["mint"],
             "flagged_findings": ["Missing modifier on mint"],
             "risk_score": 95.0,
-            "status": "REJECTED_ACCESS_CONTROL"
-        }
+            "status": "REJECTED_ACCESS_CONTROL",
+        },
     ]
 
     inp = OrchestratorInput(
         goal="access check on Token.sol to verify mint limits",
-        context={
-            "file_path": "Token.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Token.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 
@@ -237,7 +214,8 @@ def test_orchestrator_access_control_consensus_failed_divergence(monkeypatch):
     """Verify that split vote high-divergence output triggers fail-shut and blocks execution."""
     monkeypatch.setenv("PI_ORCHESTRATOR_STRICT_MODE", "true")
 
-    from pi_semantic_radius.consensus_breaker import PiConsensusBreaker, DivergenceReport
+    from pi_semantic_radius.consensus_breaker import DivergenceReport, PiConsensusBreaker
+
     def mock_evaluate_consensus(self, prompt, responses):
         return DivergenceReport(
             prompt=prompt,
@@ -245,8 +223,9 @@ def test_orchestrator_access_control_consensus_failed_divergence(monkeypatch):
             semantic_divergence=85.0,
             structural_divergence=0.0,
             consensus_divergence_score=85.0,
-            is_broken=True
+            is_broken=True,
         )
+
     monkeypatch.setattr(PiConsensusBreaker, "evaluate_consensus", mock_evaluate_consensus)
 
     orchestrator = PiOrchestrator()
@@ -259,36 +238,20 @@ def test_orchestrator_access_control_consensus_failed_divergence(monkeypatch):
 
     # Highly divergent runs
     mock_consensus_runs = [
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        },
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
         {
             "is_secure": False,
             "vulnerable_functions": ["mint"],
             "flagged_findings": ["Missing modifier on mint"],
             "risk_score": 95.0,
-            "status": "REJECTED_ACCESS_CONTROL"
+            "status": "REJECTED_ACCESS_CONTROL",
         },
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        }
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
     ]
 
     inp = OrchestratorInput(
         goal="privilege check on Token.sol",
-        context={
-            "file_path": "Token.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Token.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 

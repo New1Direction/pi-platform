@@ -37,8 +37,12 @@ class HallucinationDetectorInput(BaseModel):
 
 class HallucinationDetectorOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if LLM output is free from logical contradictions")
-    vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable segments or sentences in text")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed logical contradictions or hallucination findings")
+    vulnerable_functions: List[str] = Field(
+        default_factory=list, description="Vulnerable segments or sentences in text"
+    )
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed logical contradictions or hallucination findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_HALLUCINATION, REJECTED_HALLUCINATION)")
 
@@ -58,8 +62,8 @@ class PiLLMHallucinationDetector:
 
         # Find direct self-contradictions
         # Case 1: Statement declaring a state is secure, and then later declaring it is insecure in same text
-        secure_stmt = re.search(r'\b(is\s+secure|no\s+vulnerabilities|passed|clean)\b', text, re.IGNORECASE)
-        insecure_stmt = re.search(r'\b(is\s+vulnerable|has\s+exploits|rejected|danger|unsafe)\b', text, re.IGNORECASE)
+        secure_stmt = re.search(r"\b(is\s+secure|no\s+vulnerabilities|passed|clean)\b", text, re.IGNORECASE)
+        insecure_stmt = re.search(r"\b(is\s+vulnerable|has\s+exploits|rejected|danger|unsafe)\b", text, re.IGNORECASE)
 
         if secure_stmt and insecure_stmt:
             vulnerable_funcs.append("response_text")
@@ -70,8 +74,8 @@ class PiLLMHallucinationDetector:
             )
 
         # Case 2: Claiming full compliance, but listing failures
-        compliance_passed = re.search(r'\b(fully\s+compliant|100%\s+coverage)\b', text, re.IGNORECASE)
-        failed_checks = re.search(r'\b(failed|violations\s+found|non-compliant)\b', text, re.IGNORECASE)
+        compliance_passed = re.search(r"\b(fully\s+compliant|100%\s+coverage)\b", text, re.IGNORECASE)
+        failed_checks = re.search(r"\b(failed|violations\s+found|non-compliant)\b", text, re.IGNORECASE)
 
         if compliance_passed and failed_checks:
             vulnerable_funcs.append("response_text")
@@ -97,5 +101,5 @@ class PiLLMHallucinationDetector:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

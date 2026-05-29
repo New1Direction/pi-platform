@@ -105,9 +105,7 @@ class SnapshotArtifact(BaseModel):
             "payload_hash": self.payload_hash,
             "previous_snapshot_hash": self.previous_snapshot_hash,
         }
-        return hashlib.sha256(
-            json.dumps(data, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        return hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
     @property
     def tenant_id(self) -> str:

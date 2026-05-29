@@ -12,7 +12,6 @@ Tests for real-world traffic noise handling:
 import gzip
 import json
 import zlib
-from io import BytesIO
 
 import pytest
 
@@ -59,7 +58,8 @@ def test_brotli_decompression():
     """Brotli-compressed payload is decompressed if brotli is available."""
     try:
         import brotli
-        raw = b"{\"compressed\": true}"
+
+        raw = b'{"compressed": true}'
         compressed = brotli.compress(raw)
 
         result = PayloadNormalizer.normalize(
@@ -78,7 +78,8 @@ def test_zstd_decompression():
     """Zstd-compressed payload is decompressed if zstandard is available."""
     try:
         import zstandard as zstd
-        raw = b"{\"zstd\": true}"
+
+        raw = b'{"zstd": true}'
         cctx = zstd.ZstdCompressor()
         compressed = cctx.compress(raw)
 

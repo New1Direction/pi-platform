@@ -82,8 +82,12 @@ class TerraformStateConnector(BaseConnectorWorker):
         artifacts.append(dep_artifact)
 
         receipt = self._produce_receipt(
-            artifacts=artifacts, tenant_id=tenant_id, actor_id=actor_id,
-            correlation_id=correlation_id, start_time=start, errors=errors,
+            artifacts=artifacts,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            correlation_id=correlation_id,
+            start_time=start,
+            errors=errors,
         )
         return artifacts, receipt
 
@@ -92,15 +96,17 @@ class TerraformStateConnector(BaseConnectorWorker):
         modules = tf_state.get("resources", [])
         for mod in modules:
             for instance in mod.get("instances", []):
-                resources.append({
-                    "id": f"tf:{mod.get('module','root')}:{mod.get('type','unk')}:{mod.get('name','unk')}",
-                    "type": mod.get("type", "unknown"),
-                    "name": mod.get("name", "unknown"),
-                    "module": mod.get("module", "root"),
-                    "mode": mod.get("mode", "managed"),
-                    "provider": mod.get("provider", ""),
-                    "attributes": instance.get("attributes", {}),
-                })
+                resources.append(
+                    {
+                        "id": f"tf:{mod.get('module', 'root')}:{mod.get('type', 'unk')}:{mod.get('name', 'unk')}",
+                        "type": mod.get("type", "unknown"),
+                        "name": mod.get("name", "unknown"),
+                        "module": mod.get("module", "root"),
+                        "mode": mod.get("mode", "managed"),
+                        "provider": mod.get("provider", ""),
+                        "attributes": instance.get("attributes", {}),
+                    }
+                )
         return resources
 
     def _extract_dependencies(self, tf_state: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -108,7 +114,7 @@ class TerraformStateConnector(BaseConnectorWorker):
         modules = tf_state.get("resources", [])
         for mod in modules:
             dep_list = mod.get("depends_on", [])
-            src = f"tf:{mod.get('module','root')}:{mod.get('type','unk')}:{mod.get('name','unk')}"
+            src = f"tf:{mod.get('module', 'root')}:{mod.get('type', 'unk')}:{mod.get('name', 'unk')}"
             for dep in dep_list:
                 deps.append({"from": src, "to": str(dep), "relation": "depends_on"})
         return deps

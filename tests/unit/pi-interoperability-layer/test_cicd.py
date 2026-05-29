@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from pi_interoperability_layer.cicd import (
-    PRGateConfig,
-    PRGateResult,
-    ReplayValidationGate,
-    PolicyEnforcementHook,
     GitHubActionsWorkflow,
+    PolicyEnforcementHook,
+    PRGateConfig,
+    ReplayValidationGate,
 )
 
 
@@ -41,9 +40,7 @@ def test_pr_gate_missing_pass() -> None:
 
 
 def test_pr_gate_fail_closed_disabled() -> None:
-    gate = PRGateConfig(
-        gate_id="g1", required_passes=["boundary"], fail_closed=False
-    )
+    gate = PRGateConfig(gate_id="g1", required_passes=["boundary"], fail_closed=False)
     results = {"boundary": False}
     outcome = gate.evaluate(results)
     assert outcome.status == "FAIL"
@@ -109,9 +106,7 @@ def test_policy_enforcement_hook_present() -> None:
         required_validations=["boundary"],
         required_contracts=["SemanticIRTrace"],
     )
-    missing = hook.check_required(
-        {"validation_boundary": True, "contract_SemanticIRTrace": True}
-    )
+    missing = hook.check_required({"validation_boundary": True, "contract_SemanticIRTrace": True})
     assert missing == []
 
 

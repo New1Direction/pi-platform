@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -41,11 +40,20 @@ class PiSoliditySignatureOmittedReplaySentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Look for keccak256 hashing associated with signatures
-            if "keccak256" in body and ("abi.encode" in body or "abi.encodePacked" in body) and ("signature" in name.lower() or "hash" in name.lower() or "permit" in name.lower() or "verify" in name.lower()):
+            if (
+                "keccak256" in body
+                and ("abi.encode" in body or "abi.encodePacked" in body)
+                and (
+                    "signature" in name.lower()
+                    or "hash" in name.lower()
+                    or "permit" in name.lower()
+                    or "verify" in name.lower()
+                )
+            ):
                 # Check if it includes block.chainid or chainid
                 has_chainid = "chainid" in body or "block.chainid" in body
                 # Check if it includes nonce or nonces
@@ -82,5 +90,5 @@ class PiSoliditySignatureOmittedReplaySentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

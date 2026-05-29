@@ -36,7 +36,9 @@ class BridgeReplayInput(BaseModel):
 
 
 class BridgeReplayOutput(BaseModel):
-    is_secure: bool = Field(..., description="Indicates if contract cross-chain message processing is safe from replays")
+    is_secure: bool = Field(
+        ..., description="Indicates if contract cross-chain message processing is safe from replays"
+    )
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed bridge replay findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
@@ -57,17 +59,24 @@ class PiCrossChainMessageReplaySentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Mode 1: Check for receiver style function
-            is_receiver = any(kw in name.lower() for kw in ["lzreceive", "execute", "process", "onmessagereceived", "receiveland"])
-            
+            is_receiver = any(
+                kw in name.lower() for kw in ["lzreceive", "execute", "process", "onmessagereceived", "receiveland"]
+            )
+
             if is_receiver:
                 # Mode 2: Verify if there is a tracking registry to record processed nonces or payload hashes
                 # Check for mapping lookup and assignment in the receiver body
-                has_nonce_guard = "processedNonces" in body or "isExecuted" in body or "processedMessages" in body or re.search(r'mapping\s*\(\s*[^=]+=>\s*bool\s*\)', code)
-                
+                has_nonce_guard = (
+                    "processedNonces" in body
+                    or "isExecuted" in body
+                    or "processedMessages" in body
+                    or re.search(r"mapping\s*\(\s*[^=]+=>\s*bool\s*\)", code)
+                )
+
                 if not has_nonce_guard:
                     vulnerable_funcs.append(name)
                     flagged_findings.append(
@@ -94,5 +103,5 @@ class PiCrossChainMessageReplaySentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

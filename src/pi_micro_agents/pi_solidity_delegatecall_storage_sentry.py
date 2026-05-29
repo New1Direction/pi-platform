@@ -38,9 +38,13 @@ class DelegatecallStorageInput(BaseModel):
 class DelegatecallStorageOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if delegatecall storage checks passed")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed proxy delegatecall storage safety findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed proxy delegatecall storage safety findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_DELEGATECALL_STORAGE, REJECTED_DELEGATECALL_STORAGE)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_DELEGATECALL_STORAGE, REJECTED_DELEGATECALL_STORAGE)"
+    )
 
 
 # 3. Core Micro-Agent Class
@@ -57,13 +61,13 @@ class PiSolidityDelegatecallStorageSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check if delegatecall is used inside assembly
             if "assembly" in body and "delegatecall" in body:
                 # Look for target loaded using sload
-                sload_match = re.search(r'sload\s*\(\s*(0x[a-fA-F0-9]+|[a-zA-Z0-9_]+)\s*\)', body)
+                sload_match = re.search(r"sload\s*\(\s*(0x[a-fA-F0-9]+|[a-zA-Z0-9_]+)\s*\)", body)
                 if sload_match:
                     slot = sload_match.group(1)
                     # Check if slot is an EIP-1967 slot constant
@@ -73,7 +77,7 @@ class PiSolidityDelegatecallStorageSentry:
                     eip1967_slots = [
                         "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc",
                         "0xa3f0ad74a5890d8e115a428731304671291891c9d44342144a0b228226348149",
-                        "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103"
+                        "0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103",
                     ]
                     if slot not in eip1967_slots:
                         vulnerable_funcs.append(name)
@@ -108,5 +112,5 @@ class PiSolidityDelegatecallStorageSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

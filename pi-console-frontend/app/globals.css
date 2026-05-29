@@ -3,32 +3,165 @@
 @tailwind utilities;
 
 :root {
-  --background: #0d1117;
-  --foreground: #c9d1d9;
-  --card: #161b22;
-  --card-foreground: #c9d1d9;
-  --popover: #161b22;
-  --popover-foreground: #c9d1d9;
-  --primary: #238636;
+  /* Obsidian Dark Charcoal Base Colors */
+  --background: #09090b;
+  --foreground: #f4f4f5;
+  
+  /* Glassmorphism Panel Colors */
+  --card: rgba(18, 18, 22, 0.75);
+  --card-foreground: #fafafa;
+  --popover: rgba(20, 20, 25, 0.85);
+  --popover-foreground: #fafafa;
+  
+  /* Vibrant Blue/Purple Accents */
+  --primary: #8b5cf6;
   --primary-foreground: #ffffff;
-  --secondary: #21262d;
-  --secondary-foreground: #c9d1d9;
-  --muted: #161b22;
-  --muted-foreground: #8b949e;
-  --accent: #388bfd;
+  --secondary: rgba(39, 39, 42, 0.6);
+  --secondary-foreground: #e4e4e7;
+  
+  --muted: rgba(24, 24, 27, 0.8);
+  --muted-foreground: #a1a1aa;
+  
+  --accent: #2563eb;
   --accent-foreground: #ffffff;
-  --destructive: #da3633;
+  
+  --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: #30363d;
-  --input: #21262d;
-  --ring: #388bfd;
-  --radius: 0.5rem;
+  
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(18, 18, 22, 0.5);
+  --ring: rgba(139, 92, 246, 0.5);
+  --radius: 12px;
+  
+  /* Glow Gradients */
+  --glow-purple: rgba(139, 92, 246, 0.15);
+  --glow-blue: rgba(37, 99, 235, 0.15);
 }
 
 body {
   background-color: var(--background);
+  background-image: 
+    radial-gradient(at 0% 0%, var(--glow-purple) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, var(--glow-blue) 0px, transparent 50%);
+  background-attachment: fixed;
   color: var(--foreground);
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: 'Outfit', Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism panel base class */
+.glass-panel {
+  background: var(--card);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  border-radius: var(--radius);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-panel:hover {
+  border-color: rgba(139, 92, 246, 0.25);
+  box-shadow: 0 12px 40px 0 rgba(139, 92, 246, 0.1);
+}
+
+/* Pulsing Glowing Dots for real-time consensus status */
+.pulse-glow-node {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: relative;
+  display: inline-block;
+}
+
+.pulse-glow-node.active {
+  background-color: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulse-green 2s infinite ease-in-out;
+}
+
+.pulse-glow-node.processing {
+  background-color: #8b5cf6;
+  box-shadow: 0 0 8px #8b5cf6;
+  animation: pulse-purple 1.5s infinite ease-in-out;
+}
+
+.pulse-glow-node.idle {
+  background-color: #6b7280;
+  box-shadow: 0 0 4px #6b7280;
+}
+
+@keyframes pulse-green {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
+  }
+  50% {
+    transform: scale(1.35);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.9), 0 0 20px rgba(16, 185, 129, 0.4);
+  }
+}
+
+@keyframes pulse-purple {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 4px rgba(139, 92, 246, 0.6);
+  }
+  50% {
+    transform: scale(1.35);
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.9), 0 0 20px rgba(139, 92, 246, 0.4);
+  }
+}
+
+/* Custom premium scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+/* Custom interactive styling rules */
+input, select, textarea {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Mouse focus: subtle. Keyboard focus: high-contrast ring for WCAG-AA. */
+input:focus, select:focus, textarea:focus, button:focus {
+  outline: none;
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-color: var(--primary) !important;
+  box-shadow: 0 0 0 3px var(--ring), 0 0 0 5px var(--background) !important;
+}
+
+button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer base {

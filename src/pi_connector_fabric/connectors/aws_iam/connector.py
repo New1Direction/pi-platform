@@ -73,19 +73,44 @@ class AWSIAMConnector(BaseConnectorWorker):
         artifacts.append(artifact)
 
         receipt = self._produce_receipt(
-            artifacts=artifacts, tenant_id=tenant_id, actor_id=actor_id,
-            correlation_id=correlation_id, start_time=start, errors=errors,
+            artifacts=artifacts,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            correlation_id=correlation_id,
+            start_time=start,
+            errors=errors,
         )
         return artifacts, receipt
 
     def _extract_identities(self, raw: Dict[str, Any]) -> List[Dict[str, Any]]:
         identities: List[Dict[str, Any]] = []
         for role in raw.get("roles", []):
-            identities.append({"arn": role.get("Arn", ""), "type": "role", "name": role.get("RoleName", ""), "path": role.get("Path", "/")})
+            identities.append(
+                {
+                    "arn": role.get("Arn", ""),
+                    "type": "role",
+                    "name": role.get("RoleName", ""),
+                    "path": role.get("Path", "/"),
+                }
+            )
         for user in raw.get("users", []):
-            identities.append({"arn": user.get("Arn", ""), "type": "user", "name": user.get("UserName", ""), "path": user.get("Path", "/")})
+            identities.append(
+                {
+                    "arn": user.get("Arn", ""),
+                    "type": "user",
+                    "name": user.get("UserName", ""),
+                    "path": user.get("Path", "/"),
+                }
+            )
         for group in raw.get("groups", []):
-            identities.append({"arn": group.get("Arn", ""), "type": "group", "name": group.get("GroupName", ""), "path": group.get("Path", "/")})
+            identities.append(
+                {
+                    "arn": group.get("Arn", ""),
+                    "type": "group",
+                    "name": group.get("GroupName", ""),
+                    "path": group.get("Path", "/"),
+                }
+            )
         return identities
 
     def _extract_relationships(self, raw: Dict[str, Any]) -> List[Dict[str, Any]]:

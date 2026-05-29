@@ -5,19 +5,17 @@ Deterministic pipeline execution, contract enforcement, chain integrity.
 
 from __future__ import annotations
 
-import pytest
-
 from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
+from pi_interoperability_layer.mesh.kernel import CentralOrchestratorKernel, PhaseConfig
 from pi_interoperability_layer.mesh.receipts import ExecutionReceipt, OrchestrationLedger, PhaseBoundaryReceipt
 from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
-from pi_interoperability_layer.mesh.kernel import CentralOrchestratorKernel, PhaseConfig
 from pi_interoperability_layer.mesh.workers import (
-    SnapshotIngestWorker,
-    SchemaValidationWorker,
-    EndpointExtractionWorker,
-    DependencyExtractionWorker,
     BoundaryValidationWorker,
+    DependencyExtractionWorker,
+    EndpointExtractionWorker,
     MergeGateWorker,
+    SchemaValidationWorker,
+    SnapshotIngestWorker,
 )
 
 
@@ -39,6 +37,7 @@ class _FailingWorker(WorkerBase):
 class _TimeoutWorker(WorkerBase):
     def _run(self, phase: str, input_slot_ids: list[str]) -> list[ArtifactSlot]:
         import time
+
         time.sleep(0.001)
         return []
 

@@ -66,42 +66,56 @@ class PostgreSQLConnector(BaseConnectorWorker):
         dependencies = []
         for table in tables:
             for fk in table.get("foreign_keys", []):
-                dependencies.append({
-                    "from": f"pg:{table.get('schema','public')}.{table.get('name','unk')}",
-                    "to": f"pg:{fk.get('ref_schema','public')}.{fk.get('ref_table','unk')}",
-                    "relation": "foreign_key",
-                    "columns": fk.get("columns", []),
-                })
+                dependencies.append(
+                    {
+                        "from": f"pg:{table.get('schema', 'public')}.{table.get('name', 'unk')}",
+                        "to": f"pg:{fk.get('ref_schema', 'public')}.{fk.get('ref_table', 'unk')}",
+                        "relation": "foreign_key",
+                        "columns": fk.get("columns", []),
+                    }
+                )
 
         dep = ArtifactNormalizer.normalize_dependency_graph(
-            dependencies=dependencies, source_system="postgresql",
-            connector_id=self.manifest.connector_id, connector_version=self.manifest.version,
-            tenant_id=tenant_id, correlation_id=correlation_id,
+            dependencies=dependencies,
+            source_system="postgresql",
+            connector_id=self.manifest.connector_id,
+            connector_version=self.manifest.version,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
         )
         artifacts.append(dep)
 
         # Infrastructure state: all schema objects
         resources = []
         for table in tables:
-            resources.append({
-                "id": f"pg:{table.get('schema','public')}.{table.get('name','unk')}",
-                "type": "table",
-                "schema": table.get("schema", "public"),
-                "name": table.get("name", ""),
-                "columns": table.get("columns", []),
-                "primary_key": table.get("primary_key", []),
-                "indexes": table.get("indexes", []),
-            })
+            resources.append(
+                {
+                    "id": f"pg:{table.get('schema', 'public')}.{table.get('name', 'unk')}",
+                    "type": "table",
+                    "schema": table.get("schema", "public"),
+                    "name": table.get("name", ""),
+                    "columns": table.get("columns", []),
+                    "primary_key": table.get("primary_key", []),
+                    "indexes": table.get("indexes", []),
+                }
+            )
 
         state = ArtifactNormalizer.normalize_infrastructure_state(
-            resources=resources, source_system="postgresql",
-            connector_id=self.manifest.connector_id, connector_version=self.manifest.version,
-            tenant_id=tenant_id, correlation_id=correlation_id,
+            resources=resources,
+            source_system="postgresql",
+            connector_id=self.manifest.connector_id,
+            connector_version=self.manifest.version,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
         )
         artifacts.append(state)
 
         receipt = self._produce_receipt(
-            artifacts=artifacts, tenant_id=tenant_id, actor_id=actor_id,
-            correlation_id=correlation_id, start_time=start, errors=errors,
+            artifacts=artifacts,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            correlation_id=correlation_id,
+            start_time=start,
+            errors=errors,
         )
         return artifacts, receipt

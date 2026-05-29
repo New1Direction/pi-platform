@@ -2,30 +2,29 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents import (
-    PiLLMSystemPromptHijackSentry,
-    LLMSystemPromptHijackInput,
-    PiLLMPairwiseAdversarialValidator,
-    LLMPairwiseAdversarialInput,
-    PiLLMNegativeConstraintEvasion,
-    LLMNegativeConstraintInput,
-    PiLLMBase64EncodingDeobfuscator,
-    LLMBase64DeobfuscatorInput,
-    PiLLMChainOfThoughtBypassSentry,
-    LLMChainOfThoughtBypassInput,
-    PiLLMPromptEgressLeakDetector,
-    LLMPromptEgressLeakInput,
-    PiLLMContextWindowDriftSentry,
-    LLMContextWindowDriftInput,
-    PiLLMRecursiveRefinementJailbreak,
-    LLMRecursiveRefinementInput,
-    PiDockerSocketPrivilegeSentry,
     DockerSocketPrivilegeInput,
-    PiKubernetesRootExecutionLinter,
     KubernetesRootExecutionInput,
+    LLMBase64DeobfuscatorInput,
+    LLMChainOfThoughtBypassInput,
+    LLMContextWindowDriftInput,
+    LLMNegativeConstraintInput,
+    LLMPairwiseAdversarialInput,
+    LLMPromptEgressLeakInput,
+    LLMRecursiveRefinementInput,
+    LLMSystemPromptHijackInput,
+    PiDockerSocketPrivilegeSentry,
+    PiKubernetesRootExecutionLinter,
+    PiLLMBase64EncodingDeobfuscator,
+    PiLLMChainOfThoughtBypassSentry,
+    PiLLMContextWindowDriftSentry,
+    PiLLMNegativeConstraintEvasion,
+    PiLLMPairwiseAdversarialValidator,
+    PiLLMPromptEgressLeakDetector,
+    PiLLMRecursiveRefinementJailbreak,
+    PiLLMSystemPromptHijackSentry,
 )
 
 
@@ -244,13 +243,17 @@ def test_docker_socket_privilege_sentry(monkeypatch):
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
     """
-    res_vuln = agent.audit_docker_socket(DockerSocketPrivilegeInput(file_path="docker-compose.yml", dockerfile_code=code_vuln))
+    res_vuln = agent.audit_docker_socket(
+        DockerSocketPrivilegeInput(file_path="docker-compose.yml", dockerfile_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "Line 7" in res_vuln.vulnerable_elements
     assert res_vuln.status == "REJECTED_DOCKER_SOCKET_PRIVILEGE"
 
     monkeypatch.setenv("PI_DOCKER_SOCKET_PRIVILEGE_STRICT_MODE", "false")
-    res_warn = agent.audit_docker_socket(DockerSocketPrivilegeInput(file_path="docker-compose.yml", dockerfile_code=code_vuln))
+    res_warn = agent.audit_docker_socket(
+        DockerSocketPrivilegeInput(file_path="docker-compose.yml", dockerfile_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_DOCKER_SOCKET_PRIVILEGE"
 

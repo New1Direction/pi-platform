@@ -51,13 +51,13 @@ class PiLLMPromptInjectionNegativeConstraintSentry:
 
         # Adversarial patterns seeking to bypass negative constraints
         bypasses = [
-            r'ignore.*constraints',
-            r'bypass.*negative',
-            r'forget.*never',
-            r'reverse.*restrictions',
-            r'disable.*rules',
-            r'override.*limitations',
-            r'ignore.*system.*rules'
+            r"ignore.*constraints",
+            r"bypass.*negative",
+            r"forget.*never",
+            r"reverse.*restrictions",
+            r"disable.*rules",
+            r"override.*limitations",
+            r"ignore.*system.*rules",
         ]
 
         is_secure = True
@@ -81,8 +81,5 @@ class PiLLMPromptInjectionNegativeConstraintSentry:
                 is_secure = True
 
         return NegativeConstraintOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

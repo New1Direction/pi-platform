@@ -53,14 +53,14 @@ class PiSolidityDelegateCallToSelfSentry:
         flagged_findings = []
 
         # Find all functions and search for self-delegatecalls
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             is_vuln = False
             finding_msg = ""
 
             # Check Solidity delegatecall to address(this)
-            solidity_match = re.search(r'(address\(\s*this\s*\)|this)\s*\.\s*delegatecall', body)
+            solidity_match = re.search(r"(address\(\s*this\s*\)|this)\s*\.\s*delegatecall", body)
             if solidity_match:
                 is_vuln = True
                 finding_msg = (
@@ -70,7 +70,7 @@ class PiSolidityDelegateCallToSelfSentry:
                 )
 
             # Check inline assembly delegatecall to address(this)
-            assembly_match = re.search(r'delegatecall\s*\(\s*[^,]+,\s*(address\(\s*this\s*\)|this)\s*,', body)
+            assembly_match = re.search(r"delegatecall\s*\(\s*[^,]+,\s*(address\(\s*this\s*\)|this)\s*,", body)
             if assembly_match:
                 is_vuln = True
                 finding_msg = (
@@ -100,5 +100,5 @@ class PiSolidityDelegateCallToSelfSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -53,18 +53,18 @@ class PiZKCircomShadowSignalSentry:
         flagged_findings = []
 
         # Find all templates in Circom
-        templates = re.findall(r'template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{([\s\S]*?)(?=\ntemplate|\Z)', code)
+        templates = re.findall(r"template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{([\s\S]*?)(?=\ntemplate|\Z)", code)
 
         for name, args, body in templates:
             # Parse template parameters
             params = [p.strip() for p in args.split(",") if p.strip()]
 
             # Find input and output signal declarations in the template body
-            signals = re.findall(r'signal\s+(input|output)?\s*([a-zA-Z0-9_]+)', body)
+            signals = re.findall(r"signal\s+(input|output)?\s*([a-zA-Z0-9_]+)", body)
             defined_signals = [sig[1] for sig in signals]
 
             # Look for local variable declarations: var var_name; or var var_name = ...;
-            var_declarations = re.findall(r'var\s+([a-zA-Z0-9_]+)', body)
+            var_declarations = re.findall(r"var\s+([a-zA-Z0-9_]+)", body)
 
             # Look for duplicate definitions / shadowing
             for var_name in var_declarations:
@@ -103,5 +103,5 @@ class PiZKCircomShadowSignalSentry:
             vulnerable_signals=vulnerable_sigs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

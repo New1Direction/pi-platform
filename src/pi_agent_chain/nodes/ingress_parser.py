@@ -34,17 +34,11 @@ class IngressParserNode:
 
         status_code = self._extract_status_code(status_line)
         host = self._extract_host(req_headers)
-        scheme = (
-            "https"
-            if url_override and url_override.startswith("https")
-            else "http"
-        )
+        scheme = "https" if url_override and url_override.startswith("https") else "http"
         uri = (url_override or f"{scheme}://{host}") + path
 
         # Gap 1: Content negotiation metadata
-        content_meta = PayloadNormalizer.extract_content_meta(
-            req_headers, resp_headers
-        )
+        content_meta = PayloadNormalizer.extract_content_meta(req_headers, resp_headers)
 
         # Gap 1: Payload normalization (decompression + format detection)
         req_payload_bytes = req_body.encode("utf-8", errors="replace") if req_body else b""
@@ -79,9 +73,7 @@ class IngressParserNode:
             response_payload_norm=resp_norm,
         )
 
-    def _split_request(
-        self, raw: str
-    ) -> tuple[str, str, List[Tuple[str, str]], Optional[str]]:
+    def _split_request(self, raw: str) -> tuple[str, str, List[Tuple[str, str]], Optional[str]]:
         lines = raw.splitlines()
         if not lines:
             return ("GET", "/", [], None)
@@ -95,7 +87,7 @@ class IngressParserNode:
         body: Optional[str] = None
         for i, line in enumerate(lines[1:], start=1):
             if line.strip() == "":
-                body = "\n".join(lines[i + 1:])
+                body = "\n".join(lines[i + 1 :])
                 break
             if ":" in line:
                 key, value = line.split(":", 1)
@@ -103,9 +95,7 @@ class IngressParserNode:
 
         return (method, path, headers, body)
 
-    def _split_response(
-        self, raw: str
-    ) -> tuple[str, List[Tuple[str, str]], Optional[str]]:
+    def _split_response(self, raw: str) -> tuple[str, List[Tuple[str, str]], Optional[str]]:
         lines = raw.splitlines()
         if not lines:
             return ("HTTP/1.1 200 OK", [], None)
@@ -115,7 +105,7 @@ class IngressParserNode:
         body: Optional[str] = None
         for i, line in enumerate(lines[1:], start=1):
             if line.strip() == "":
-                body = "\n".join(lines[i + 1:])
+                body = "\n".join(lines[i + 1 :])
                 break
             if ":" in line:
                 key, value = line.split(":", 1)
@@ -132,6 +122,7 @@ class IngressParserNode:
             if key.lower() == "host":
                 return value
         return "unknown"
+
     def _sanitize_body(self, body: Optional[str]) -> Optional[str]:
         if body is None:
             return None

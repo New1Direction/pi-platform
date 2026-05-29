@@ -20,6 +20,7 @@ from pi_extension_governor.manifest import ExtensionManifest
 
 # ── Execution Phase ──────────────────────────────────────────────
 
+
 class ExecutionPhase(str, Enum):
     PENDING = "pending"
     SCHEDULING = "scheduling"
@@ -31,6 +32,7 @@ class ExecutionPhase(str, Enum):
 
 
 # ── Worker Lease ─────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class WorkerLease:
@@ -72,6 +74,7 @@ class WorkerLease:
 
 # ── Phase Barrier ────────────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class PhaseBarrier:
     """Global synchronization point for a distributed execution phase.
@@ -110,6 +113,7 @@ class PhaseBarrier:
 
 
 # ── Execution Receipt ────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class PhaseExecutionReceipt:
@@ -172,6 +176,7 @@ class ExecutionFabricReceipt:
 
 
 # ── Shard-Coordinated Execution Fabric ───────────────────────────
+
 
 class DeterministicExecutionFabric:
     """Distributed deterministic execution with global barriers.
@@ -415,6 +420,7 @@ class DeterministicExecutionFabric:
 
 
 # ── Execution Audit ──────────────────────────────────────────────
+
 
 class ExecutionAuditLog:
     """Append-only audit log for all execution fabric events."""

@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Heuristic Detection Core for Code/Text Payloads (checking for invisible guardrails or evasions)
 def detect_invisible_guardrails(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -35,7 +36,17 @@ def detect_invisible_guardrails(text: str) -> Tuple[float, List[str]]:
         return 0.0, []
 
     # Compliance steering keywords signaling silent refusal or steering
-    keywords = ["restricted", "compliance", "policy", "safety", "refusal", "cannot fulfill", "violation", "apologize", "unable to"]
+    keywords = [
+        "restricted",
+        "compliance",
+        "policy",
+        "safety",
+        "refusal",
+        "cannot fulfill",
+        "violation",
+        "apologize",
+        "unable to",
+    ]
     text_lower = text.lower()
 
     for kw in keywords:
@@ -56,12 +67,23 @@ def detect_invisible_guardrails(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. CoT/Thought Scanner and Entropy Monitor
 class PiCoTShadow:
     """Micro-agent parsing LLM completion reasoning tokens and thoughts for dynamic steering."""
 
     def __init__(self) -> None:
-        self.keywords = ["restricted", "compliance", "policy", "safety", "refusal", "cannot fulfill", "violation", "apologize", "unable to"]
+        self.keywords = [
+            "restricted",
+            "compliance",
+            "policy",
+            "safety",
+            "refusal",
+            "cannot fulfill",
+            "violation",
+            "apologize",
+            "unable to",
+        ]
 
     def scan_response(self, response_dict: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
         """Scans LLM completions payload, extracts CoT/reasoning, and checks for invisible guardrails."""
@@ -93,7 +115,9 @@ class PiCoTShadow:
             # A. Measure Token Entropy Deviation
             entropy_risk, entropy_msg = self._measure_token_entropy(combined_cot)
             if entropy_risk >= 75.0:
-                errors.append(f"CHOICE_VIOLATION: Choice [{idx}] reasoning loop/entropy anomaly: {entropy_msg} (CoTShadow)")
+                errors.append(
+                    f"CHOICE_VIOLATION: Choice [{idx}] reasoning loop/entropy anomaly: {entropy_msg} (CoTShadow)"
+                )
 
             # B. Search for silent guardrails / steering keywords
             risk, violations = detect_invisible_guardrails(combined_cot)
@@ -106,7 +130,7 @@ class PiCoTShadow:
         # Inject telemetry footprint
         response_dict["x-cot-shadow-telemetry"] = {
             "scanned_at": __import__("datetime").datetime.utcnow().isoformat(),
-            "strict_mode": is_strict_mode()
+            "strict_mode": is_strict_mode(),
         }
 
         return response_dict, errors

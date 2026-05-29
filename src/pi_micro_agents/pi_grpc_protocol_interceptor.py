@@ -54,8 +54,11 @@ class PiGrpcProtocolInterceptor:
 
         # Scans for insecure credentials configuration or plain text gRPC options
         # E.g. insecure_channel, insecure_credentials, insecure_server_credentials, grpc.insecure
-        insecure_match = re.search(r'(insecure_channel|insecure_credentials|insecure_server_credentials|insecure_port|InsecureChannel|insecure_connector)', code)
-        
+        insecure_match = re.search(
+            r"(insecure_channel|insecure_credentials|insecure_server_credentials|insecure_port|InsecureChannel|insecure_connector)",
+            code,
+        )
+
         if insecure_match:
             vulnerable_elements.append(insecure_match.group(1))
             flagged_findings.append(
@@ -63,7 +66,6 @@ class PiGrpcProtocolInterceptor:
                 f"Establishing unencrypted connections exposes high-performance RPC streams to wiretapping "
                 f"and active intercept compromises."
             )
-
 
         is_secure = len(vulnerable_elements) == 0
         risk_score = 75.0 if not is_secure else 0.0
@@ -82,5 +84,5 @@ class PiGrpcProtocolInterceptor:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

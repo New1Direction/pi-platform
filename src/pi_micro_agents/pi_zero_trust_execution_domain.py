@@ -35,7 +35,9 @@ class ZeroTrustExecDomainInput(BaseModel):
 
 class ZeroTrustExecDomainOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if execution domain checks passed")
-    vulnerable_elements: List[str] = Field(default_factory=list, description="Vulnerable configuration lines or variables")
+    vulnerable_elements: List[str] = Field(
+        default_factory=list, description="Vulnerable configuration lines or variables"
+    )
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
@@ -54,8 +56,11 @@ class PiZeroTrustExecutionDomain:
 
         # Scans for tmux socket leaks or unconstrained execution environment exports
         # E.g. tmux -S /var/run, export sandbox bypass, ssh execution, unconfined profiles
-        unconstrained_tmux = re.search(r'(tmux\s+-S\s+/[a-zA-Z0-9_/]+|tmux\s+run-shell\s+-[b]*\s*"*[a-zA-Z0-9_\-\s]+"*|chmod\s+777|permit-root)', code)
-        
+        unconstrained_tmux = re.search(
+            r'(tmux\s+-S\s+/[a-zA-Z0-9_/]+|tmux\s+run-shell\s+-[b]*\s*"*[a-zA-Z0-9_\-\s]+"*|chmod\s+777|permit-root)',
+            code,
+        )
+
         if unconstrained_tmux:
             vulnerable_elements.append(unconstrained_tmux.group(1))
             flagged_findings.append(
@@ -80,5 +85,5 @@ class PiZeroTrustExecutionDomain:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

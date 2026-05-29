@@ -20,6 +20,7 @@ from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest, E
 
 # ── Capability Lifecycle States ──────────────────────────────────
 
+
 class CapabilityLifecycleState(str, Enum):
     PUBLISHED = "published"
     UNDER_REVIEW = "under_review"
@@ -39,6 +40,7 @@ class TrustTier(str, Enum):
 
 
 # ── Composition Request Schema ───────────────────────────────────
+
 
 class CompositionNode(BaseModel):
     """Explicit node definition for a capability composition request.
@@ -91,6 +93,7 @@ class CompositionRequest(BaseModel):
 
 # ── Market Capability Listing ────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class MarketCapabilityListing:
     """A capability available in the marketplace."""
@@ -132,6 +135,7 @@ class MarketCapabilityListing:
 
 
 # ── Deterministic Composition Engine ─────────────────────────────
+
 
 @dataclass(frozen=True)
 class CompositionResult:
@@ -216,7 +220,9 @@ class CompositionEngine:
                 if node.node_id in {e.target_node_id for e in request.edges}:
                     missing_deps.append(node.node_id)
                 else:
-                    return self._reject(request, f"Node not found in catalog: {node.node_id} (manifest_id={node.manifest_id})")
+                    return self._reject(
+                        request, f"Node not found in catalog: {node.node_id} (manifest_id={node.manifest_id})"
+                    )
                 continue
 
             # 3. Check trust tier
@@ -373,6 +379,7 @@ class CompositionEngine:
 
 # ── Capability Marketplace Registry ──────────────────────────────
 
+
 class CapabilityMarketplaceRegistry:
     """Deterministic marketplace registry for capability listings.
 
@@ -411,7 +418,9 @@ class CapabilityMarketplaceRegistry:
             published_at=listing.published_at,
             review_receipt_hash=listing.review_receipt_hash,
             last_verified_at=listing.last_verified_at,
-            deprecation_reason=reason if new_state == CapabilityLifecycleState.DEPRECATED else listing.deprecation_reason,
+            deprecation_reason=reason
+            if new_state == CapabilityLifecycleState.DEPRECATED
+            else listing.deprecation_reason,
             publisher_tenant_id=listing.publisher_tenant_id,
         )
         self._listings[listing_id] = updated

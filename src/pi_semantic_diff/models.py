@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 #  Epistemic Primitives (mirrored for independence)
 # ──────────────────────────────
 
+
 class EpistemicState(str):
     OBSERVED = "OBSERVED"
     INFERRED = "INFERRED"
@@ -48,6 +49,7 @@ class ReplayClass(str):
 # ──────────────────────────────
 #  Graph Primitives (shared with recon)
 # ──────────────────────────────
+
 
 class SemanticField(BaseModel):
     path: str
@@ -110,6 +112,7 @@ class AuthInvariant(BaseModel):
 # ──────────────────────────────
 #  Delta Primitives
 # ──────────────────────────────
+
 
 class FieldDelta(BaseModel):
     """Immutable record of a single field change between two traces."""
@@ -183,6 +186,7 @@ class ReplaySurfaceDelta(BaseModel):
 # ──────────────────────────────
 #  Diff Report
 # ──────────────────────────────
+
 
 class SemanticDiffReport(BaseModel):
     """Deterministic behavioral delta report between two runtime snapshots."""

@@ -4,19 +4,21 @@ from __future__ import annotations
 
 import json
 import time
+
 import pytest
+
+from pi_agent_chain.models import DependencyGraph, SemanticField, SemanticIRTrace
+from pi_agent_chain.nodes.spec_synthesizer import SpecSynthesizerNode
+from pi_extension_governor.governor import ExtensionGovernor
+from pi_extension_governor.manifest import ExtensionBundle, ExtensionManifest, ExtensionStatus
+from pi_extension_governor.policy import ExtensionGovernancePolicy
+from pi_extension_governor.provenance import ExtensionProvenanceLedger
+from pi_extension_governor.trust_zones import TrustZoneEnforcer
 from pi_micro_agents.pi_schema_ghost import (
     PiSchemaGhost,
     detect_shadow_parameters,
     is_strict_mode,
 )
-from pi_agent_chain.nodes.spec_synthesizer import SpecSynthesizerNode
-from pi_agent_chain.models import DependencyGraph, SemanticField, SemanticIRTrace
-from pi_extension_governor.governor import ExtensionGovernor, ExtensionAdmissionResult
-from pi_extension_governor.manifest import ExtensionBundle, ExtensionManifest, ExtensionStatus
-from pi_extension_governor.provenance import ExtensionProvenanceLedger
-from pi_extension_governor.trust_zones import TrustZoneEnforcer
-from pi_extension_governor.policy import ExtensionGovernancePolicy
 
 
 @pytest.fixture(autouse=True)
@@ -47,12 +49,12 @@ SAMPLE_SPEC = {
                                     "properties": {
                                         "user_id": {"type": "string"},
                                         "admin_privilege": {"type": "boolean"},
-                                    }
+                                    },
                                 }
                             }
-                        }
+                        },
                     }
-                }
+                },
             }
         },
         "/v1/auth/login": {
@@ -67,15 +69,15 @@ SAMPLE_SPEC = {
                                     "username": {"type": "string"},
                                     "password": {"type": "string"},
                                     "bypass_auth": {"type": "boolean"},
-                                }
+                                },
                             }
                         }
                     }
                 },
-                "responses": {"200": {"description": "OK"}}
+                "responses": {"200": {"description": "OK"}},
             }
-        }
-    }
+        },
+    },
 }
 
 
@@ -86,15 +88,15 @@ def test_shadow_parameter_detection_in_schemas():
     """Verify that shadow parameters in queries, headers, and schemas are scanned and reported."""
     ghost = PiSchemaGhost()
     scanned_dict, errors = ghost.scan(SAMPLE_SPEC)
-    
+
     assert "x-intent-graph" in scanned_dict
     nodes = scanned_dict["x-intent-graph"]["nodes"]
-    
+
     # Check that endpoints containing shadow parameters are recognized
     endpoints = {n["id"] for n in nodes}
     assert "GET /v1/users" in endpoints
     assert "POST /v1/auth/login" in endpoints
-    
+
     # Verify exact parameter matches
     user_node = next(n for n in nodes if n["id"] == "GET /v1/users")
     assert "admin_privilege" in user_node["shadow_parameters"]
@@ -112,32 +114,22 @@ def test_intent_graph_construction():
     spec_with_shared = {
         "openapi": "3.1.0",
         "paths": {
-            "/api/endpointA": {
-                "get": {
-                    "parameters": [{"name": "debug", "in": "query"}]
-                }
-            },
+            "/api/endpointA": {"get": {"parameters": [{"name": "debug", "in": "query"}]}},
             "/api/endpointB": {
                 "post": {
                     "requestBody": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {"debug": {"type": "boolean"}}
-                                }
-                            }
-                        }
+                        "content": {"application/json": {"schema": {"properties": {"debug": {"type": "boolean"}}}}}
                     }
                 }
-            }
-        }
+            },
+        },
     }
     ghost = PiSchemaGhost()
     scanned_dict, _ = ghost.scan(spec_with_shared)
-    
+
     graph = scanned_dict["x-intent-graph"]
     edges = graph["edges"]
-    
+
     assert len(edges) == 1
     edge = edges[0]
     assert edge["source"] == "GET /api/endpointA"
@@ -177,7 +169,7 @@ def test_fail_closed_behavior(monkeypatch):
 
     ghost = PiSchemaGhost()
     _, errors = ghost.scan(SAMPLE_SPEC)
-    
+
     # We should have error violations for 'admin_privilege' and 'bypass_auth'
     assert len(errors) > 0
     assert any("admin_privilege" in err or "bypass_auth" in err for err in errors)
@@ -190,7 +182,7 @@ def test_fail_closed_behavior(monkeypatch):
 def test_synthesizer_node_hook_integration():
     """Verify that SpecSynthesizerNode compiles specs with x-intent-graph successfully."""
     synthesizer = SpecSynthesizerNode()
-    
+
     # Construct a minimal valid trace
     field = SemanticField(
         path="request.debug",
@@ -204,9 +196,9 @@ def test_synthesizer_node_hook_integration():
         fields=[field],
     )
     graph = DependencyGraph(session_window_id="sess_123")
-    
+
     spec = synthesizer.synthesize([trace], graph)
-    
+
     # Assert synthesized specification has x-intent-graph embedded
     assert spec.is_valid
     parsed = json.loads(spec.spec_json)
@@ -223,13 +215,14 @@ def test_synthesizer_node_hook_integration():
 def test_governor_static_verification_hook(monkeypatch, tmp_path):
     """Verify that ExtensionGovernor blocks admission of extensions containing shadow parameters."""
     monkeypatch.setenv("PI_GHOST_STRICT_MODE", "true")
-    
+
     policy = ExtensionGovernancePolicy()
     ledger = ExtensionProvenanceLedger(ledger_dir=tmp_path / "ledger")
     enforcer = TrustZoneEnforcer()
     governor = ExtensionGovernor(policy=policy, ledger=ledger, trust_enforcer=enforcer)
 
     from pi_extension_governor.manifest import CapabilityClass
+
     bundle = ExtensionBundle(
         bundle_id="b_test",
         manifest=ExtensionManifest(
@@ -239,14 +232,14 @@ def test_governor_static_verification_hook(monkeypatch, tmp_path):
             package_hash="hash_123",
             capability_class=CapabilityClass.OPENAPI_TOOLING,
         ),
-        payload_hash="ph_test"
+        payload_hash="ph_test",
     )
 
     # Malicious source block containing bypass override assignment
     malicious_source = "def run():\n    bypass = True\n    return 'hacked'\n"
-    
+
     result = governor.process_bundle(bundle, entrypoint_source=malicious_source, test_inputs={})
-    
+
     assert not result.admitted
     assert result.status == ExtensionStatus.REJECTED
     assert "shadow parameters detected" in result.reason.lower()
@@ -262,11 +255,11 @@ def test_warn_only_mode(monkeypatch):
 
     ghost = PiSchemaGhost()
     scanned_dict, errors = ghost.scan(SAMPLE_SPEC)
-    
+
     # Should still map the Intent Graph successfully
     assert "x-intent-graph" in scanned_dict
     assert len(scanned_dict["x-intent-graph"]["nodes"]) == 2
-    
+
     # Should NOT return any policy blocking errors
     assert len(errors) == 0
 
@@ -277,19 +270,15 @@ def test_warn_only_mode(monkeypatch):
 def test_performance_sla():
     """Verify that SchemaGhost scanning meets low-latency SLAs (<5ms)."""
     # Build a complex dictionary containing 100 endpoints
-    large_spec = {
-        "openapi": "3.1.0",
-        "info": {"title": "Large Spec", "version": "1.0"},
-        "paths": {}
-    }
+    large_spec = {"openapi": "3.1.0", "info": {"title": "Large Spec", "version": "1.0"}, "paths": {}}
     for idx in range(100):
         large_spec["paths"][f"/endpoint_{idx}"] = {
             "get": {
                 "operationId": f"get_{idx}",
                 "parameters": [
                     {"name": f"param_{idx}", "in": "query"},
-                    {"name": "admin" if idx % 10 == 0 else "clean", "in": "query"}
-                ]
+                    {"name": "admin" if idx % 10 == 0 else "clean", "in": "query"},
+                ],
             }
         }
 

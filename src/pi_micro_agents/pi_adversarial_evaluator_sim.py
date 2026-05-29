@@ -45,7 +45,9 @@ class PiAdversarialEvaluatorSim:
     def __init__(self) -> None:
         self.agent_name = "PiAdversarialEvaluatorSim"
 
-    def evaluate_adversarial_prompt(self, input_envelope: AdversarialEvaluatorSimInput) -> AdversarialEvaluatorSimOutput:
+    def evaluate_adversarial_prompt(
+        self, input_envelope: AdversarialEvaluatorSimInput
+    ) -> AdversarialEvaluatorSimOutput:
         prompt = input_envelope.prompt
         flagged_findings = []
 
@@ -55,7 +57,7 @@ class PiAdversarialEvaluatorSim:
             r"you\s+are\s+now\s+in\s+developer\s+mode",
             r"bypass\s+safety\s+filter",
             r"jailbreak\s+simulated",
-            r"logical\s+paradox\s+override"
+            r"logical\s+paradox\s+override",
         ]
 
         for pattern in adversarial_patterns:
@@ -77,8 +79,5 @@ class PiAdversarialEvaluatorSim:
                 is_secure = True
 
         return AdversarialEvaluatorSimOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

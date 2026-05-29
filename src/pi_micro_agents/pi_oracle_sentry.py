@@ -27,6 +27,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Static heuristic verification of pricing anomalies
 def detect_pricing_anomalies(price: float, token: str) -> Tuple[float, List[str]]:
     violations = []
@@ -46,20 +47,27 @@ def detect_pricing_anomalies(price: float, token: str) -> Tuple[float, List[str]
 
     return max_risk, violations
 
+
 # 3. Pydantic-Enforced Input/Output Envelopes
 class OracleSentryInput(BaseModel):
     token: str = Field(..., description="Target token ticker or address (e.g. ETH, BTC, USDC)")
     chain_id: int = Field(default=1, description="Target EVM Chain ID")
     current_observed_price: float = Field(..., description="The transaction price candidate under evaluation")
-    max_deviation_percent: float = Field(default=2.0, description="Max deviation threshold allowed between oracle feeds")
+    max_deviation_percent: float = Field(
+        default=2.0, description="Max deviation threshold allowed between oracle feeds"
+    )
+
 
 class OracleSentryOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates whether the observed price is safe and verified")
-    deviation_detected_percent: float = Field(..., description="The calculated percentage divergence from aggregate fair price")
+    deviation_detected_percent: float = Field(
+        ..., description="The calculated percentage divergence from aggregate fair price"
+    )
     aggregate_fair_price: float = Field(..., description="The computed consensus fair price across oracle feeds")
     verified_sources: List[str] = Field(default_factory=list, description="Oracle sources scanned and matched")
     status: str = Field(..., description="Price status classification (PASSED, WARN_PRICE, REJECTED_PRICE)")
     flagged_anomalies: List[str] = Field(default_factory=list, description="List of identified pricing anomalies")
+
 
 # 4. Core Micro-Agent Class
 class PiOracleSentry:
@@ -96,7 +104,9 @@ class PiOracleSentry:
 
         # Check deviation against threshold
         if deviation > max_dev:
-            violations.append(f"Price deviation of {deviation:.2f}% exceeds safe threshold of {max_dev}% (Fair: {fair_price})")
+            violations.append(
+                f"Price deviation of {deviation:.2f}% exceeds safe threshold of {max_dev}% (Fair: {fair_price})"
+            )
             risk = max(risk, 85.0)
 
         # Config strict mode resolution
@@ -119,5 +129,5 @@ class PiOracleSentry:
             aggregate_fair_price=fair_price,
             verified_sources=["Chainlink Aggregator V4", "Pyth Network Push Oracle", "Uniswap V3 TWAP Feed"],
             status=status,
-            flagged_anomalies=violations
+            flagged_anomalies=violations,
         )

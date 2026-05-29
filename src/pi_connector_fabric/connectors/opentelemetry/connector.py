@@ -69,7 +69,11 @@ class OpenTelemetryConnector(BaseConnectorWorker):
         artifacts.append(artifact)
 
         receipt = self._produce_receipt(
-            artifacts=artifacts, tenant_id=tenant_id, actor_id=actor_id,
-            correlation_id=correlation_id, start_time=start, errors=errors,
+            artifacts=artifacts,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            correlation_id=correlation_id,
+            start_time=start,
+            errors=errors,
         )
         return artifacts, receipt

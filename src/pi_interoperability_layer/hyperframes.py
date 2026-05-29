@@ -31,6 +31,7 @@ from pi_interoperability_layer.workers.pi_observability_diff_worker import (
 #  Frame Primitives
 # ──────────────────────────────
 
+
 class HyperFrame(BaseModel):
     """A single deterministic frame in the temporal rendering sequence."""
 
@@ -89,19 +90,21 @@ class RenderConfig(BaseModel):
     height: int = Field(default=720, ge=240, le=2160)
     fps: int = Field(default=2, ge=1, le=60)
     # Color palette (deterministic hex values)
-    color_palette: Dict[str, str] = Field(default_factory=lambda: {
-        "background": "#0d1117",
-        "text": "#c9d1d9",
-        "node_safe": "#238636",
-        "node_warn": "#d29922",
-        "node_risk": "#da3633",
-        "node_critical": "#8b0000",
-        "edge_normal": "#30363d",
-        "edge_drift": "#f78166",
-        "delta_add": "#238636",
-        "delta_remove": "#da3633",
-        "delta_change": "#d29922",
-    })
+    color_palette: Dict[str, str] = Field(
+        default_factory=lambda: {
+            "background": "#0d1117",
+            "text": "#c9d1d9",
+            "node_safe": "#238636",
+            "node_warn": "#d29922",
+            "node_risk": "#da3633",
+            "node_critical": "#8b0000",
+            "edge_normal": "#30363d",
+            "edge_drift": "#f78166",
+            "delta_add": "#238636",
+            "delta_remove": "#da3633",
+            "delta_change": "#d29922",
+        }
+    )
     # Font settings (deterministic)
     font_family: str = "monospace"
     font_size: int = 12
@@ -113,6 +116,7 @@ class RenderConfig(BaseModel):
 # ──────────────────────────────
 #  Rendering Engine
 # ──────────────────────────────
+
 
 class HyperFrameRenderEngine:
     """Deterministic temporal rendering engine.
@@ -137,11 +141,13 @@ class HyperFrameRenderEngine:
         frames: List[HyperFrame] = []
 
         # Frame 0: Baseline — summary card with baseline + modified IDs
-        frames.append(self._build_frame(
-            sequence_index=0,
-            title="Drift Analysis: Baseline",
-            lines=self._format_baseline(report),
-        ))
+        frames.append(
+            self._build_frame(
+                sequence_index=0,
+                title="Drift Analysis: Baseline",
+                lines=self._format_baseline(report),
+            )
+        )
 
         # Group deltas by type for sequential reveal
         type_groups: Dict[str, List[SemanticDelta]] = {}
@@ -151,19 +157,23 @@ class HyperFrameRenderEngine:
         idx = 1
         for delta_type in sorted(type_groups.keys()):
             group = type_groups[delta_type]
-            frames.append(self._build_frame(
-                sequence_index=idx,
-                title=f"Delta Group: {delta_type}",
-                lines=self._format_delta_group(delta_type, group),
-            ))
+            frames.append(
+                self._build_frame(
+                    sequence_index=idx,
+                    title=f"Delta Group: {delta_type}",
+                    lines=self._format_delta_group(delta_type, group),
+                )
+            )
             idx += 1
 
         # Final frame: aggregate scores
-        frames.append(self._build_frame(
-            sequence_index=idx,
-            title="Drift Analysis: Aggregate",
-            lines=self._format_aggregate(report),
-        ))
+        frames.append(
+            self._build_frame(
+                sequence_index=idx,
+                title="Drift Analysis: Aggregate",
+                lines=self._format_aggregate(report),
+            )
+        )
 
         seq_id = f"hyper_{report.report_id}"
         return HyperFrameSequence(
@@ -191,39 +201,49 @@ class HyperFrameRenderEngine:
         frames: List[HyperFrame] = []
 
         # Frame 0: Topology overview
-        frames.append(self._build_frame(
-            sequence_index=0,
-            title="Risk Propagation: Topology Overview",
-            lines=self._format_topology_overview(risk_graph),
-        ))
+        frames.append(
+            self._build_frame(
+                sequence_index=0,
+                title="Risk Propagation: Topology Overview",
+                lines=self._format_topology_overview(risk_graph),
+            )
+        )
 
         # Frame 1: Direct blast radius
-        frames.append(self._build_frame(
-            sequence_index=1,
-            title="Risk Propagation: Direct Blast Radius",
-            lines=self._format_direct_blast(risk_graph),
-        ))
+        frames.append(
+            self._build_frame(
+                sequence_index=1,
+                title="Risk Propagation: Direct Blast Radius",
+                lines=self._format_direct_blast(risk_graph),
+            )
+        )
 
         # Frame 2: Propagation depth view
-        frames.append(self._build_frame(
-            sequence_index=2,
-            title="Risk Propagation: Propagation Depth",
-            lines=self._format_propagation_depth(risk_graph),
-        ))
+        frames.append(
+            self._build_frame(
+                sequence_index=2,
+                title="Risk Propagation: Propagation Depth",
+                lines=self._format_propagation_depth(risk_graph),
+            )
+        )
 
         # Frame 3: Full risk map
-        frames.append(self._build_frame(
-            sequence_index=3,
-            title="Risk Propagation: Full Risk Map",
-            lines=self._format_full_risk(risk_graph),
-        ))
+        frames.append(
+            self._build_frame(
+                sequence_index=3,
+                title="Risk Propagation: Full Risk Map",
+                lines=self._format_full_risk(risk_graph),
+            )
+        )
 
         # Frame 4: Aggregate metrics
-        frames.append(self._build_frame(
-            sequence_index=4,
-            title="Risk Propagation: Aggregate Metrics",
-            lines=self._format_risk_aggregate(risk_graph),
-        ))
+        frames.append(
+            self._build_frame(
+                sequence_index=4,
+                title="Risk Propagation: Aggregate Metrics",
+                lines=self._format_risk_aggregate(risk_graph),
+            )
+        )
 
         seq_id = f"hyper_risk_{risk_graph.graph_id}"
         return HyperFrameSequence(
@@ -251,12 +271,12 @@ class HyperFrameRenderEngine:
             from PIL import Image
         except ImportError as exc:
             raise RuntimeError(
-                "HyperFrames MP4 encoding requires imageio and Pillow. "
-                "Install: pip install imageio[ffmpeg] Pillow"
+                "HyperFrames MP4 encoding requires imageio and Pillow. Install: pip install imageio[ffmpeg] Pillow"
             ) from exc
 
         # Decode base64 frames to numpy arrays (deterministic)
         import base64
+
         frames_np: List[Any] = []
         for frame in sequence.frames:
             if not frame.frame_data:
@@ -272,6 +292,7 @@ class HyperFrameRenderEngine:
         # Deterministic encoding: fixed quality, no randomness
         # Use v2 API for ffmpeg compatibility
         import imageio
+
         writer = imageio.get_writer(out_path, fps=sequence.fps, codec="libx264", quality=8)
         for frame_np in frames_np:
             writer.append_data(frame_np)
@@ -300,6 +321,7 @@ class HyperFrameRenderEngine:
         """
         try:
             import matplotlib
+
             matplotlib.use("Agg")
             import matplotlib.pyplot as plt
 
@@ -309,23 +331,29 @@ class HyperFrameRenderEngine:
             ax.axis("off")
 
             ax.text(
-                0.5, 0.96, title,
+                0.5,
+                0.96,
+                title,
                 transform=ax.transAxes,
                 fontsize=self.config.font_size + 4,
                 fontfamily=self.config.font_family,
                 color=self.config.color_palette["text"],
-                ha="center", va="top",
+                ha="center",
+                va="top",
                 fontweight="bold",
             )
 
             body = "\n".join(lines)
             ax.text(
-                0.05, 0.90, body,
+                0.05,
+                0.90,
+                body,
                 transform=ax.transAxes,
                 fontsize=self.config.font_size,
                 fontfamily=self.config.font_family,
                 color=self.config.color_palette["text"],
-                ha="left", va="top",
+                ha="left",
+                va="top",
                 wrap=True,
             )
 
@@ -382,15 +410,15 @@ class HyperFrameRenderEngine:
 
         compressed = zlib.compress(bytes(raw))
 
-        sig = b'\x89PNG\r\n\x1a\n'
+        sig = b"\x89PNG\r\n\x1a\n"
 
         def chunk(type_name: bytes, data: bytes) -> bytes:
             cs = struct.pack(">I", len(data)) + type_name + data
-            crc = zlib.crc32(cs[4:]) & 0xffffffff
+            crc = zlib.crc32(cs[4:]) & 0xFFFFFFFF
             return cs + struct.pack(">I", crc)
 
         ihdr = struct.pack(">IIBBBBB", w, h, 8, 2, 0, 0, 0)
-        return sig + chunk(b'IHDR', ihdr) + chunk(b'IDAT', compressed) + chunk(b'IEND', b'')
+        return sig + chunk(b"IHDR", ihdr) + chunk(b"IDAT", compressed) + chunk(b"IEND", b"")
 
     # ------------------------------------------------------------------
     # Formatters
@@ -408,9 +436,7 @@ class HyperFrameRenderEngine:
     def _format_delta_group(self, delta_type: str, group: List[SemanticDelta]) -> List[str]:
         lines = [f"Type: {delta_type} | Count: {len(group)}", "-" * 40]
         for d in group[:20]:  # bounded display
-            lines.append(
-                f"  [{d.severity}] {d.path}: {d.description}"
-            )
+            lines.append(f"  [{d.severity}] {d.path}: {d.description}")
         if len(group) > 20:
             lines.append(f"  ... and {len(group) - 20} more")
         return lines

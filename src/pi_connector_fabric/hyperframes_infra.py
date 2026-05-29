@@ -52,16 +52,22 @@ class InfrastructureReplayHyperFrameRenderer:
         frames: List[HyperFrame] = []
 
         # Overview
-        frames.append(self._build_frame(0, "Connector Ingestion Session", [
-            "DETERMINISTIC INFRASTRUCTURE INGESTION",
-            "",
-            f"Total Receipts: {len(receipts)}",
-            f"Total Artifacts: {sum(r.artifact_count for r in receipts)}",
-            f"Connectors: {len({r.connector_id for r in receipts})}",
-            "",
-            "All ingestion is read-only.",
-            "All artifacts are immutable.",
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                "Connector Ingestion Session",
+                [
+                    "DETERMINISTIC INFRASTRUCTURE INGESTION",
+                    "",
+                    f"Total Receipts: {len(receipts)}",
+                    f"Total Artifacts: {sum(r.artifact_count for r in receipts)}",
+                    f"Connectors: {len({r.connector_id for r in receipts})}",
+                    "",
+                    "All ingestion is read-only.",
+                    "All artifacts are immutable.",
+                ],
+            )
+        )
 
         for i, receipt in enumerate(receipts, start=1):
             lines = [
@@ -88,16 +94,22 @@ class InfrastructureReplayHyperFrameRenderer:
         # Aggregate
         total_artifacts = sum(r.artifact_count for r in receipts)
         total_errors = sum(r.error_count for r in receipts)
-        frames.append(self._build_frame(len(frames), "Ingestion Summary", [
-            "SESSION SUMMARY",
-            "",
-            f"  Receipts:    {len(receipts)}",
-            f"  Artifacts:   {total_artifacts}",
-            f"  Errors:      {total_errors}",
-            f"  Verified:    {len([r for r in receipts if r.verify()])}/{len(receipts)}",
-            "",
-            "All receipts cryptographically verifiable.",
-        ]))
+        frames.append(
+            self._build_frame(
+                len(frames),
+                "Ingestion Summary",
+                [
+                    "SESSION SUMMARY",
+                    "",
+                    f"  Receipts:    {len(receipts)}",
+                    f"  Artifacts:   {total_artifacts}",
+                    f"  Errors:      {total_errors}",
+                    f"  Verified:    {len([r for r in receipts if r.verify()])}/{len(receipts)}",
+                    "",
+                    "All receipts cryptographically verifiable.",
+                ],
+            )
+        )
 
         return HyperFrameSequence(
             sequence_id=f"infra_ingest_{len(receipts):03d}",
@@ -128,15 +140,21 @@ class InfrastructureReplayHyperFrameRenderer:
         artifacts = list(dt_import._artifacts.values())
 
         # Empty graph
-        frames.append(self._build_frame(0, "Topology Construction", [
-            "CROSS-SYSTEM TOPOLOGY GRAPH",
-            "",
-            "Initial state: empty",
-            f"Artifacts to ingest: {len(artifacts)}",
-            "",
-            "Deterministic node placement.",
-            "Deterministic edge linking.",
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                "Topology Construction",
+                [
+                    "CROSS-SYSTEM TOPOLOGY GRAPH",
+                    "",
+                    "Initial state: empty",
+                    f"Artifacts to ingest: {len(artifacts)}",
+                    "",
+                    "Deterministic node placement.",
+                    "Deterministic edge linking.",
+                ],
+            )
+        )
 
         # Build graph incrementally
         running_graph = UnifiedTopologyGraph(dt_import.tenant_id, "construction")
@@ -162,16 +180,22 @@ class InfrastructureReplayHyperFrameRenderer:
 
         # Final state
         final_hash = running_graph.graph_hash()
-        frames.append(self._build_frame(len(frames), "Final Topology", [
-            "CONSTRUCTION COMPLETE",
-            "",
-            f"Total nodes: {len(running_graph._nodes)}",
-            f"Total edges: {len(running_graph._edges)}",
-            f"Graph hash:  {final_hash[:32]}...",
-            f"Systems:     {', '.join(sorted({n.system for n in running_graph.get_nodes()}))}",
-            "",
-            "Deterministic. Replay-safe. Tenant-isolated.",
-        ]))
+        frames.append(
+            self._build_frame(
+                len(frames),
+                "Final Topology",
+                [
+                    "CONSTRUCTION COMPLETE",
+                    "",
+                    f"Total nodes: {len(running_graph._nodes)}",
+                    f"Total edges: {len(running_graph._edges)}",
+                    f"Graph hash:  {final_hash[:32]}...",
+                    f"Systems:     {', '.join(sorted({n.system for n in running_graph.get_nodes()}))}",
+                    "",
+                    "Deterministic. Replay-safe. Tenant-isolated.",
+                ],
+            )
+        )
 
         return HyperFrameSequence(
             sequence_id=f"infra_topo_{len(artifacts):03d}_{final_hash[:16]}",
@@ -203,13 +227,19 @@ class InfrastructureReplayHyperFrameRenderer:
 
         # Baseline
         baseline = snapshots[0]
-        frames.append(self._build_frame(0, "Drift Analysis: Baseline", [
-            "BASELINE SNAPSHOT",
-            "",
-            f"Graph hash: {baseline.get('graph_hash', 'N/A')[:32]}...",
-            f"Nodes: {baseline.get('node_count', 0)}",
-            f"Edges: {baseline.get('edge_count', 0)}",
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                "Drift Analysis: Baseline",
+                [
+                    "BASELINE SNAPSHOT",
+                    "",
+                    f"Graph hash: {baseline.get('graph_hash', 'N/A')[:32]}...",
+                    f"Nodes: {baseline.get('node_count', 0)}",
+                    f"Edges: {baseline.get('edge_count', 0)}",
+                ],
+            )
+        )
 
         for i in range(1, len(snapshots)):
             prev = snapshots[i - 1]
@@ -224,15 +254,15 @@ class InfrastructureReplayHyperFrameRenderer:
                 "",
                 f"Graph hash: {curr.get('graph_hash', 'N/A')[:32]}...",
             ]
-            if curr.get('added_nodes'):
+            if curr.get("added_nodes"):
                 lines += ["", "Added nodes:"]
-                for n in curr.get('added_nodes', [])[:10]:
+                for n in curr.get("added_nodes", [])[:10]:
                     lines.append(f"  + {n}")
-            if curr.get('removed_nodes'):
+            if curr.get("removed_nodes"):
                 lines += ["", "Removed nodes:"]
-                for n in curr.get('removed_nodes', [])[:10]:
+                for n in curr.get("removed_nodes", [])[:10]:
                     lines.append(f"  - {n}")
-            if curr.get('stable'):
+            if curr.get("stable"):
                 lines += ["", "Status: ✓ STABLE (no drift)"]
             else:
                 lines += ["", "Status: ⚠ DRIFT DETECTED"]
@@ -240,17 +270,23 @@ class InfrastructureReplayHyperFrameRenderer:
 
         # Final assessment
         final = snapshots[-1]
-        frames.append(self._build_frame(len(frames), "Drift Assessment", [
-            "FINAL ASSESSMENT",
-            "",
-            f"Total snapshots: {len(snapshots)}",
-            f"Stable periods:   {sum(1 for s in snapshots if s.get('stable'))}",
-            f"Drift periods:    {sum(1 for s in snapshots if not s.get('stable'))}",
-            "",
-            f"Final hash: {final.get('graph_hash', 'N/A')[:32]}...",
-            "",
-            "Drift is deterministic and auditable.",
-        ]))
+        frames.append(
+            self._build_frame(
+                len(frames),
+                "Drift Assessment",
+                [
+                    "FINAL ASSESSMENT",
+                    "",
+                    f"Total snapshots: {len(snapshots)}",
+                    f"Stable periods:   {sum(1 for s in snapshots if s.get('stable'))}",
+                    f"Drift periods:    {sum(1 for s in snapshots if not s.get('stable'))}",
+                    "",
+                    f"Final hash: {final.get('graph_hash', 'N/A')[:32]}...",
+                    "",
+                    "Drift is deterministic and auditable.",
+                ],
+            )
+        )
 
         return HyperFrameSequence(
             sequence_id=f"infra_drift_{len(snapshots):03d}",
@@ -282,13 +318,19 @@ class InfrastructureReplayHyperFrameRenderer:
         graph = risk_topology.graph
 
         # Origin
-        frames.append(self._build_frame(0, "Blast Radius: Origin", [
-            f"ORIGIN: {origin_node}",
-            "",
-            "Deterministic BFS propagation.",
-            "No probabilistic scoring.",
-            f"Max hops: {max_hops}",
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                "Blast Radius: Origin",
+                [
+                    f"ORIGIN: {origin_node}",
+                    "",
+                    "Deterministic BFS propagation.",
+                    "No probabilistic scoring.",
+                    f"Max hops: {max_hops}",
+                ],
+            )
+        )
 
         # Per-hop reveal
         visited: Dict[str, int] = {origin_node: 0}
@@ -327,15 +369,21 @@ class InfrastructureReplayHyperFrameRenderer:
 
         # Full blast
         blast = risk_topology.blast_radius(origin_node, max_hops)
-        frames.append(self._build_frame(len(frames), "Blast Radius: Complete", [
-            "BLAST RADIUS ANALYSIS",
-            "",
-            f"Origin:        {origin_node}",
-            f"Max hops:      {max_hops}",
-            f"Total reached: {blast['reachable_count']}",
-            "",
-            "Hop distribution:",
-        ]))
+        frames.append(
+            self._build_frame(
+                len(frames),
+                "Blast Radius: Complete",
+                [
+                    "BLAST RADIUS ANALYSIS",
+                    "",
+                    f"Origin:        {origin_node}",
+                    f"Max hops:      {max_hops}",
+                    f"Total reached: {blast['reachable_count']}",
+                    "",
+                    "Hop distribution:",
+                ],
+            )
+        )
         for h in range(1, max_hops + 1):
             count = blast["hop_distribution"].get(h, 0)
             frames[-1].frame_metadata[f"hop_{h}"] = count
@@ -381,17 +429,23 @@ class InfrastructureReplayHyperFrameRenderer:
         """
         frames: List[HyperFrame] = []
 
-        frames.append(self._build_frame(0, "Governance Audit Trail", [
-            "DETERMINISTIC GOVERNANCE DECISION LOG",
-            "",
-            f"Total Decisions: {len(decisions)}",
-            f"Allow: {sum(1 for d in decisions if d.effect.value == 'allow')}",
-            f"Deny:  {sum(1 for d in decisions if d.effect.value == 'deny')}",
-            "",
-            "All decisions are deterministic.",
-            "All decisions are statically validated.",
-            "All decisions are auditable and replay-safe.",
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                "Governance Audit Trail",
+                [
+                    "DETERMINISTIC GOVERNANCE DECISION LOG",
+                    "",
+                    f"Total Decisions: {len(decisions)}",
+                    f"Allow: {sum(1 for d in decisions if d.effect.value == 'allow')}",
+                    f"Deny:  {sum(1 for d in decisions if d.effect.value == 'deny')}",
+                    "",
+                    "All decisions are deterministic.",
+                    "All decisions are statically validated.",
+                    "All decisions are auditable and replay-safe.",
+                ],
+            )
+        )
 
         for i, decision in enumerate(decisions, start=1):
             lines = [
@@ -412,17 +466,23 @@ class InfrastructureReplayHyperFrameRenderer:
         # Aggregate
         allow_count = sum(1 for d in decisions if d.effect.value == "allow")
         deny_count = sum(1 for d in decisions if d.effect.value == "deny")
-        frames.append(self._build_frame(len(frames), "Audit Summary", [
-            "GOVERNANCE AUDIT SUMMARY",
-            "",
-            f"  Total:    {len(decisions)}",
-            f"  Allowed:  {allow_count}",
-            f"  Denied:   {deny_count}",
-            f"  Pass rate: {(allow_count / len(decisions) * 100):.1f}%" if decisions else "  N/A",
-            "",
-            "Fail-closed policy enforced.",
-            "Zero probabilistic scoring.",
-        ]))
+        frames.append(
+            self._build_frame(
+                len(frames),
+                "Audit Summary",
+                [
+                    "GOVERNANCE AUDIT SUMMARY",
+                    "",
+                    f"  Total:    {len(decisions)}",
+                    f"  Allowed:  {allow_count}",
+                    f"  Denied:   {deny_count}",
+                    f"  Pass rate: {(allow_count / len(decisions) * 100):.1f}%" if decisions else "  N/A",
+                    "",
+                    "Fail-closed policy enforced.",
+                    "Zero probabilistic scoring.",
+                ],
+            )
+        )
 
         return HyperFrameSequence(
             sequence_id=f"infra_gov_{len(decisions):03d}",
@@ -445,6 +505,7 @@ class InfrastructureReplayHyperFrameRenderer:
         lines: List[str],
     ) -> HyperFrame:
         from pi_interoperability_layer.hyperframes import HyperFrameRenderEngine
+
         engine = HyperFrameRenderEngine(self.config)
         return engine._build_frame(sequence_index, title, lines)
 
@@ -465,5 +526,6 @@ class InfrastructureReplayHyperFrameRenderer:
         output_path: Optional[str] = None,
     ) -> Tuple[str, str]:
         from pi_interoperability_layer.hyperframes import HyperFrameRenderEngine
+
         engine = HyperFrameRenderEngine(self.config)
         return engine.encode_mp4(sequence, output_path)

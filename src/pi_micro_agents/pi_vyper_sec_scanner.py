@@ -27,18 +27,23 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class VyperScannerInput(BaseModel):
     file_path: str = Field(..., description="Vyper source file path")
     vyper_code: str = Field(..., description="Vyper source code content")
     check_level: str = Field(default="STRICT", description="Strictness level of parsing: STRICT, MEDIUM")
 
+
 class VyperScannerOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if Vyper code is free from compiler/decorator issues")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed line and violation findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_VYPER_VULNERABILITY, REJECTED_VYPER_VULNERABILITY)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_VYPER_VULNERABILITY, REJECTED_VYPER_VULNERABILITY)"
+    )
+
 
 # 3. Core Micro-Agent Class
 class PiVyperSecScanner:
@@ -54,16 +59,16 @@ class PiVyperSecScanner:
         flagged_findings = []
 
         # Clean comments (Vyper comments start with #)
-        re.sub(r'#.*', '', code)
+        re.sub(r"#.*", "", code)
 
         # Mode 1: Compiler Bug Audit
         # Check version string in Vyper (usually declared as # @version ^0.3.7 or similar in comments)
-        version_match = re.search(r'#\s*@version\s*([^\n\r]+)', code)
+        version_match = re.search(r"#\s*@version\s*([^\n\r]+)", code)
         if version_match:
             version_str = version_match.group(1).strip()
             # Flag vulnerable compiler versions < 0.3.10 containing known reentrancy lock slot clashes
             # e.g., ^0.2.0, 0.3.7, etc.
-            if re.search(r'\b0\.2\.[0-9]+\b', version_str) or re.search(r'\b0\.3\.[0-9]\b', version_str):
+            if re.search(r"\b0\.2\.[0-9]+\b", version_str) or re.search(r"\b0\.3\.[0-9]\b", version_str):
                 # If it uses nonreentrant lock, flag it
                 if "@nonreentrant" in code:
                     vulnerable_funcs.append("global_compiler")
@@ -79,7 +84,7 @@ class PiVyperSecScanner:
         for idx, line in enumerate(lines):
             stripped = line.strip()
             if stripped.startswith("def ") and stripped.endswith(":"):
-                func_name = stripped[4:stripped.find("(")].strip()
+                func_name = stripped[4 : stripped.find("(")].strip()
 
                 # Look at prior lines for decorators
                 has_decorator = False
@@ -97,7 +102,7 @@ class PiVyperSecScanner:
                 if not has_decorator:
                     vulnerable_funcs.append(func_name)
                     flagged_findings.append(
-                        f"Function '{func_name}' on Line {idx+1} lacks access control or state decorator (@external/@internal)."
+                        f"Function '{func_name}' on Line {idx + 1} lacks access control or state decorator (@external/@internal)."
                     )
                 else:
                     # Check for invalid decorators
@@ -106,7 +111,7 @@ class PiVyperSecScanner:
                     if dec_name not in valid_decorators:
                         vulnerable_funcs.append(func_name)
                         flagged_findings.append(
-                            f"Function '{func_name}' on Line {idx+1} uses invalid/unrecognized decorator '{dec_name}'."
+                            f"Function '{func_name}' on Line {idx + 1} uses invalid/unrecognized decorator '{dec_name}'."
                         )
 
         is_secure = len(vulnerable_funcs) == 0
@@ -126,5 +131,5 @@ class PiVyperSecScanner:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

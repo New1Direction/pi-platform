@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -66,5 +64,5 @@ class PiDockerSocketPrivilegeSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

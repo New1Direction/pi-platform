@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import os
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_TYPESCRIPT_WIZARDRY_STRICT_MODE")
@@ -10,14 +13,17 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class TypeScriptWizardryInput(BaseModel):
     code_content: str = Field(..., description="TypeScript source code to audit")
+
 
 class TypeScriptWizardryOutput(BaseModel):
     is_secure: bool = Field(..., description="True if no TypeScript bad practices/shortcuts are found")
     unsafe_occurrences: List[str] = Field(default_factory=list, description="List of unsafe TypeScript patterns found")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiTypeScriptWizardryCheck:
     """Deterministic micro-agent that checks TypeScript code for bad shortcuts like any or as any."""
@@ -36,7 +42,7 @@ class PiTypeScriptWizardryCheck:
             (r"\bas\s+any\b", "Type assertion 'as any' found"),
             (r"<\s*any\s*>", "Generic/cast '<any>' found"),
             (r"//\s*@ts-ignore", "TypeScript disable comment '@ts-ignore' found"),
-            (r"//\s*@ts-nocheck", "TypeScript disable comment '@ts-nocheck' found")
+            (r"//\s*@ts-nocheck", "TypeScript disable comment '@ts-nocheck' found"),
         ]
 
         lines = code.splitlines()
@@ -51,7 +57,7 @@ class PiTypeScriptWizardryCheck:
 
         is_secure = len(unsafe_occurrences) == 0
         risk_score = 75.0 if not is_secure else 0.0
-        
+
         status = "PASSED"
         if not is_secure:
             if is_strict_mode():
@@ -61,8 +67,5 @@ class PiTypeScriptWizardryCheck:
                 is_secure = True
 
         return TypeScriptWizardryOutput(
-            is_secure=is_secure,
-            unsafe_occurrences=unsafe_occurrences,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, unsafe_occurrences=unsafe_occurrences, risk_score=risk_score, status=status
         )

@@ -1,7 +1,5 @@
 """Integration tests for PiCrossChainBridgeAuditor — bridge security & message integrity agent."""
 
-import pytest
-
 from pi_micro_agents.pi_cross_chain_bridge_auditor import (
     BridgeAuditInput,
     BridgeAuditOutput,
@@ -166,14 +164,16 @@ contract NoChainIdBridge {
 
 # ── Tests: Mode 1 — Attack Vector Detection ───────────────────────────────
 
-class TestCrossChainBridgeAuditorMode1:
 
+class TestCrossChainBridgeAuditorMode1:
     def test_secure_bridge_passes(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="bridge.sol",
-            solidity_code=SECURE_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="bridge.sol",
+                solidity_code=SECURE_BRIDGE,
+            )
+        )
         assert isinstance(result, BridgeAuditOutput)
         assert result.is_secure is True
         assert result.status == "PASSED"
@@ -181,10 +181,12 @@ class TestCrossChainBridgeAuditorMode1:
 
     def test_unverified_message_auth_detected(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="bridge.sol",
-            solidity_code=UNVERIFIED_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="bridge.sol",
+                solidity_code=UNVERIFIED_BRIDGE,
+            )
+        )
         assert isinstance(result, BridgeAuditOutput)
         assert len(result.unverified_messages) > 0
         assert result.risk_score >= 60.0
@@ -192,37 +194,45 @@ class TestCrossChainBridgeAuditorMode1:
 
     def test_missing_nonce_replay_detected(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="bridge.sol",
-            solidity_code=NO_NONCE_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="bridge.sol",
+                solidity_code=NO_NONCE_BRIDGE,
+            )
+        )
         assert isinstance(result, BridgeAuditOutput)
         assert len(result.replay_risks) > 0
 
     def test_centralized_validator_detected(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="bridge.sol",
-            solidity_code=CENTRALIZED_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="bridge.sol",
+                solidity_code=CENTRALIZED_BRIDGE,
+            )
+        )
         assert isinstance(result, BridgeAuditOutput)
         assert len(result.centralization_risks) > 0
 
     def test_missing_chain_id_detected(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="bridge.sol",
-            solidity_code=NO_CHAIN_ID_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="bridge.sol",
+                solidity_code=NO_CHAIN_ID_BRIDGE,
+            )
+        )
         assert isinstance(result, BridgeAuditOutput)
         assert len(result.chain_id_issues) > 0
 
     def test_output_is_pydantic_model(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="b.sol",
-            solidity_code=SECURE_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="b.sol",
+                solidity_code=SECURE_BRIDGE,
+            )
+        )
         assert isinstance(result, BridgeAuditOutput)
         assert hasattr(result, "is_secure")
         assert hasattr(result, "unverified_messages")
@@ -236,16 +246,12 @@ class TestCrossChainBridgeAuditorMode1:
 
 # ── Tests: Mode 2 — Interface Compliance ──────────────────────────────────
 
-class TestCrossChainBridgeAuditorMode2:
 
+class TestCrossChainBridgeAuditorMode2:
     def test_risk_score_higher_for_more_findings(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        secure = agent.audit_bridge(BridgeAuditInput(
-            file_path="b.sol", solidity_code=SECURE_BRIDGE
-        ))
-        unverified = agent.audit_bridge(BridgeAuditInput(
-            file_path="b.sol", solidity_code=UNVERIFIED_BRIDGE
-        ))
+        secure = agent.audit_bridge(BridgeAuditInput(file_path="b.sol", solidity_code=SECURE_BRIDGE))
+        unverified = agent.audit_bridge(BridgeAuditInput(file_path="b.sol", solidity_code=UNVERIFIED_BRIDGE))
         assert unverified.risk_score > secure.risk_score
 
     def test_risk_score_bounded(self) -> None:
@@ -264,14 +270,16 @@ class TestCrossChainBridgeAuditorMode2:
 
 # ── Tests: Dual-Use & Serialization ───────────────────────────────────────
 
-class TestCrossChainBridgeAuditorDualUse:
 
+class TestCrossChainBridgeAuditorDualUse:
     def test_model_dump_serializable(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="b.sol",
-            solidity_code=SECURE_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="b.sol",
+                solidity_code=SECURE_BRIDGE,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -283,17 +291,21 @@ class TestCrossChainBridgeAuditorDualUse:
     def test_multi_vector_bridge_high_risk(self) -> None:
         """A bridge with unverified msgs + no nonce + no chain-id should score very high."""
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="b.sol",
-            solidity_code=UNVERIFIED_BRIDGE,
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="b.sol",
+                solidity_code=UNVERIFIED_BRIDGE,
+            )
+        )
         assert result.risk_score >= 60.0
 
     def test_empty_code_does_not_crash(self) -> None:
         agent = PiCrossChainBridgeAuditor()
-        result = agent.audit_bridge(BridgeAuditInput(
-            file_path="empty.sol",
-            solidity_code="",
-        ))
+        result = agent.audit_bridge(
+            BridgeAuditInput(
+                file_path="empty.sol",
+                solidity_code="",
+            )
+        )
         assert isinstance(result, BridgeAuditOutput)
         assert result.status in {"PASSED", "WARN_BRIDGE_RISK", "REJECTED_BRIDGE_RISK"}

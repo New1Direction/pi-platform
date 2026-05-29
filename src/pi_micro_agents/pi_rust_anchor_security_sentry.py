@@ -57,17 +57,17 @@ class PiRustAnchorSecuritySentry:
         flagged_findings = []
 
         # Find instruction functions inside pub mod or standard Rust functions
-        funcs = re.findall(r'pub\s+fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)', code)
+        funcs = re.findall(r"pub\s+fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)", code)
 
         for name, args in funcs:
             # Anchor instruction handlers receive Context<T>
             if "Context" in args:
                 # Get the context generic name, e.g. Context<Initialize>
-                ctx_match = re.search(r'Context\s*<\s*([a-zA-Z0-9_]+)\s*>', args)
+                ctx_match = re.search(r"Context\s*<\s*([a-zA-Z0-9_]+)\s*>", args)
                 if ctx_match:
                     struct_name = ctx_match.group(1)
                     # Find the corresponding account struct block in code: e.g. #[derive(Accounts)] pub struct Initialize<'info> { ... }
-                    struct_pattern = r'#\[derive\s*\(\s*Accounts\s*\)\s*\]\s*pub\s+struct\s+' + struct_name + r'[^}]+}'
+                    struct_pattern = r"#\[derive\s*\(\s*Accounts\s*\)\s*\]\s*pub\s+struct\s+" + struct_name + r"[^}]+}"
                     struct_match = re.search(struct_pattern, code)
                     if struct_match:
                         struct_body = struct_match.group(0)
@@ -96,5 +96,5 @@ class PiRustAnchorSecuritySentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

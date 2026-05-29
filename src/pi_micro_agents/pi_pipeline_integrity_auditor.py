@@ -52,7 +52,9 @@ class PiPipelineIntegrityAuditor:
         # Detect untrusted user inputs siphoned directly into bash/shell tasks (GitHub Event script injections)
         if "github.event.inputs" in content or "github.head_ref" in content:
             if "run:" in content:
-                flaws.append("Critical Script Injection: unescaped github.event context parameter siphoned directly into shell step.")
+                flaws.append(
+                    "Critical Script Injection: unescaped github.event context parameter siphoned directly into shell step."
+                )
                 risk_score = max(risk_score, 90.0)
 
         # Detect high-privilege access permissions (write-all, admin access to secrets in forks)
@@ -63,9 +65,4 @@ class PiPipelineIntegrityAuditor:
         is_secure = len(flaws) == 0
         status = "PASSED" if is_secure else "FAILED_INTEGRITY"
 
-        return PipelineIntegrityOutput(
-            is_secure=is_secure,
-            detected_flaws=flaws,
-            risk_score=risk_score,
-            status=status
-        )
+        return PipelineIntegrityOutput(is_secure=is_secure, detected_flaws=flaws, risk_score=risk_score, status=status)

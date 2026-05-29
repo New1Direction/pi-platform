@@ -167,7 +167,9 @@ class ArchitecturePolicy(BaseModel):
     policy_id: str
     policy_version: str = "1.0.0"
     description: str = ""
-    generated_at: str = Field(default_factory=lambda: __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat())
+    generated_at: str = Field(
+        default_factory=lambda: __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+    )
 
     # Trust boundaries
     trust_zones: List[TrustZone] = Field(default_factory=list)

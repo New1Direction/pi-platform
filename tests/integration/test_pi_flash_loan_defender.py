@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_flash_loan_defender import (
-    PiFlashLoanDefender,
     FlashLoanInput,
-    FlashLoanOutput,
-    is_strict_mode,
+    PiFlashLoanDefender,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -43,11 +40,7 @@ def test_flash_loan_vulnerable_spot_price_contract():
         }
     }
     """
-    inp = FlashLoanInput(
-        file_path="VulnerableAMMPriceOracle.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = FlashLoanInput(file_path="VulnerableAMMPriceOracle.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_flash_loan(inp)
 
@@ -81,11 +74,7 @@ def test_flash_loan_safe_oracle_contract():
         }
     }
     """
-    inp = FlashLoanInput(
-        file_path="SecurePriceOracle.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = FlashLoanInput(file_path="SecurePriceOracle.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_flash_loan(inp)
 
@@ -118,11 +107,7 @@ def test_flash_loan_direct_balance_pricing_vulnerable():
         }
     }
     """
-    inp = FlashLoanInput(
-        file_path="VulnerableBalancePricing.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = FlashLoanInput(file_path="VulnerableBalancePricing.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_flash_loan(inp)
 
@@ -158,22 +143,22 @@ def test_orchestrator_flash_loan_consensus_passed(monkeypatch):
             "vulnerable_functions": ["getPrice"],
             "flagged_findings": ["Direct reserve division"],
             "risk_score": 95.0,
-            "status": "REJECTED_FLASH_LOAN_VULNERABILITY"
+            "status": "REJECTED_FLASH_LOAN_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["getPrice"],
             "flagged_findings": ["Direct reserve division"],
             "risk_score": 95.0,
-            "status": "REJECTED_FLASH_LOAN_VULNERABILITY"
+            "status": "REJECTED_FLASH_LOAN_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["getPrice"],
             "flagged_findings": ["Direct reserve division"],
             "risk_score": 95.0,
-            "status": "REJECTED_FLASH_LOAN_VULNERABILITY"
-        }
+            "status": "REJECTED_FLASH_LOAN_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -181,8 +166,8 @@ def test_orchestrator_flash_loan_consensus_passed(monkeypatch):
         context={
             "file_path": "VulnerableAMM.sol",
             "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 
@@ -202,7 +187,8 @@ def test_orchestrator_flash_loan_consensus_failed_divergence(monkeypatch):
     """Verify that split vote high-divergence output triggers fail-shut and blocks execution."""
     monkeypatch.setenv("PI_ORCHESTRATOR_STRICT_MODE", "true")
 
-    from pi_semantic_radius.consensus_breaker import PiConsensusBreaker, DivergenceReport
+    from pi_semantic_radius.consensus_breaker import DivergenceReport, PiConsensusBreaker
+
     def mock_evaluate_consensus(self, prompt, responses):
         return DivergenceReport(
             prompt=prompt,
@@ -210,8 +196,9 @@ def test_orchestrator_flash_loan_consensus_failed_divergence(monkeypatch):
             semantic_divergence=85.0,
             structural_divergence=0.0,
             consensus_divergence_score=85.0,
-            is_broken=True
+            is_broken=True,
         )
+
     monkeypatch.setattr(PiConsensusBreaker, "evaluate_consensus", mock_evaluate_consensus)
 
     orchestrator = PiOrchestrator()
@@ -225,27 +212,15 @@ def test_orchestrator_flash_loan_consensus_failed_divergence(monkeypatch):
     """
 
     mock_consensus_runs = [
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        },
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
         {
             "is_secure": False,
             "vulnerable_functions": ["getPrice"],
             "flagged_findings": ["Direct reserve division"],
             "risk_score": 95.0,
-            "status": "REJECTED_FLASH_LOAN_VULNERABILITY"
+            "status": "REJECTED_FLASH_LOAN_VULNERABILITY",
         },
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        }
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
     ]
 
     inp = OrchestratorInput(
@@ -253,8 +228,8 @@ def test_orchestrator_flash_loan_consensus_failed_divergence(monkeypatch):
         context={
             "file_path": "VulnerableAMM.sol",
             "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

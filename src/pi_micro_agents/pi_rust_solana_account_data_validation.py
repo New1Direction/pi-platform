@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -24,7 +23,9 @@ class SolanaAccountDataInput(BaseModel):
 class SolanaAccountDataOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if account data size validations are secure")
     vulnerable_elements: List[str] = Field(default_factory=list, description="Vulnerable methods or struct fields")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on missing data validation")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on missing data validation"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -42,13 +43,13 @@ class PiRustSolanaAccountDataValidation:
 
         # Look for custom deserialization functions or structures containing AccountInfo
         # Matches methods where try_borrow_data or next_account_info is retrieved, but data length is never asserted
-        methods = re.findall(r'fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        methods = re.findall(r"fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in methods:
+        for name, _args, body in methods:
             if "try_borrow_data" in body or "next_account_info" in body or "AccountInfo" in body:
                 # Check if data length or size is validated (e.g. data.len(), try_from_slice, size_of, or assert length)
                 has_size_check = any(kw in body for kw in ["len()", "try_from_slice", "size_of", "data_len", "assert"])
-                
+
                 if not has_size_check:
                     vulnerable_elements.append(name)
                     flagged_findings.append(
@@ -74,5 +75,5 @@ class PiRustSolanaAccountDataValidation:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

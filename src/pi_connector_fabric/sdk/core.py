@@ -21,8 +21,10 @@ from typing import Any, Dict, List, Tuple
 #  Ingestion Contracts
 # ──────────────────────────────
 
+
 class ConnectorCapabilityClass(str, Enum):
     """Classification of connector capabilities."""
+
     TOPOLOGY_READ = "topology:read"
     IDENTITY_READ = "identity:read"
     DEPENDENCY_READ = "dependency:read"
@@ -37,6 +39,7 @@ class ConnectorCapabilityClass(str, Enum):
 
 class ConnectorSandboxPolicy(str, Enum):
     """Sandbox isolation level for connector execution."""
+
     READ_ONLY = "read_only"
     READ_WITH_CACHE = "read_with_cache"
     READ_WITH_STREAM = "read_with_stream"
@@ -45,6 +48,7 @@ class ConnectorSandboxPolicy(str, Enum):
 
 class ConnectorExecutionFence(Enum):
     """Deterministic fence for connector execution boundaries."""
+
     NO_EXECUTION = auto()
     SANDBOXED_READ = auto()
     GOVERNANCE_APPROVED = auto()
@@ -196,6 +200,7 @@ class IngestionReceipt:
 #  Artifact Normalizer
 # ──────────────────────────────
 
+
 class NormalizationError(Exception):
     """Raised when external data cannot be normalized into canonical artifact."""
 
@@ -228,7 +233,9 @@ class NormalizedArtifact:
                 "connector_version": self.connector_version,
                 "tenant_id": self.tenant_id,
                 "payload": json.dumps(self.payload, sort_keys=True, separators=(",", ":"), default=str),
-                "provenance": [json.dumps(p, sort_keys=True, separators=(",", ":"), default=str) for p in self.provenance],
+                "provenance": [
+                    json.dumps(p, sort_keys=True, separators=(",", ":"), default=str) for p in self.provenance
+                ],
             }
             h = hashlib.sha256(
                 json.dumps(canonical, sort_keys=True, separators=(",", ":"), default=str).encode()
@@ -501,20 +508,23 @@ class ArtifactNormalizer:
         )
 
     @classmethod
-    def _canonicalize_list(
-        cls, items: List[Dict[str, Any]], key: str
-    ) -> List[Dict[str, Any]]:
+    def _canonicalize_list(cls, items: List[Dict[str, Any]], key: str) -> List[Dict[str, Any]]:
         """Deterministically canonicalize a list of dicts by sorting."""
+
         def sort_key(item: Dict[str, Any]) -> str:
             v = item.get(key, "")
             return str(v) if v is not None else ""
+
         sorted_items = sorted(items, key=sort_key)
-        return [json.loads(json.dumps(item, sort_keys=True, separators=(",", ":"), default=str)) for item in sorted_items]
+        return [
+            json.loads(json.dumps(item, sort_keys=True, separators=(",", ":"), default=str)) for item in sorted_items
+        ]
 
 
 # ──────────────────────────────
 #  Base Connector Worker
 # ──────────────────────────────
+
 
 class BaseConnectorWorker:
     """Abstract base for all deterministic ingestion connectors.

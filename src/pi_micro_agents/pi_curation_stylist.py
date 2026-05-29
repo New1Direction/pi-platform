@@ -29,6 +29,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Heuristic check to prevent styled content from hosting markdown exfiltration links
 def detect_stylist_anomalies(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -44,6 +45,7 @@ def detect_stylist_anomalies(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. Pydantic Inputs and Outputs
 class CurationInput(BaseModel):
     niche: str
@@ -52,12 +54,14 @@ class CurationInput(BaseModel):
     transcripts: List[str] = Field(default_factory=list, description="YouTube transcripts to summarize")
     tone: str = Field(default="informative", description="The editorial tone, e.g. educational, engaging")
 
+
 class CurationOutput(BaseModel):
     success: bool
     substack_title: str
     substack_markdown_body: str
     x_thread_posts: List[str] = Field(default_factory=list)
     anomalies_detected: List[str] = Field(default_factory=list)
+
 
 # 4. Core Agent Class
 class PiCurationStylist:
@@ -82,7 +86,9 @@ class PiCurationStylist:
 
         body_lines.append("\n## 🪐 Trending Repositories")
         for repo in input_envelope.github_repos:
-            body_lines.append(f"*   **[{repo.name}](https://github.com/{repo.name})**: {repo.description} (⭐ {repo.stars:,})")
+            body_lines.append(
+                f"*   **[{repo.name}](https://github.com/{repo.name})**: {repo.description} (⭐ {repo.stars:,})"
+            )
 
         if input_envelope.transcripts:
             body_lines.append("\n## 📼 YouTube Transcripts & Creator Insights")
@@ -93,14 +99,15 @@ class PiCurationStylist:
 
         substack_body = "\n".join(body_lines)
 
-
         # Compile X Twitter thread posts
         x_posts = [
             f"1/ {input_envelope.niche.upper()} Curation Weekly is out! This week we cover native CUDA training and agent-orchestration frameworks. 🧵 👇",
         ]
         idx = 2
         for repo in input_envelope.github_repos:
-            x_posts.append(f"{idx}/ Highlighted Repo: {repo.name} - {repo.description}. Already at {repo.stars:,} stars! https://github.com/{repo.name}")
+            x_posts.append(
+                f"{idx}/ Highlighted Repo: {repo.name} - {repo.description}. Already at {repo.stars:,} stars! https://github.com/{repo.name}"
+            )
             idx += 1
 
         x_posts.append(f"{idx}/ Read the full edition and subscribe for more automated updates!")

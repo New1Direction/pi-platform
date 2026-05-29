@@ -85,19 +85,22 @@ class DocumentationHyperFrameRenderer:
             idx += 1
 
         # Final: governance boundary
-        frames.append(self._build_frame(
-            idx, "Governance Boundary",
-            [
-                "HARD SEPARATION ENFORCED",
-                "",
-                "  ✓ No LLM in Layers 1–3",
-                "  ✓ No probabilistic reasoning in core",
-                "  ✓ Append-only everywhere",
-                "  ✓ Fail-closed governance",
-                "  ✓ Deterministic replay-safe",
-                "  ✓ Tenant isolation absolute",
-            ],
-        ))
+        frames.append(
+            self._build_frame(
+                idx,
+                "Governance Boundary",
+                [
+                    "HARD SEPARATION ENFORCED",
+                    "",
+                    "  ✓ No LLM in Layers 1–3",
+                    "  ✓ No probabilistic reasoning in core",
+                    "  ✓ Append-only everywhere",
+                    "  ✓ Fail-closed governance",
+                    "  ✓ Deterministic replay-safe",
+                    "  ✓ Tenant isolation absolute",
+                ],
+            )
+        )
 
         return HyperFrameSequence(
             sequence_id=f"docs_arch_{hashlib.sha256(title.encode()).hexdigest()[:16]}",
@@ -124,14 +127,20 @@ class DocumentationHyperFrameRenderer:
         Frame N+1: Summary with pass/fail status (all pass in docs)
         """
         frames: List[HyperFrame] = []
-        frames.append(self._build_frame(0, "Governance Invariants", [
-            "DETERMINISTIC GOVERNANCE ENFORCEMENT",
-            "",
-            f"Total Invariants: {len(invariants)}",
-            "",
-            "All invariants are statically validated.",
-            "No runtime probabilistic scoring.",
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                "Governance Invariants",
+                [
+                    "DETERMINISTIC GOVERNANCE ENFORCEMENT",
+                    "",
+                    f"Total Invariants: {len(invariants)}",
+                    "",
+                    "All invariants are statically validated.",
+                    "No runtime probabilistic scoring.",
+                ],
+            )
+        )
 
         for i, inv in enumerate(invariants, start=1):
             lines = [
@@ -145,16 +154,19 @@ class DocumentationHyperFrameRenderer:
             ]
             frames.append(self._build_frame(i, f"Invariant {inv.get('id', 'UNK')}", lines))
 
-        frames.append(self._build_frame(
-            len(frames), "Invariant Summary",
-            [f"  ✓ {len(invariants)} invariants enforced"] +
-            ["  ✓ 0 violations"] +
-            ["  ✓ Deterministic validation only"],
-        ))
+        frames.append(
+            self._build_frame(
+                len(frames),
+                "Invariant Summary",
+                [f"  ✓ {len(invariants)} invariants enforced"]
+                + ["  ✓ 0 violations"]
+                + ["  ✓ Deterministic validation only"],
+            )
+        )
 
-        seq_hash = hashlib.sha256(json.dumps(
-            [inv.get("id", "") for inv in invariants], sort_keys=True, separators=(",", ":")
-        ).encode()).hexdigest()
+        seq_hash = hashlib.sha256(
+            json.dumps([inv.get("id", "") for inv in invariants], sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
 
         return HyperFrameSequence(
             sequence_id=f"docs_gov_{seq_hash[:16]}",
@@ -184,17 +196,23 @@ class DocumentationHyperFrameRenderer:
         connectors = marketplace.list_connectors()
 
         # Overview
-        frames.append(self._build_frame(0, "Connector Catalog", [
-            "GOVERNED CONNECTOR MARKETPLACE",
-            "",
-            f"Registered Connectors: {len(connectors)}",
-            "",
-            "All connectors are:",
-            "  • Deterministic",
-            "  • Read-only ingestion",
-            "  • Governance-gated",
-            "  • Replay-safe",
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                "Connector Catalog",
+                [
+                    "GOVERNED CONNECTOR MARKETPLACE",
+                    "",
+                    f"Registered Connectors: {len(connectors)}",
+                    "",
+                    "All connectors are:",
+                    "  • Deterministic",
+                    "  • Read-only ingestion",
+                    "  • Governance-gated",
+                    "  • Replay-safe",
+                ],
+            )
+        )
 
         for i, conn in enumerate(connectors, start=1):
             manifest = json.loads(conn.get("manifest_json", "{}"))
@@ -259,14 +277,20 @@ class DocumentationHyperFrameRenderer:
         frames: List[HyperFrame] = []
         total = passed + failed + skipped
 
-        frames.append(self._build_frame(0, f"Test Suite: {suite_name}", [
-            f"TOTAL: {total}",
-            f"  ✓ PASSED:  {passed}",
-            f"  ✗ FAILED:  {failed}",
-            f"  ○ SKIPPED: {skipped}",
-            "",
-            "Success Rate: {:.1f}%".format((passed / total * 100) if total else 0),
-        ]))
+        frames.append(
+            self._build_frame(
+                0,
+                f"Test Suite: {suite_name}",
+                [
+                    f"TOTAL: {total}",
+                    f"  ✓ PASSED:  {passed}",
+                    f"  ✗ FAILED:  {failed}",
+                    f"  ○ SKIPPED: {skipped}",
+                    "",
+                    "Success Rate: {:.1f}%".format((passed / total * 100) if total else 0),
+                ],
+            )
+        )
 
         for i, mod in enumerate(modules, start=1):
             lines = [
@@ -282,16 +306,19 @@ class DocumentationHyperFrameRenderer:
 
         # Final status
         status = "PASS" if failed == 0 else "FAIL"
-        frames.append(self._build_frame(
-            len(frames), "Suite Status",
-            [
-                f"RESULT: {status}",
-                "",
-                "  ✓ All invariants preserved" if failed == 0 else "  ✗ Regressions detected",
-                "  ✓ Deterministic replay-safe",
-                "  ✓ Zero probabilistic reasoning",
-            ],
-        ))
+        frames.append(
+            self._build_frame(
+                len(frames),
+                "Suite Status",
+                [
+                    f"RESULT: {status}",
+                    "",
+                    "  ✓ All invariants preserved" if failed == 0 else "  ✗ Regressions detected",
+                    "  ✓ Deterministic replay-safe",
+                    "  ✓ Zero probabilistic reasoning",
+                ],
+            )
+        )
 
         return HyperFrameSequence(
             sequence_id=f"docs_tests_{suite_name}_{passed:03d}_{failed:03d}",
@@ -327,5 +354,6 @@ class DocumentationHyperFrameRenderer:
     ) -> Tuple[str, str]:
         """Encode sequence to MP4. Reuses existing HyperFrameRenderEngine encoder."""
         from pi_interoperability_layer.hyperframes import HyperFrameRenderEngine
+
         engine = HyperFrameRenderEngine(self.config)
         return engine.encode_mp4(sequence, output_path)

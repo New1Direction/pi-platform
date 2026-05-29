@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -24,7 +23,9 @@ class SolanaMissingSignerInput(BaseModel):
 class SolanaMissingSignerOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if signer verification checks are present")
     vulnerable_elements: List[str] = Field(default_factory=list, description="Vulnerable methods or struct fields")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on missing signer assertions")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on missing signer assertions"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -40,7 +41,7 @@ class PiRustSolanaMissingSignerAssert:
         vulnerable_elements = []
         flagged_findings = []
 
-        methods = re.findall(r'fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        methods = re.findall(r"fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
         for name, args, body in methods:
             if "AccountInfo" in args or "AccountInfo" in body:
@@ -69,5 +70,5 @@ class PiRustSolanaMissingSignerAssert:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

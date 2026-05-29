@@ -63,13 +63,21 @@ class SemanticQueryEngine:
         traces = snap.payload.get("traces", [])
         if replay_class:
             matches = [
-                {"endpoint": t.get("endpoint_template"), "method": t.get("method"), "replay_class": t.get("replay_class")}
+                {
+                    "endpoint": t.get("endpoint_template"),
+                    "method": t.get("method"),
+                    "replay_class": t.get("replay_class"),
+                }
                 for t in traces
                 if t.get("replay_class") == replay_class
             ]
         else:
             matches = [
-                {"endpoint": t.get("endpoint_template"), "method": t.get("method"), "replay_class": t.get("replay_class")}
+                {
+                    "endpoint": t.get("endpoint_template"),
+                    "method": t.get("method"),
+                    "replay_class": t.get("replay_class"),
+                }
                 for t in traces
             ]
         return SemanticQueryResult(
@@ -188,11 +196,13 @@ class SemanticQueryEngine:
         return SemanticQueryResult(
             query_id="q_replay_sanitization",
             snapshot_id=bundle_id,
-            results=[{
-                "sanitized_slot_count": len(sanitized),
-                "redaction_count": len(redactions),
-                "replay_equivalence_preserved": snap.payload.get("replay_equivalence_preserved", False),
-            }],
+            results=[
+                {
+                    "sanitized_slot_count": len(sanitized),
+                    "redaction_count": len(redactions),
+                    "replay_equivalence_preserved": snap.payload.get("replay_equivalence_preserved", False),
+                }
+            ],
         )
 
     def query_observability_drift(self, snapshot_id: str) -> SemanticQueryResult:

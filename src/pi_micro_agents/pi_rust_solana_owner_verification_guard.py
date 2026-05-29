@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -40,7 +39,7 @@ class PiRustSolanaOwnerVerificationGuard:
         vulnerable_elements = []
         flagged_findings = []
 
-        methods = re.findall(r'fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        methods = re.findall(r"fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
         for name, args, body in methods:
             if "AccountInfo" in args or "AccountInfo" in body:
@@ -69,5 +68,5 @@ class PiRustSolanaOwnerVerificationGuard:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

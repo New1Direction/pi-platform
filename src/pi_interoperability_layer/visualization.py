@@ -34,10 +34,10 @@ def render_validation_html(report_path: Path, output_path: Path) -> None:
     for v in violations:
         violations_html += f"""
         <tr>
-            <td>{v.get('pass_name', '')}</td>
-            <td>{v.get('rule', '')}</td>
-            <td>{v.get('severity', '')}</td>
-            <td>{v.get('context', {}).get('endpoint', '')}</td>
+            <td>{v.get("pass_name", "")}</td>
+            <td>{v.get("rule", "")}</td>
+            <td>{v.get("severity", "")}</td>
+            <td>{v.get("context", {}).get("endpoint", "")}</td>
         </tr>
         """
 
@@ -47,7 +47,7 @@ def render_validation_html(report_path: Path, output_path: Path) -> None:
 <body style="font-family: monospace; background: #0d1117; color: #c9d1d9;">
 <h1>Semantic Governance Validation Report</h1>
 <p>Status: <span style="color: {color}; font-weight: bold;">{status}</span></p>
-<p>Timestamp: {data.get('generated_at', '')}</p>
+<p>Timestamp: {data.get("generated_at", "")}</p>
 <h2>Violations</h2>
 <table border="1" cellpadding="4" style="border-collapse: collapse;">
 <tr><th>Pass</th><th>Rule</th><th>Severity</th><th>Endpoint</th></tr>
@@ -83,10 +83,10 @@ def render_diff_heatmap(diff_report: Dict[str, Any], output_path: Path) -> None:
     for d in diff_report.get("endpoint_deltas", []):
         html += f"""
         <tr>
-            <td>{d.get('endpoint_template', '')}</td>
-            <td>{d.get('presence', '')}</td>
-            <td>{str(d.get('mutation_class_transition', False))}</td>
-            <td>{str(d.get('replay_class_transition', False))}</td>
+            <td>{d.get("endpoint_template", "")}</td>
+            <td>{d.get("presence", "")}</td>
+            <td>{str(d.get("mutation_class_transition", False))}</td>
+            <td>{str(d.get("replay_class_transition", False))}</td>
         </tr>
         """
     html += """</table></body></html>"""
@@ -100,7 +100,10 @@ def render_topology_graph(topology: Dict[str, Any], output_path: Path) -> None:
     edges = topology.get("edges", [])
     graph = {
         "nodes": [{"id": k, "type": v.get("node_type", "UNKNOWN")} for k, v in nodes.items()],
-        "edges": [{"source": e.get("upstream"), "target": e.get("downstream"), "type": e.get("edge_type", "UNKNOWN")} for e in edges],
+        "edges": [
+            {"source": e.get("upstream"), "target": e.get("downstream"), "type": e.get("edge_type", "UNKNOWN")}
+            for e in edges
+        ],
     }
     with open(output_path, "w") as f:
         json.dump(graph, f, indent=2)
@@ -151,6 +154,7 @@ def render_governance_dashboard(
 
 # ── Telemetry Governance Visualizations ─────────────────────────────────
 
+
 def render_telemetry_exposure(
     telemetry_report: Dict[str, Any],
     output_path: str,
@@ -160,8 +164,12 @@ def render_telemetry_exposure(
     rows = ""
     for f in findings:
         severity = f.get("severity", "INFO")
-        color = {"CRITICAL": "#da3633", "HIGH": "#d29922", "MEDIUM": "#58a6ff", "INFO": "#8b949e"}.get(severity, "#8b949e")
-        rows += f"""<tr><td style='color:{color}'>{severity}</td><td>{f.get('rule')}</td><td>{f.get('detail')}</td></tr>"""
+        color = {"CRITICAL": "#da3633", "HIGH": "#d29922", "MEDIUM": "#58a6ff", "INFO": "#8b949e"}.get(
+            severity, "#8b949e"
+        )
+        rows += (
+            f"""<tr><td style='color:{color}'>{severity}</td><td>{f.get("rule")}</td><td>{f.get("detail")}</td></tr>"""
+        )
     html = f"""<!DOCTYPE html>
 <html><head><title>Telemetry Exposure</title></head>
 <body style="font-family:monospace;background:#0d1117;color:#c9d1d9;padding:20px;">
@@ -174,6 +182,7 @@ def render_telemetry_exposure(
     with open(output_path, "w") as f:
         f.write(html)
 
+
 def render_sensitive_lineage(
     flow_report: Dict[str, Any],
     output_path: str,
@@ -182,7 +191,7 @@ def render_sensitive_lineage(
     crossings = flow_report.get("trust_boundary_crossings", [])
     rows = ""
     for c in crossings:
-        rows += f"""<tr><td>{c.get('edge')}</td><td>{c.get('from_zone')}</td><td>{c.get('to_zone')}</td><td>{', '.join(c.get('sensitive_fields_crossed', []))}</td></tr>"""
+        rows += f"""<tr><td>{c.get("edge")}</td><td>{c.get("from_zone")}</td><td>{c.get("to_zone")}</td><td>{", ".join(c.get("sensitive_fields_crossed", []))}</td></tr>"""
     html = f"""<!DOCTYPE html>
 <html><head><title>Sensitive Lineage</title></head>
 <body style="font-family:monospace;background:#0d1117;color:#c9d1d9;padding:20px;">
@@ -195,6 +204,7 @@ def render_sensitive_lineage(
     with open(output_path, "w") as f:
         f.write(html)
 
+
 def render_replay_sanitization(
     sanitization_report: Dict[str, Any],
     output_path: str,
@@ -203,18 +213,19 @@ def render_replay_sanitization(
     redactions = sanitization_report.get("redaction_log", [])
     rows = ""
     for r in redactions:
-        rows += f"""<tr><td>{r.get('path')}</td><td>{r.get('rule')}</td><td>{r.get('mask')}</td></tr>"""
+        rows += f"""<tr><td>{r.get("path")}</td><td>{r.get("rule")}</td><td>{r.get("mask")}</td></tr>"""
     html = f"""<!DOCTYPE html>
 <html><head><title>Replay Sanitization</title></head>
 <body style="font-family:monospace;background:#0d1117;color:#c9d1d9;padding:20px;">
 <h1>Replay Sanitization Report</h1>
 <table border=1 style="border-collapse:collapse;width:100%;">
 <tr><th>Path</th><th>Rule</th><th>Mask</th></tr>{rows}</table>
-<p>Redactions: {len(redactions)} | Equivalence Preserved: {sanitization_report.get('replay_equivalence_preserved', False)}</p>
+<p>Redactions: {len(redactions)} | Equivalence Preserved: {sanitization_report.get("replay_equivalence_preserved", False)}</p>
 <p>Generated: {datetime.now(timezone.utc).isoformat()}</p>
 </body></html>"""
     with open(output_path, "w") as f:
         f.write(html)
+
 
 def render_compliance_violations(
     compliance_report: Dict[str, Any],
@@ -224,18 +235,19 @@ def render_compliance_violations(
     violations = compliance_report.get("violations", [])
     rows = ""
     for v in violations:
-        rows += f"""<tr><td>{v.get('framework')}</td><td>{v.get('rule')}</td><td>{v.get('detail')}</td></tr>"""
+        rows += f"""<tr><td>{v.get("framework")}</td><td>{v.get("rule")}</td><td>{v.get("detail")}</td></tr>"""
     html = f"""<!DOCTYPE html>
 <html><head><title>Compliance Report</title></head>
 <body style="font-family:monospace;background:#0d1117;color:#c9d1d9;padding:20px;">
 <h1>Compliance Violations</h1>
 <table border=1 style="border-collapse:collapse;width:100%;">
 <tr><th>Framework</th><th>Rule</th><th>Detail</th></tr>{rows}</table>
-<p>Violations: {len(violations)} | Frameworks: {', '.join(compliance_report.get('frameworks_evaluated', []))}</p>
+<p>Violations: {len(violations)} | Frameworks: {", ".join(compliance_report.get("frameworks_evaluated", []))}</p>
 <p>Generated: {datetime.now(timezone.utc).isoformat()}</p>
 </body></html>"""
     with open(output_path, "w") as f:
         f.write(html)
+
 
 def render_observability_drift(
     drift_report: Dict[str, Any],
@@ -245,14 +257,14 @@ def render_observability_drift(
     findings = drift_report.get("findings", [])
     rows = ""
     for f in findings:
-        rows += f"""<tr><td>{f.get('rule')}</td><td>{f.get('detail')}</td></tr>"""
+        rows += f"""<tr><td>{f.get("rule")}</td><td>{f.get("detail")}</td></tr>"""
     html = f"""<!DOCTYPE html>
 <html><head><title>Observability Drift</title></head>
 <body style="font-family:monospace;background:#0d1117;color:#c9d1d9;padding:20px;">
 <h1>Observability Drift Report</h1>
 <table border=1 style="border-collapse:collapse;width:100%;">
 <tr><th>Rule</th><th>Detail</th></tr>{rows}</table>
-<p>Drift Score: {drift_report.get('drift_score', 0)} | New Sensitive Fields: {len(drift_report.get('new_sensitive_fields', []))}</p>
+<p>Drift Score: {drift_report.get("drift_score", 0)} | New Sensitive Fields: {len(drift_report.get("new_sensitive_fields", []))}</p>
 <p>Generated: {datetime.now(timezone.utc).isoformat()}</p>
 </body></html>"""
     with open(output_path, "w") as f:

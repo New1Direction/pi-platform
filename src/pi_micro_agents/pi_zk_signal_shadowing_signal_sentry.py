@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -40,11 +39,11 @@ class PiZKSignalShadowingSignalSentry:
         vulnerable_signals = []
         flagged_findings = []
 
-        templates = re.findall(r'template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        templates = re.findall(r"template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for tname, params, body in templates:
+        for tname, _params, body in templates:
             # Find all signals declared, e.g. signal input x, signal output y, signal z
-            declarations = re.findall(r'signal\s+(?:input|output)?\s*([a-zA-Z0-9_]+)', body)
+            declarations = re.findall(r"signal\s+(?:input|output)?\s*([a-zA-Z0-9_]+)", body)
             seen_signals = set()
             for sig in declarations:
                 if sig in seen_signals:
@@ -71,5 +70,5 @@ class PiZKSignalShadowingSignalSentry:
             vulnerable_signals=vulnerable_signals,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

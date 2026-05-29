@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -24,7 +23,9 @@ class ProxyCallTargetInput(BaseModel):
 class ProxyCallTargetOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract proxy call targets are secure")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on proxy call target risks")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on proxy call target risks"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -41,7 +42,7 @@ class PiSolidityProxyCallTargetCheck:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
         for name, args, body in func_blocks:
             # Check for delegatecall usage
@@ -50,16 +51,20 @@ class PiSolidityProxyCallTargetCheck:
                 # Check if the target parameter is passed as a function argument
                 is_arg_target = False
                 arg_names = [arg.strip().split()[-1] for arg in args.split(",") if len(arg.strip().split()) >= 2]
-                
+
                 # Check if delegatecall uses any function argument directly as the target
                 for arg_name in arg_names:
-                    if re.search(r'\bdelegatecall\s*\([^)]*?\b' + re.escape(arg_name) + r'\b', body) or re.search(r'\b' + re.escape(arg_name) + r'\.delegatecall\b', body):
+                    if re.search(r"\bdelegatecall\s*\([^)]*?\b" + re.escape(arg_name) + r"\b", body) or re.search(
+                        r"\b" + re.escape(arg_name) + r"\.delegatecall\b", body
+                    ):
                         is_arg_target = True
                         break
 
                 # If the target is an argument, verify it has a whitelist or mapping check
                 if is_arg_target:
-                    has_whitelist_check = any(kw in body for kw in ["whitelist", "isTarget", "isWhitelisted", "require", "assert"])
+                    has_whitelist_check = any(
+                        kw in body for kw in ["whitelist", "isTarget", "isWhitelisted", "require", "assert"]
+                    )
                     if not has_whitelist_check:
                         vulnerable_funcs.append(name)
                         flagged_findings.append(
@@ -84,5 +89,5 @@ class PiSolidityProxyCallTargetCheck:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

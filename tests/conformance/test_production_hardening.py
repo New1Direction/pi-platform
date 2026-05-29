@@ -12,22 +12,9 @@ import os
 import tempfile
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, Dict
 
 import pytest
 
-from pi_production.storage.engine import (
-    AuditLogger,
-    ConnectionPool,
-    HashChainBreakError,
-    HealthRecorder,
-    MutationForbiddenError,
-    ReceiptPersister,
-    SnapshotPersister,
-    TenantRegistry,
-    install_append_only_triggers,
-)
 from pi_production.security.auth import (
     AuthenticationError,
     JWTToken,
@@ -37,6 +24,15 @@ from pi_production.security.auth import (
     SecurityContext,
     SignatureError,
 )
+from pi_production.storage.engine import (
+    AuditLogger,
+    ConnectionPool,
+    HealthRecorder,
+    ReceiptPersister,
+    SnapshotPersister,
+    TenantRegistry,
+    install_append_only_triggers,
+)
 from pi_production.telemetry.metrics import (
     MetricsRegistry,
     StructuredLogger,
@@ -44,10 +40,10 @@ from pi_production.telemetry.metrics import (
     Tracer,
 )
 
-
 # ──────────────────────────────
 #  Storage Layer Fixtures
 # ──────────────────────────────
+
 
 @pytest.fixture
 def db_pool():
@@ -62,6 +58,7 @@ def db_pool():
 # ──────────────────────────────
 #  Snapshot Persistence Tests
 # ──────────────────────────────
+
 
 class TestSnapshotPersistence:
     def test_persist_and_retrieve(self, db_pool):
@@ -131,6 +128,7 @@ class TestSnapshotPersistence:
 #  Audit Logger Tests
 # ──────────────────────────────
 
+
 class TestAuditLogger:
     def test_log_and_query(self, db_pool):
         al = AuditLogger(db_pool)
@@ -167,6 +165,7 @@ class TestAuditLogger:
 #  Receipt Persister Tests
 # ──────────────────────────────
 
+
 class TestReceiptPersister:
     def test_persist_and_get(self, db_pool):
         rp = ReceiptPersister(db_pool)
@@ -187,6 +186,7 @@ class TestReceiptPersister:
 # ──────────────────────────────
 #  Tenant Registry Tests
 # ──────────────────────────────
+
 
 class TestTenantRegistry:
     def test_register_and_get(self, db_pool):
@@ -213,6 +213,7 @@ class TestTenantRegistry:
 # ──────────────────────────────
 #  Health Recorder Tests
 # ──────────────────────────────
+
 
 class TestHealthRecorder:
     def test_record_and_latest(self, db_pool):
@@ -242,6 +243,7 @@ class TestHealthRecorder:
 # ──────────────────────────────
 #  JWT Security Tests
 # ──────────────────────────────
+
 
 class TestJWTToken:
     def test_encode_decode(self):
@@ -281,6 +283,7 @@ class TestJWTToken:
 #  Request Signer Tests
 # ──────────────────────────────
 
+
 class TestRequestSigner:
     def test_sign_and_verify(self):
         signer = RequestSigner("secret-key")
@@ -313,6 +316,7 @@ class TestRequestSigner:
 #  RBAC Tests
 # ──────────────────────────────
 
+
 class TestRBACPolicy:
     def test_admin_all_permissions(self):
         rbac = RBACPolicy()
@@ -336,6 +340,7 @@ class TestRBACPolicy:
 #  Secret Manager Tests
 # ──────────────────────────────
 
+
 class TestSecretManager:
     def test_env_fallback(self, monkeypatch):
         monkeypatch.setenv("PI_SECRET_JWT", "env_jwt_value")
@@ -345,6 +350,9 @@ class TestSecretManager:
     def test_file_fallback(self, tmp_path):
         secret_file = tmp_path / "jwt"
         secret_file.write_text("file_jwt_value")
+        # SecretManager strict mode requires 0600 — write_text uses umask
+        # default (typically 0644), so chmod here to satisfy the policy.
+        os.chmod(secret_file, 0o600)
         sm = SecretManager(str(tmp_path))
         assert sm.get("jwt") == "file_jwt_value"
 
@@ -363,6 +371,7 @@ class TestSecretManager:
 # ──────────────────────────────
 #  Telemetry / Metrics Tests
 # ──────────────────────────────
+
 
 class TestMetricsRegistry:
     def test_counter_increment(self):
@@ -390,13 +399,15 @@ class TestMetricsRegistry:
         m = MetricsRegistry()
         m.counter("c", ["l"], {"l": "v"}, 1)
         output = m.prometheus_format()
-        assert output.startswith("# TYPE c counter\nc{l=\"v\"} 1\n")
+        assert output.startswith('# TYPE c counter\nc{l="v"} 1\n')
 
     def test_thread_safe_counter(self):
         m = MetricsRegistry()
+
         def worker():
             for _ in range(100):
                 m.counter("race_test", ["t"], {"t": "x"}, 1)
+
         threads = [threading.Thread(target=worker) for _ in range(10)]
         for t in threads:
             t.start()
@@ -440,7 +451,7 @@ class TestTracer:
         tracer = Tracer("svc")
         span = tracer.start_span("t", "op")
         time.sleep(0.01)
-        ended = tracer.end_span(span)
+        tracer.end_span(span)
         trace = tracer.get_trace("t")
         assert trace[0]["duration_ms"] > 0
 
@@ -466,6 +477,7 @@ class TestTelemetryManager:
 # ──────────────────────────────
 #  Integration Tests
 # ──────────────────────────────
+
 
 class TestProductionIntegration:
     def test_end_to_end_storage_security_telemetry(self, db_pool):
@@ -526,6 +538,7 @@ class TestProductionIntegration:
 
     def test_rate_limiter_integration(self, db_pool):
         from pi_production.storage.engine import RateLimiter
+
         rl = RateLimiter(db_pool, default_max=3, window_seconds=60)
         for i in range(3):
             allowed, info = rl.check("t1", "actor_1")
@@ -564,8 +577,10 @@ class TestProductionIntegration:
 
     def test_concurrent_writes_safe(self, db_pool):
         sp = SnapshotPersister(db_pool)
+
         def writer(i):
             sp.persist(f"snap_t{i}", "t1", "src", "CONFIG", f"2026-06-01T12:00:{i:02d}Z", i + 1, f"ph{i}", "{}", "")
+
         threads = [threading.Thread(target=writer, args=(i,)) for i in range(10)]
         for t in threads:
             t.start()
@@ -639,7 +654,7 @@ class TestProductionIntegration:
         m.counter("c", ["l"], {"l": "v"}, 5)
         m.reset_counter("c")
         output = m.prometheus_format()
-        assert "c{l=\"v\"} 5" not in output
+        assert 'c{l="v"} 5' not in output
 
     def test_security_context_immutable_fields(self):
         ctx = SecurityContext("t1", "actor_1", "operator", "corr_1")

@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import os
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_DEAD_CODE_STRICT_MODE")
@@ -10,15 +13,20 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class DeadCodeInput(BaseModel):
     file_path: str = Field(..., description="Path of the file being audited")
     code_content: str = Field(..., description="Source code content")
 
+
 class DeadCodeOutput(BaseModel):
-    is_secure: bool = Field(..., description="True if no dead code (e.g. unused imports or unreachable statements) is detected")
+    is_secure: bool = Field(
+        ..., description="True if no dead code (e.g. unused imports or unreachable statements) is detected"
+    )
     unused_tokens: List[str] = Field(default_factory=list, description="List of dead code occurrences found")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiDeadCodePruner:
     """Deterministic micro-agent that scans files for dead code, unused imports, or unreachable lines."""
@@ -31,7 +39,7 @@ class PiDeadCodePruner:
         unused_tokens = []
 
         lines = code.splitlines()
-        
+
         # 1. Check for unused imports
         import_pattern = r"^\s*(?:import\s+([a-zA-Z0-9_]+)|from\s+[a-zA-Z0-9_\.]+\s+import\s+([a-zA-Z0-9_]+))"
         for idx, line in enumerate(lines, start=1):
@@ -58,7 +66,16 @@ class PiDeadCodePruner:
                 if idx < len(lines):
                     next_line = lines[idx]
                     next_stripped = next_line.strip()
-                    if next_stripped and not next_stripped.startswith("#") and not next_stripped.startswith("def ") and not next_stripped.startswith("class ") and not next_stripped.startswith("elif") and not next_stripped.startswith("else") and not next_stripped.startswith("except") and not next_stripped.startswith("finally"):
+                    if (
+                        next_stripped
+                        and not next_stripped.startswith("#")
+                        and not next_stripped.startswith("def ")
+                        and not next_stripped.startswith("class ")
+                        and not next_stripped.startswith("elif")
+                        and not next_stripped.startswith("else")
+                        and not next_stripped.startswith("except")
+                        and not next_stripped.startswith("finally")
+                    ):
                         # Check if next line indentation is equal to or greater than the current line
                         current_indent = len(line) - len(line.lstrip())
                         next_indent = len(next_line) - len(next_line.lstrip())
@@ -76,9 +93,4 @@ class PiDeadCodePruner:
                 status = "WARN_DEAD_CODE"
                 is_secure = True
 
-        return DeadCodeOutput(
-            is_secure=is_secure,
-            unused_tokens=unused_tokens,
-            risk_score=risk_score,
-            status=status
-        )
+        return DeadCodeOutput(is_secure=is_secure, unused_tokens=unused_tokens, risk_score=risk_score, status=status)

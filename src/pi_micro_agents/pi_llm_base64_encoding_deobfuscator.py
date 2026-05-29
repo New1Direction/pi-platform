@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import json
 import os
 import re
 from typing import List
@@ -40,7 +39,7 @@ class PiLLMBase64EncodingDeobfuscator:
         is_secure = True
 
         # Find Base64-like substrings (lengths > 12, matching b64 chars)
-        b64_matches = re.findall(r'\b([a-zA-Z0-9+/]{12,}={0,2})\b', prompt)
+        b64_matches = re.findall(r"\b([a-zA-Z0-9+/]{12,}={0,2})\b", prompt)
 
         for match in b64_matches:
             try:
@@ -68,8 +67,5 @@ class PiLLMBase64EncodingDeobfuscator:
                 is_secure = True
 
         return LLMBase64DeobfuscatorOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

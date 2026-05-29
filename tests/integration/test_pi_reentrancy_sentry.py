@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_reentrancy_sentry import (
     PiReentrancySentry,
     ReentrancyInput,
-    ReentrancyOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -43,11 +40,7 @@ def test_reentrancy_sentry_vulnerable_contract():
         }
     }
     """
-    inp = ReentrancyInput(
-        file_path="EtherStore.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ReentrancyInput(file_path="EtherStore.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_reentrancy(inp)
 
@@ -83,11 +76,7 @@ def test_reentrancy_sentry_safe_contract():
         }
     }
     """
-    inp = ReentrancyInput(
-        file_path="SafeStore.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ReentrancyInput(file_path="SafeStore.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_reentrancy(inp)
 
@@ -120,11 +109,7 @@ def test_reentrancy_sentry_nonreentrant_modifier():
         }
     }
     """
-    inp = ReentrancyInput(
-        file_path="GuardedStore.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ReentrancyInput(file_path="GuardedStore.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_reentrancy(inp)
 
@@ -151,10 +136,7 @@ def test_reentrancy_strict_vs_warning_modes(monkeypatch):
         }
     }
     """
-    inp = ReentrancyInput(
-        file_path="Vulnerable.sol",
-        solidity_code=solidity_code
-    )
+    inp = ReentrancyInput(file_path="Vulnerable.sol", solidity_code=solidity_code)
 
     # 1. Strict Mode: Reject and is_secure=False
     monkeypatch.setenv("PI_REENTRANCY_STRICT_MODE", "true")
@@ -187,13 +169,7 @@ def test_orchestrator_routing_to_reentrancy_sentry(monkeypatch):
     }
     """
     goal = "Perform a reentrancy scan on contract.sol"
-    inp = OrchestratorInput(
-        goal=goal,
-        context={
-            "file_path": "contract.sol",
-            "solidity_code": solidity_code
-        }
-    )
+    inp = OrchestratorInput(goal=goal, context={"file_path": "contract.sol", "solidity_code": solidity_code})
     res = orchestrator.execute_goal(inp)
 
     assert res.success is True
@@ -211,7 +187,8 @@ def test_orchestrator_reentrancy_consensus_divergence_alarm(monkeypatch):
     monkeypatch.setenv("PI_ORCHESTRATOR_STRICT_MODE", "true")
 
     # Mock evaluate_consensus to return a broken report
-    from pi_semantic_radius.consensus_breaker import PiConsensusBreaker, DivergenceReport
+    from pi_semantic_radius.consensus_breaker import DivergenceReport, PiConsensusBreaker
+
     def mock_evaluate_consensus(self, prompt, responses):
         return DivergenceReport(
             prompt=prompt,
@@ -219,45 +196,30 @@ def test_orchestrator_reentrancy_consensus_divergence_alarm(monkeypatch):
             semantic_divergence=85.0,
             structural_divergence=0.0,
             consensus_divergence_score=85.0,
-            is_broken=True
+            is_broken=True,
         )
+
     monkeypatch.setattr(PiConsensusBreaker, "evaluate_consensus", mock_evaluate_consensus)
 
     orchestrator = PiOrchestrator()
     goal = "solidity audit on wallet.sol"
-    
+
     # 3 mock runs with split verdicts or high content divergence
     mock_runs = [
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        },
-        {
-            "is_secure": True,
-            "vulnerable_functions": [],
-            "flagged_findings": [],
-            "risk_score": 0.0,
-            "status": "PASSED"
-        },
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
+        {"is_secure": True, "vulnerable_functions": [], "flagged_findings": [], "risk_score": 0.0, "status": "PASSED"},
         {
             "is_secure": False,
             "vulnerable_functions": ["withdraw"],
             "flagged_findings": ["Reentrancy violation"],
             "risk_score": 95.0,
-            "status": "REJECTED_REENTRANCY"
-        }
+            "status": "REJECTED_REENTRANCY",
+        },
     ]
 
     inp = OrchestratorInput(
         goal=goal,
-        context={
-            "file_path": "wallet.sol",
-            "solidity_code": "contract Wallet {}",
-            "mock_consensus_runs": mock_runs
-        }
+        context={"file_path": "wallet.sol", "solidity_code": "contract Wallet {}", "mock_consensus_runs": mock_runs},
     )
 
     res = orchestrator.execute_goal(inp)

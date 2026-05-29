@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import os
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_CHANGELOG_STRICT_MODE")
@@ -10,15 +13,20 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class ChangelogInput(BaseModel):
     changelog_content: str = Field(..., description="Markdown content of the CHANGELOG file")
     target_version: str = Field(..., description="Version identifier to verify exists (e.g., '1.2.3' or 'v1.2.3')")
 
+
 class ChangelogOutput(BaseModel):
     is_secure: bool = Field(..., description="True if target version entry is found and correctly formatted")
-    format_issues: List[str] = Field(default_factory=list, description="List of formatting issues or missing entries found")
+    format_issues: List[str] = Field(
+        default_factory=list, description="List of formatting issues or missing entries found"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiChangelogAuditor:
     """Deterministic micro-agent that verifies the target version's CHANGELOG.md entry structure."""
@@ -28,7 +36,7 @@ class PiChangelogAuditor:
 
     def audit_changelog(self, input_envelope: ChangelogInput) -> ChangelogOutput:
         content = input_envelope.changelog_content
-        version = input_envelope.target_version.strip().lstrip('v')
+        version = input_envelope.target_version.strip().lstrip("v")
         issues = []
 
         # Look for headers containing the version, e.g., '## [1.2.3]', '## v1.2.3', '## 1.2.3'
@@ -58,9 +66,11 @@ class PiChangelogAuditor:
                 if line.startswith("-") or line.startswith("*") or re.match(r"^\d+\.", line):
                     bullet_points_found = True
                     break
-            
+
             if not bullet_points_found:
-                issues.append(f"No release notes/bullet points found under target version '{input_envelope.target_version}' header")
+                issues.append(
+                    f"No release notes/bullet points found under target version '{input_envelope.target_version}' header"
+                )
 
         is_secure = len(issues) == 0
         risk_score = 45.0 if not is_secure else 0.0
@@ -73,9 +83,4 @@ class PiChangelogAuditor:
                 status = "WARN_CHANGELOG"
                 is_secure = True
 
-        return ChangelogOutput(
-            is_secure=is_secure,
-            format_issues=issues,
-            risk_score=risk_score,
-            status=status
-        )
+        return ChangelogOutput(is_secure=is_secure, format_issues=issues, risk_score=risk_score, status=status)

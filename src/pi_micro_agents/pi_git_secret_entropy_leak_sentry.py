@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import math
 import os
 import re
@@ -43,7 +42,7 @@ class PiGitSecretEntropyLeakSentry:
         for x in range(256):
             p_x = float(data.count(chr(x))) / len(data)
             if p_x > 0:
-                entropy += - p_x * math.log(p_x, 2)
+                entropy += -p_x * math.log(p_x, 2)
         return entropy
 
     def audit_entropy_leaks(self, input_envelope: GitSecretEntropyLeakInput) -> GitSecretEntropyLeakOutput:
@@ -84,5 +83,5 @@ class PiGitSecretEntropyLeakSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 #  Primitive Enums (top-level)
 # ──────────────────────────────
 
+
 class ReplayClass(str):
     """Replay safety classification for acquired traffic."""
 
@@ -62,6 +63,7 @@ class EpistemicState(str):
 #  Node 0: Acquisition Layer
 # ──────────────────────────────
 
+
 class RuntimeTruthEnvelope(BaseModel):
     """Root immutable runtime fact object.
 
@@ -100,6 +102,7 @@ class GovernedPacket(BaseModel):
 # ──────────────────────────────
 #  Node 1: Ingress Parser
 # ──────────────────────────────
+
 
 class NormalizedTrafficPacket(BaseModel):
     """Output of Node 1: Ingress Parser.
@@ -142,6 +145,7 @@ class NormalizedTrafficPacket(BaseModel):
 #  Node 2: Structural Extractor
 # ──────────────────────────────
 
+
 class ExtractedProtocolSkeleton(BaseModel):
     """Output of Node 2: Deterministic Structural Extractor."""
 
@@ -160,6 +164,7 @@ class ExtractedProtocolSkeleton(BaseModel):
 # ──────────────────────────────
 #  Node 3: Semantic Typing Engine
 # ──────────────────────────────
+
 
 class SemanticField(BaseModel):
     """Typed primitive inside a SemanticIRTrace."""
@@ -202,6 +207,7 @@ class SemanticIRTrace(BaseModel):
 #  Node 4: Dependency Mapper
 # ──────────────────────────────
 
+
 class StateEdge(BaseModel):
     """A single directed dependency edge."""
 
@@ -232,6 +238,7 @@ class DependencyGraph(BaseModel):
 #  Node 5: Spec Synthesizer
 # ──────────────────────────────
 
+
 class SynthesizedSpec(BaseModel):
     """Output of Node 5: Spec Synthesizer."""
 
@@ -260,6 +267,7 @@ class SynthesizedSpec(BaseModel):
 # ──────────────────────────────
 #  Node 6: Differential Verifier
 # ──────────────────────────────
+
 
 class BehavioralDelta(BaseModel):
     """A single differential mismatch from Node 6."""
@@ -310,6 +318,7 @@ class VerificationReport(BaseModel):
 #  Ledger & Governance
 # ──────────────────────────────
 
+
 class ExecutionTrace(BaseModel):
     """Immutable ledger entry for deterministic replay."""
 
@@ -320,6 +329,7 @@ class ExecutionTrace(BaseModel):
     llm_temperature: float = 0.0
     raw_output: str
     is_valid_type: bool
+    is_finding: bool = False
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     error_message: Optional[str] = None
 
@@ -337,6 +347,7 @@ class GovernanceConfig(BaseModel):
 # ──────────────────────────────
 #  Hyper-Rigid Governance Manifest Primitives
 # ──────────────────────────────
+
 
 class WorkerStatus(str):
     """Finite-state worker emission statuses.
@@ -388,10 +399,18 @@ class WorkerResponse(BaseModel):
     @field_validator("status")
     @classmethod
     def _valid_status(cls, v: str) -> str:
-        valid = {WorkerStatus.SUCCESS, WorkerStatus.FAILURE, WorkerStatus.RETRYABLE_FAILURE,
-                 WorkerStatus.INVALID_INPUT, WorkerStatus.TIMEOUT, WorkerStatus.INSUFFICIENT_EVIDENCE,
-                 WorkerStatus.VERIFICATION_MISMATCH, WorkerStatus.OBJECTIVE_DRIFT_DETECTED,
-                 WorkerStatus.BRANCH_OVERFLOW, WorkerStatus.INVALID_OUTPUT}
+        valid = {
+            WorkerStatus.SUCCESS,
+            WorkerStatus.FAILURE,
+            WorkerStatus.RETRYABLE_FAILURE,
+            WorkerStatus.INVALID_INPUT,
+            WorkerStatus.TIMEOUT,
+            WorkerStatus.INSUFFICIENT_EVIDENCE,
+            WorkerStatus.VERIFICATION_MISMATCH,
+            WorkerStatus.OBJECTIVE_DRIFT_DETECTED,
+            WorkerStatus.BRANCH_OVERFLOW,
+            WorkerStatus.INVALID_OUTPUT,
+        }
         if v not in valid:
             raise ValueError(f"Invalid worker status: {v}")
         return v
@@ -409,11 +428,13 @@ class WorkerEnvelope(BaseModel):
     state_id: str
     input_ref: str
     input_payload: str = ""
-    execution_budget: dict = Field(default_factory=lambda: {
-        "max_tokens": 2500,
-        "max_seconds": 20,
-        "max_retries": 2,
-    })
+    execution_budget: dict = Field(
+        default_factory=lambda: {
+            "max_tokens": 2500,
+            "max_seconds": 20,
+            "max_retries": 2,
+        }
+    )
     objective_scope: dict = Field(default_factory=dict)
     allowed_transitions: List[str] = Field(default_factory=list)
     allowed_workers: List[str] = Field(default_factory=list)
@@ -486,6 +507,7 @@ class GovernanceViolation(BaseModel):
 # ──────────────────────────────
 #  Phase 3: Auth Consistency Models
 # ──────────────────────────────
+
 
 class AuthEvidenceType(str):
     """Observable evidence of authentication mechanisms."""
@@ -580,6 +602,7 @@ class AuthConsistencyReport(BaseModel):
 #  Phase 4: Protocol State Machine Models
 # ──────────────────────────────
 
+
 class StateNode(BaseModel):
     """A single endpoint in the protocol FSM.
 
@@ -612,7 +635,7 @@ class TransitionEdge(BaseModel):
 
     edge_id: str
     from_node: str  # node_id
-    to_node: str    # node_id
+    to_node: str  # node_id
     observed_count: int = 0
     replay_confirmed_count: int = 0
     failure_without_prerequisite: int = 0  # how many times to_node failed when from_node absent
@@ -658,6 +681,7 @@ class ProtocolStateMachine(BaseModel):
 #  Phase 5: Semantic Quorum Models
 # ──────────────────────────────
 
+
 class SemanticClaim(BaseModel):
     """A single evidence-bound semantic assertion.
 
@@ -667,7 +691,7 @@ class SemanticClaim(BaseModel):
 
     claim_id: str
     property_path: str  # e.g., "response.body.user.id.type"
-    semantic_type: str   # e.g., "STRING", "UUID", "INTEGER", "BOOLEAN"
+    semantic_type: str  # e.g., "STRING", "UUID", "INTEGER", "BOOLEAN"
     confidence_score: float = Field(default=0.0, ge=0.0, le=1.0)
     # Evidence binding — non-negotiable
     artifact_id: str
@@ -709,7 +733,14 @@ class SemanticConflictSet(BaseModel):
     conflict_id: str
     property_path: str
     conflicting_claim_ids: List[str] = Field(default_factory=list)
-    conflict_type: Literal["TYPE_MISMATCH", "PATH_DIVERGENCE", "CONFIDENCE_REGRESSION", "ENTROPY_INCREASE", "AUTHORITY_WEIGHT_COLLISION", "STATE_INCOMPATIBLE"]
+    conflict_type: Literal[
+        "TYPE_MISMATCH",
+        "PATH_DIVERGENCE",
+        "CONFIDENCE_REGRESSION",
+        "ENTROPY_INCREASE",
+        "AUTHORITY_WEIGHT_COLLISION",
+        "STATE_INCOMPATIBLE",
+    ]
     description: str
     epistemic_state: str = Field(default=EpistemicState.CONTESTED)
     max_confidence: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -758,6 +789,7 @@ class QuorumPromotionRule(BaseModel):
 # ──────────────────────────────
 #  Phase 6: Entropy Analysis Models
 # ──────────────────────────────
+
 
 class EntropySnapshot(BaseModel):
     """Single point-in-time entropy measurement across all dimensions.
@@ -1101,12 +1133,8 @@ class ShardContext(BaseModel):
     trace_count: int = 0
     local_nodes: List[str] = Field(default_factory=list)
     local_edges: List[str] = Field(default_factory=list)
-    cross_shard_edges: List[Tuple[str, str]] = Field(
-        default_factory=list
-    )  # (from_local, to_remote_shard)
-    cross_shard_incoming: List[Tuple[str, str]] = Field(
-        default_factory=list
-    )  # (from_remote_shard, to_local)
+    cross_shard_edges: List[Tuple[str, str]] = Field(default_factory=list)  # (from_local, to_remote_shard)
+    cross_shard_incoming: List[Tuple[str, str]] = Field(default_factory=list)  # (from_remote_shard, to_local)
     bounds: ValidationBoundsConfig = Field(default_factory=ValidationBoundsConfig)
     generated_at: datetime = Field(default_factory=datetime.utcnow)
     parent_execution_id: str = ""

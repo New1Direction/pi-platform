@@ -2,14 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_prompt_leak_buster import (
-    PiPromptLeakBuster,
     LeakBusterInput,
-    LeakBusterOutput,
-    detect_leak_anomalies,
+    PiPromptLeakBuster,
     is_strict_mode,
 )
 

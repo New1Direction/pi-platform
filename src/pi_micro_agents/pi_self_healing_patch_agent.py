@@ -27,12 +27,14 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class SelfHealingInput(BaseModel):
     file_path: str = Field(..., description="Target file path under repair")
     source_code: str = Field(..., description="The raw unpatched file contents")
     vulnerability_type: str = Field(..., description="Target vulnerability category: UNPINNED_DEP or DANGEROUS_EVAL")
     vulnerable_lines: List[int] = Field(..., description="Line numbers (1-indexed) targeted for remediation")
+
 
 class SelfHealingOutput(BaseModel):
     patch_synthesized: bool = Field(..., description="Indicates if a patch was successfully synthesized")
@@ -41,6 +43,7 @@ class SelfHealingOutput(BaseModel):
     patch_safety_score: float = Field(..., description="Safety validation score from 0.0 to 100.0")
     remediations: List[str] = Field(default_factory=list, description="Remediation steps completed")
     status: str = Field(..., description="Patch status classification (PASSED, WARN_PATCH, REJECTED_PATCH)")
+
 
 # 3. Core Micro-Agent Class
 class PiSelfHealingPatchAgent:
@@ -94,19 +97,23 @@ class PiSelfHealingPatchAgent:
                             package = json_match.group(1)
                             stable_ver = "18.2.0" if package.lower() == "react" else "4.17.21"
                             # Maintain JSON spacing/brackets
-                            leading_space = line[:line.find('"')]
+                            leading_space = line[: line.find('"')]
                             trailing_comma = "," if line.strip().endswith(",") else ""
                             pinned_line = f'{leading_space}"{package}": "{stable_ver}"{trailing_comma}'
                             patched_lines.append(pinned_line)
-                            remediations.append(f"Pinned JSON package '{package}' to stable secure version '{stable_ver}'")
+                            remediations.append(
+                                f"Pinned JSON package '{package}' to stable secure version '{stable_ver}'"
+                            )
                             applied = True
                         else:
                             patched_lines.append(line)
                 elif vuln_type == "DANGEROUS_EVAL":
                     # Locate and replace eval(...) statements
                     if "eval" in line:
-                        indent = line[:len(line) - len(line.lstrip())]
-                        commented_remedy = f"{indent}# TODO (Security Remediation): Blocked dangerous eval statement\n{indent}pass"
+                        indent = line[: len(line) - len(line.lstrip())]
+                        commented_remedy = (
+                            f"{indent}# TODO (Security Remediation): Blocked dangerous eval statement\n{indent}pass"
+                        )
                         patched_lines.append(commented_remedy)
                         remediations.append("Replaced dangerous 'eval' construct with safe placeholder pass.")
                         applied = True
@@ -156,5 +163,5 @@ class PiSelfHealingPatchAgent:
             patch_diff=diff,
             patch_safety_score=safety_score,
             remediations=remediations,
-            status=status
+            status=status,
         )

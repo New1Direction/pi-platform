@@ -18,12 +18,8 @@ def test_cli_inspect_policy():
         "policy_version": "1.0.0",
         "description": "Test policy",
         "global_fail_closed": True,
-        "trust_zones": [
-            {"zone_id": "public", "endpoint_patterns": ["/public/*"]}
-        ],
-        "layers": [
-            {"layer_id": "frontend", "endpoint_patterns": ["/public/*"]}
-        ],
+        "trust_zones": [{"zone_id": "public", "endpoint_patterns": ["/public/*"]}],
+        "layers": [{"layer_id": "frontend", "endpoint_patterns": ["/public/*"]}],
         "blast_radius_limits": {},
     }
     with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -42,9 +38,7 @@ def test_cli_validate_directory():
         "policy_id": "test-policy",
         "policy_version": "1.0.0",
         "global_fail_closed": True,
-        "trust_zones": [
-            {"zone_id": "public", "endpoint_patterns": ["/public/*"]}
-        ],
+        "trust_zones": [{"zone_id": "public", "endpoint_patterns": ["/public/*"]}],
     }
     with tempfile.TemporaryDirectory() as td:
         policy_path = Path(td) / "policy.json"

@@ -62,46 +62,65 @@ class DockerConnector(BaseConnectorWorker):
 
         # Topology: containers on networks
         nodes = [
-            {"id": f"docker:container:{c.get('Id','')}", "type": "container", "name": c.get("Names", [""])[0], "image": c.get("Image", "")}
+            {
+                "id": f"docker:container:{c.get('Id', '')}",
+                "type": "container",
+                "name": c.get("Names", [""])[0],
+                "image": c.get("Image", ""),
+            }
             for c in containers
         ]
         nodes += [
-            {"id": f"docker:network:{n.get('Id','')}", "type": "network", "name": n.get("Name", "")}
-            for n in networks
+            {"id": f"docker:network:{n.get('Id', '')}", "type": "network", "name": n.get("Name", "")} for n in networks
         ]
         edges = []
         for c in containers:
             for net_name in c.get("NetworkSettings", {}).get("Networks", {}).keys():
-                cid = f"docker:container:{c.get('Id','')}"
+                cid = f"docker:container:{c.get('Id', '')}"
                 nid = f"docker:network:{net_name}"
                 edges.append({"from": cid, "to": nid, "relation": "connected_to"})
 
         topology = ArtifactNormalizer.normalize_topology(
-            nodes=nodes, edges=edges, source_system="docker",
-            connector_id=self.manifest.connector_id, connector_version=self.manifest.version,
-            tenant_id=tenant_id, correlation_id=correlation_id,
+            nodes=nodes,
+            edges=edges,
+            source_system="docker",
+            connector_id=self.manifest.connector_id,
+            connector_version=self.manifest.version,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
         )
         artifacts.append(topology)
 
         # State
         resources = [
-            {"id": f"docker:container:{c.get('Id','')}", "type": "container", "state": c.get("State", {}), "image": c.get("Image", "")}
+            {
+                "id": f"docker:container:{c.get('Id', '')}",
+                "type": "container",
+                "state": c.get("State", {}),
+                "image": c.get("Image", ""),
+            }
             for c in containers
         ]
         resources += [
-            {"id": f"docker:image:{i.get('Id','')}", "type": "image", "tags": i.get("RepoTags", [])}
-            for i in images
+            {"id": f"docker:image:{i.get('Id', '')}", "type": "image", "tags": i.get("RepoTags", [])} for i in images
         ]
 
         state = ArtifactNormalizer.normalize_infrastructure_state(
-            resources=resources, source_system="docker",
-            connector_id=self.manifest.connector_id, connector_version=self.manifest.version,
-            tenant_id=tenant_id, correlation_id=correlation_id,
+            resources=resources,
+            source_system="docker",
+            connector_id=self.manifest.connector_id,
+            connector_version=self.manifest.version,
+            tenant_id=tenant_id,
+            correlation_id=correlation_id,
         )
         artifacts.append(state)
 
         receipt = self._produce_receipt(
-            artifacts=artifacts, tenant_id=tenant_id, actor_id=actor_id,
-            correlation_id=correlation_id, start_time=start, errors=errors,
+            artifacts=artifacts,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            correlation_id=correlation_id,
+            start_time=start,
+            errors=errors,
         )
         return artifacts, receipt

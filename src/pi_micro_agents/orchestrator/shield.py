@@ -3,8 +3,15 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, List, Tuple
 
-from pi_agent_interceptor.proxy import PIGovernShield
 from pi_micro_agents.pi_prompt_shield import detect_prompt_injection
+
+
+def _govern_shield():
+    """Lazy import — pi_agent_interceptor.proxy imports pi_micro_agents
+    transitively, so a top-level import here closes a cycle."""
+    from pi_agent_interceptor.proxy import PIGovernShield
+
+    return PIGovernShield
 
 
 class PiOrchestratorShield:
@@ -15,8 +22,13 @@ class PiOrchestratorShield:
         """Returns True if defensive-only mode is active and blocked payloads are found."""
         is_defensive_only = os.getenv("PI_ORCHESTRATOR_DEFENSIVE_ONLY") == "true"
         if is_defensive_only:
-            if (context.get("command") or context.get("cmd") or
-                context.get("content") or context.get("proposed_content") or context.get("source_code")):
+            if (
+                context.get("command")
+                or context.get("cmd")
+                or context.get("content")
+                or context.get("proposed_content")
+                or context.get("source_code")
+            ):
                 return True
         return False
 
@@ -30,7 +42,7 @@ class PiOrchestratorShield:
         """Inspects shell commands inside the context for malicious or unsafe operations."""
         cmd_candidate = context.get("command") or context.get("cmd")
         if cmd_candidate and isinstance(cmd_candidate, str):
-            cmd_risk = PIGovernShield.analyze_command_sensitivity(cmd_candidate)
+            cmd_risk = _govern_shield().analyze_command_sensitivity(cmd_candidate)
             if cmd_risk >= 80.0:
                 return cmd_risk, cmd_candidate
         return None
@@ -40,7 +52,7 @@ class PiOrchestratorShield:
         """Inspects proposed python scripts to prevent unverified execution paths."""
         code_candidate = context.get("content") or context.get("proposed_content") or context.get("source_code")
         if code_candidate and isinstance(code_candidate, str):
-            ast_violations = PIGovernShield.inspect_ast(code_candidate)
+            ast_violations = _govern_shield().inspect_ast(code_candidate)
             if ast_violations:
                 return [f"AST security violation: {v}" for v in ast_violations]
         return None

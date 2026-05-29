@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import json
 import os
-import re
-from typing import List, Tuple
+from typing import List
 
 from pydantic import BaseModel, Field
 
@@ -34,7 +33,9 @@ class WebVulnInput(BaseModel):
 
 class WebVulnOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if the web application checks passed")
-    flagged_vulnerabilities: List[str] = Field(default_factory=list, description="List of identified web vulnerabilities")
+    flagged_vulnerabilities: List[str] = Field(
+        default_factory=list, description="List of identified web vulnerabilities"
+    )
     risk_score: float = Field(..., description="Calculated risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification description")
 
@@ -56,7 +57,11 @@ class PiWebVulnScanner:
             risk_score = max(risk_score, 85.0)
 
         # Check for missing CSRF protection or disabled CSRF tokens in configs
-        if "csrf: false" in code.lower() or "enable_csrf = false" in code.lower() or "csrf_protect = false" in code.lower():
+        if (
+            "csrf: false" in code.lower()
+            or "enable_csrf = false" in code.lower()
+            or "csrf_protect = false" in code.lower()
+        ):
             findings.append("Broken Access Control: Cross-Site Request Forgery (CSRF) protection is disabled.")
             risk_score = max(risk_score, 80.0)
 
@@ -69,8 +74,5 @@ class PiWebVulnScanner:
         status = "SECURE" if is_secure else "VULNERABLE"
 
         return WebVulnOutput(
-            is_secure=is_secure,
-            flagged_vulnerabilities=findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_vulnerabilities=findings, risk_score=risk_score, status=status
         )

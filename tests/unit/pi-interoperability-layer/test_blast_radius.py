@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pi_interoperability_layer.blast_radius import (
-    TopologyNode,
+    BlastRadiusEngine,
+    BlastRadiusReport,
+    BlastRadiusScore,
     TopologyEdge,
     TopologyGraph,
-    BlastRadiusScore,
-    BlastRadiusReport,
-    BlastRadiusEngine,
+    TopologyNode,
 )
 
 
@@ -20,9 +18,7 @@ def test_topology_graph_fanout() -> None:
     n3 = TopologyNode(node_id="n3")
     e1 = TopologyEdge(edge_id="e1", upstream="n1", downstream="n2")
     e2 = TopologyEdge(edge_id="e2", upstream="n1", downstream="n3")
-    graph = TopologyGraph(
-        graph_id="g1", nodes={"n1": n1, "n2": n2, "n3": n3}, edges=[e1, e2]
-    )
+    graph = TopologyGraph(graph_id="g1", nodes={"n1": n1, "n2": n2, "n3": n3}, edges=[e1, e2])
     assert graph.fanout("n1") == 2
     assert graph.fanout("n2") == 0
 
@@ -33,9 +29,7 @@ def test_topology_graph_depth() -> None:
     n3 = TopologyNode(node_id="n3")
     e1 = TopologyEdge(edge_id="e1", upstream="n1", downstream="n2")
     e2 = TopologyEdge(edge_id="e2", upstream="n2", downstream="n3")
-    graph = TopologyGraph(
-        graph_id="g1", nodes={"n1": n1, "n2": n2, "n3": n3}, edges=[e1, e2]
-    )
+    graph = TopologyGraph(graph_id="g1", nodes={"n1": n1, "n2": n2, "n3": n3}, edges=[e1, e2])
     assert graph.depth_from("n1") == 2
     assert graph.depth_from("n2") == 1
     assert graph.depth_from("n3") == 0
@@ -47,9 +41,7 @@ def test_topology_graph_reachable() -> None:
     n3 = TopologyNode(node_id="n3")
     e1 = TopologyEdge(edge_id="e1", upstream="n1", downstream="n2")
     e2 = TopologyEdge(edge_id="e2", upstream="n2", downstream="n3")
-    graph = TopologyGraph(
-        graph_id="g1", nodes={"n1": n1, "n2": n2, "n3": n3}, edges=[e1, e2]
-    )
+    graph = TopologyGraph(graph_id="g1", nodes={"n1": n1, "n2": n2, "n3": n3}, edges=[e1, e2])
     reachable = graph.reachable_nodes("n1")
     assert reachable == {"n2", "n3"}
 

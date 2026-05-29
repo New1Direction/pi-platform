@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -38,11 +37,11 @@ class PiLLMNegativeConstraintEvasion:
         flagged_findings = []
 
         evasion_patterns = [
-            r'i\s+know\s+this\s+is\s+forbidden',
-            r'hypothetical\s+scenario',
-            r'do\s+not\s+say\s+no',
-            r'for\s+educational\s+purposes\s+only',
-            r'academic\s+research\s+only'
+            r"i\s+know\s+this\s+is\s+forbidden",
+            r"hypothetical\s+scenario",
+            r"do\s+not\s+say\s+no",
+            r"for\s+educational\s+purposes\s+only",
+            r"academic\s+research\s+only",
         ]
 
         is_secure = True
@@ -65,8 +64,5 @@ class PiLLMNegativeConstraintEvasion:
                 is_secure = True
 
         return LLMNegativeConstraintOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

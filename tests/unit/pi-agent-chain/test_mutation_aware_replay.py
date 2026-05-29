@@ -4,8 +4,6 @@ Tests for stateful endpoint classification, mutation taxonomy, and
 distinguishing expected stateful variation from genuine structural divergence.
 """
 
-import pytest
-
 from pi_agent_chain.models import (
     EpistemicState,
     EquivalenceClass,
@@ -37,9 +35,7 @@ def test_mutation_class_idempotent_get():
         [SemanticField(path="id", inferred_type="UUIDv4", confidence=0.95, entropy_score=0.1)],
         method="GET",
     )
-    result = v.compare_with_mutation_context(
-        trace, trace, original_status=200, replay_status=200
-    )
+    result = v.compare_with_mutation_context(trace, trace, original_status=200, replay_status=200)
     assert result.mutation_class == MutationClass.IDEMPOTENT_READ
     assert result.stateful_class == StatefulReplayClassification.STATELESS
     assert result.equivalence_class == EquivalenceClass.STRICT_EQUIVALENT
@@ -56,9 +52,7 @@ def test_mutation_class_stateful_post_201_vs_409():
         [SemanticField(path="error", inferred_type="STRING", confidence=0.99, entropy_score=0.1)],
         method="POST",
     )
-    result = v.compare_with_mutation_context(
-        orig, replay, original_status=201, replay_status=409
-    )
+    result = v.compare_with_mutation_context(orig, replay, original_status=201, replay_status=409)
     assert result.mutation_class == MutationClass.STATEFUL_MUTATION
     assert result.stateful_class == StatefulReplayClassification.STATE_DEPENDENT
     # Even with structural drift (different fields), status code matches expectation
@@ -78,9 +72,7 @@ def test_mutation_class_destructive_delete_204_vs_404():
         [SemanticField(path="error", inferred_type="STRING", confidence=0.95, entropy_score=0.1)],
         method="DELETE",
     )
-    result = v.compare_with_mutation_context(
-        orig, replay, original_status=204, replay_status=404
-    )
+    result = v.compare_with_mutation_context(orig, replay, original_status=204, replay_status=404)
     assert result.mutation_class == MutationClass.DESTRUCTIVE_MUTATION
     assert result.stateful_class == StatefulReplayClassification.STATE_DEPENDENT
     assert result.status_code_matches is True
@@ -104,9 +96,7 @@ def test_replay_unsafe_payment_endpoint():
         method="POST",
         endpoint="/api/v1/payments",
     )
-    result = v.compare_with_mutation_context(
-        orig, replay, original_status=200, replay_status=200
-    )
+    result = v.compare_with_mutation_context(orig, replay, original_status=200, replay_status=200)
     # Without external annotation, POST /payments is classified as STATEFUL_MUTATION
     assert result.mutation_class == MutationClass.STATEFUL_MUTATION
     # REPLAY_UNSAFE must be set by caller — this is by design
@@ -129,9 +119,7 @@ def test_stateful_divergence_not_downgraded():
         ],
         method="POST",
     )
-    result = v.compare_with_mutation_context(
-        orig, replay, original_status=201, replay_status=409
-    )
+    result = v.compare_with_mutation_context(orig, replay, original_status=201, replay_status=409)
     # Even though 409 is expected for stateful, the schema is completely different
     assert result.structure_matches is False
     # Should NOT be SEMANTIC_EQUIVALENT because structure is broken
@@ -156,9 +144,7 @@ def test_auth_drift_independent_of_mutation():
         ],
         method="GET",
     )
-    result = v.compare_with_mutation_context(
-        orig, replay, original_status=200, replay_status=200
-    )
+    result = v.compare_with_mutation_context(orig, replay, original_status=200, replay_status=200)
     # Auth drift is a violation
     assert any(v.rule == "REPLAY_AUTH_MUTATION" for v in result.violations)
     # Mutation class remains IDEMPOTENT_READ (low overall drift, only auth type changed)
@@ -175,9 +161,7 @@ def test_expected_stateful_put_idempotent():
         ],
         method="PUT",
     )
-    result = v.compare_with_mutation_context(
-        trace, trace, original_status=200, replay_status=200
-    )
+    result = v.compare_with_mutation_context(trace, trace, original_status=200, replay_status=200)
     # PUT with no drift and matching status = treated as idempotent
     assert result.mutation_class == MutationClass.IDEMPOTENT_READ
     assert result.equivalence_class == EquivalenceClass.STRICT_EQUIVALENT
@@ -201,9 +185,7 @@ def test_non_deterministic_get_high_drift():
         ],
         method="GET",
     )
-    result = v.compare_with_mutation_context(
-        orig, replay, original_status=200, replay_status=200
-    )
+    result = v.compare_with_mutation_context(orig, replay, original_status=200, replay_status=200)
     # High drift on GET without endpoint change → NON_DETERMINISTIC
     assert result.mutation_class == MutationClass.NON_DETERMINISTIC
     assert result.stateful_class == StatefulReplayClassification.TIME_DEPENDENT
@@ -216,7 +198,5 @@ def test_side_effect_bound_post_202():
         [SemanticField(path="job_id", inferred_type="UUIDv4", confidence=0.99, entropy_score=0.1)],
         method="POST",
     )
-    result = v.compare_with_mutation_context(
-        trace, trace, original_status=202, replay_status=202
-    )
+    result = v.compare_with_mutation_context(trace, trace, original_status=202, replay_status=202)
     assert result.mutation_class == MutationClass.SIDE_EFFECT_BOUND

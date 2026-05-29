@@ -53,19 +53,22 @@ class PiSolidityArrayLengthSentry:
         flagged_findings = []
 
         # Find all public/external functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*(external|public)[\s\S]*?\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(
+            r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*(external|public)[\s\S]*?\{([\s\S]*?)(?=\n\s*function|\Z)",
+            code,
+        )
 
-        for name, args, visibility, body in func_blocks:
+        for name, args, _visibility, body in func_blocks:
             # Check if there is an array parameter in signature
-            array_matches = re.findall(r'([a-zA-Z0-9_]+)\[\]\s*(?:calldata|memory)?\s*([a-zA-Z0-9_]+)', args)
+            array_matches = re.findall(r"([a-zA-Z0-9_]+)\[\]\s*(?:calldata|memory)?\s*([a-zA-Z0-9_]+)", args)
             if array_matches:
-                for arr_type, arr_name in array_matches:
+                for _arr_type, arr_name in array_matches:
                     # Check if there is a loop iterating up to this array's length
-                    if rf'{arr_name}.length' in body:
+                    if rf"{arr_name}.length" in body:
                         # Look for limit checks on the array's length
                         # E.g. require(arr.length <= MAX_LIMIT, ...)
                         has_limit_check = False
-                        if re.search(rf'require\s*\(\s*{arr_name}\.length\s*(<=|<)', body):
+                        if re.search(rf"require\s*\(\s*{arr_name}\.length\s*(<=|<)", body):
                             has_limit_check = True
 
                         if not has_limit_check:
@@ -94,5 +97,5 @@ class PiSolidityArrayLengthSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

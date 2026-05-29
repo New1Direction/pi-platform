@@ -1,8 +1,11 @@
 from __future__ import annotations
+
 import os
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_DEPRECIATION_STRICT_MODE")
@@ -10,16 +13,21 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class DepreciationInput(BaseModel):
     file_path: str = Field(..., description="Path of the file being audited")
     code_content: str = Field(..., description="Source code content")
-    deprecated_patterns: List[str] = Field(..., description="List of deprecated function, class, or module names to flag")
+    deprecated_patterns: List[str] = Field(
+        ..., description="List of deprecated function, class, or module names to flag"
+    )
+
 
 class DepreciationOutput(BaseModel):
     is_secure: bool = Field(..., description="True if no deprecated symbols are found")
     symbols_found: List[str] = Field(default_factory=list, description="List of deprecated elements found")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiDepreciationScanner:
     """Deterministic micro-agent that scans code files for deprecated functions, libraries, or modules."""
@@ -33,7 +41,7 @@ class PiDepreciationScanner:
         symbols_found = []
 
         lines = code.splitlines()
-        for idx, line in enumerate(lines, start=1):
+        for _idx, line in enumerate(lines, start=1):
             # Check for each deprecated pattern
             for pat in deprecated_patterns:
                 # Use word boundary or direct search depending on pattern
@@ -53,8 +61,5 @@ class PiDepreciationScanner:
                 is_secure = True
 
         return DepreciationOutput(
-            is_secure=is_secure,
-            symbols_found=symbols_found,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, symbols_found=symbols_found, risk_score=risk_score, status=status
         )

@@ -37,8 +37,8 @@ class ReplayValidator:
     """
 
     # Thresholds for equivalence classification
-    STRICT_THRESHOLD = 0.0    # zero structural or semantic drift
-    SEMANTIC_THRESHOLD = 0.10 # up to 10% structural drift, core semantics intact
+    STRICT_THRESHOLD = 0.0  # zero structural or semantic drift
+    SEMANTIC_THRESHOLD = 0.10  # up to 10% structural drift, core semantics intact
     PARTIAL_THRESHOLD = 0.35  # up to 35% drift, endpoint/method stable
     MAX_DRIFT = 1.0
 
@@ -208,9 +208,7 @@ class ReplayValidator:
             structure_matches=structure_matches,
             status_code_matches=status_code_matches,
             semantic_field_agreement=semantic_agreement,
-            description=self._describe_mutation_context(
-                mutation_class, stateful_class, is_expected, diff
-            ),
+            description=self._describe_mutation_context(mutation_class, stateful_class, is_expected, diff),
             violations=violations,
         )
 
@@ -548,15 +546,11 @@ class ReplayValidator:
 
         # Structural delta: fraction of field structure that changed
         total_paths = len(orig_paths | replay_paths)
-        structural_delta = (
-            (len(added) + len(removed)) / total_paths if total_paths > 0 else 0.0
-        )
+        structural_delta = (len(added) + len(removed)) / total_paths if total_paths > 0 else 0.0
 
         # Semantic delta: type mutations + auth shifts + confidence drift
         mutation_count = len(type_mutations) + len(auth_mutations)
-        semantic_delta = (
-            (mutation_count + confidence_drift) / total_paths if total_paths > 0 else 0.0
-        )
+        semantic_delta = (mutation_count + confidence_drift) / total_paths if total_paths > 0 else 0.0
         semantic_delta = min(semantic_delta, 1.0)
 
         # Drift score: weighted composite

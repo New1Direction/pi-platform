@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -41,13 +40,13 @@ class PiSolidityERC20SafeApproveAuditor:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check for direct .approve call, e.g. token.approve(spender, amount)
             # Safe methods are safeApprove, safeIncreaseAllowance, etc.
-            direct_approves = re.findall(r'\b([a-zA-Z0-9_]+\.approve\s*\(.*?\))', body)
-            
+            direct_approves = re.findall(r"\b([a-zA-Z0-9_]+\.approve\s*\(.*?\))", body)
+
             for call in direct_approves:
                 # Flag if it doesn't utilize safeApprove
                 vulnerable_funcs.append(name)
@@ -74,5 +73,5 @@ class PiSolidityERC20SafeApproveAuditor:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

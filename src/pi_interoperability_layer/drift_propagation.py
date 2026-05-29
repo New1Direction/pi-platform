@@ -23,6 +23,7 @@ from pi_interoperability_layer.workers.pi_observability_diff_worker import Delta
 #  Propagation Primitives
 # ──────────────────────────────
 
+
 class RiskNode(BaseModel):
     """A node in the risk propagation graph annotated with drift impact."""
 
@@ -86,9 +87,7 @@ class RiskPropagationGraph(BaseModel):
             "topology_graph_id": self.topology_graph_id,
             "drift_report_id": self.drift_report_id,
             "node_ids": sorted(self.nodes.keys()),
-            "edge_signatures": sorted(
-                [f"{e.upstream}->{e.downstream}:{e.carries_drift}" for e in self.edges]
-            ),
+            "edge_signatures": sorted([f"{e.upstream}->{e.downstream}:{e.carries_drift}" for e in self.edges]),
             "total_nodes_at_risk": self.total_nodes_at_risk,
             "max_propagation_depth": self.max_propagation_depth,
         }
@@ -100,6 +99,7 @@ class RiskPropagationGraph(BaseModel):
 # ──────────────────────────────
 #  Simulation Engine
 # ──────────────────────────────
+
 
 class DriftPropagationEngine:
     """Deterministic drift propagation simulation engine.
@@ -142,15 +142,17 @@ class DriftPropagationEngine:
         # Build risk edges from topology edges
         risk_edges: List[RiskEdge] = []
         for e in topology.edges:
-            risk_edges.append(RiskEdge(
-                edge_id=e.edge_id,
-                upstream=e.upstream,
-                downstream=e.downstream,
-                edge_type=e.edge_type,
-                carries_auth=e.carries_auth,
-                carries_state=e.carries_state,
-                carries_drift=False,
-            ))
+            risk_edges.append(
+                RiskEdge(
+                    edge_id=e.edge_id,
+                    upstream=e.upstream,
+                    downstream=e.downstream,
+                    edge_type=e.edge_type,
+                    carries_auth=e.carries_auth,
+                    carries_state=e.carries_state,
+                    carries_drift=False,
+                )
+            )
 
         # Map delta paths to affected node IDs
         direct_delta_nodes = self._map_deltas_to_nodes(drift_report.deltas, topology)
@@ -158,15 +160,16 @@ class DriftPropagationEngine:
         # Mark direct blast radius
         for nid, delta_ids in direct_delta_nodes.items():
             if nid in risk_nodes:
-                risk_nodes[nid] = risk_nodes[nid].model_copy(update={
-                    "direct_deltas": delta_ids,
-                    "in_direct_blast_radius": True,
-                    "risk_level": self._max_risk_level([
-                        self._delta_risk_level(did, drift_report)
-                        for did in delta_ids
-                    ]),
-                    "propagation_depth": 0,
-                })
+                risk_nodes[nid] = risk_nodes[nid].model_copy(
+                    update={
+                        "direct_deltas": delta_ids,
+                        "in_direct_blast_radius": True,
+                        "risk_level": self._max_risk_level(
+                            [self._delta_risk_level(did, drift_report) for did in delta_ids]
+                        ),
+                        "propagation_depth": 0,
+                    }
+                )
 
         # Propagate through topology (bounded BFS)
         for depth in range(1, self.max_propagation_depth + 1):
@@ -180,16 +183,18 @@ class DriftPropagationEngine:
 
                 new_propagated = list(set(existing.propagated_deltas) | set(incoming_deltas))
                 # Risk level decays by depth but auth/state edges amplify
-                incoming_risk = self._propagated_risk_level(
-                    incoming_deltas, drift_report, depth, edge
-                )
+                incoming_risk = self._propagated_risk_level(incoming_deltas, drift_report, depth, edge)
                 merged_risk = self._max_risk_level([existing.risk_level, incoming_risk])
 
-                risk_nodes[nid] = existing.model_copy(update={
-                    "propagated_deltas": new_propagated,
-                    "risk_level": merged_risk,
-                    "propagation_depth": min(existing.propagation_depth, depth) if existing.propagation_depth > 0 else depth,
-                })
+                risk_nodes[nid] = existing.model_copy(
+                    update={
+                        "propagated_deltas": new_propagated,
+                        "risk_level": merged_risk,
+                        "propagation_depth": min(existing.propagation_depth, depth)
+                        if existing.propagation_depth > 0
+                        else depth,
+                    }
+                )
 
         # Mark drift-carrying edges
         for i, re in enumerate(risk_edges):
@@ -199,9 +204,7 @@ class DriftPropagationEngine:
         # Aggregate metrics
         total_at_risk = sum(1 for n in risk_nodes.values() if n.risk_level != "NONE")
         total_propagating = sum(1 for e in risk_edges if e.carries_drift)
-        max_depth = max(
-            (n.propagation_depth for n in risk_nodes.values()), default=0
-        )
+        max_depth = max((n.propagation_depth for n in risk_nodes.values()), default=0)
         critical = sorted([n.node_id for n in risk_nodes.values() if n.risk_level == "CRITICAL"])
         high = sorted([n.node_id for n in risk_nodes.values() if n.risk_level == "HIGH"])
 
@@ -293,8 +296,7 @@ class DriftPropagationEngine:
         frontier: List[Tuple[str, List[str], RiskEdge]] = []
         # Collect nodes that are at risk at the previous depth level
         prev_risk_nodes = {
-            nid for nid, n in risk_nodes.items()
-            if n.risk_level != "NONE" and n.propagation_depth < depth
+            nid for nid, n in risk_nodes.items() if n.risk_level != "NONE" and n.propagation_depth < depth
         }
         for edge in risk_edges:
             if edge.upstream in prev_risk_nodes and edge.downstream not in prev_risk_nodes:

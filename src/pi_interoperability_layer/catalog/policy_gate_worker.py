@@ -73,13 +73,15 @@ class PackagePolicyGateWorker:
 
         # Rule 1: Capability class approved
         cap_ok = manifest.capability_class in self.policy.approved_capability_classes
-        findings.append(PolicyGateFinding(
-            rule_id="capability_class_approved",
-            rule_type="required_capability",
-            passed=cap_ok,
-            severity="CRITICAL" if not cap_ok else "LOW",
-            evidence=f"Class {manifest.capability_class.value} {'approved' if cap_ok else 'NOT in approved set'}",
-        ))
+        findings.append(
+            PolicyGateFinding(
+                rule_id="capability_class_approved",
+                rule_type="required_capability",
+                passed=cap_ok,
+                severity="CRITICAL" if not cap_ok else "LOW",
+                evidence=f"Class {manifest.capability_class.value} {'approved' if cap_ok else 'NOT in approved set'}",
+            )
+        )
         if not cap_ok:
             passed = False
 
@@ -90,78 +92,91 @@ class PackagePolicyGateWorker:
                 if banned in dep.lower():
                     banned_found.add(banned)
         ban_ok = len(banned_found) == 0
-        findings.append(PolicyGateFinding(
-            rule_id="banned_imports",
-            rule_type="banned_import",
-            passed=ban_ok,
-            severity="CRITICAL" if not ban_ok else "LOW",
-            evidence=f"Banned matches: {sorted(banned_found)}" if banned_found else "No banned imports detected",
-        ))
+        findings.append(
+            PolicyGateFinding(
+                rule_id="banned_imports",
+                rule_type="banned_import",
+                passed=ban_ok,
+                severity="CRITICAL" if not ban_ok else "LOW",
+                evidence=f"Banned matches: {sorted(banned_found)}" if banned_found else "No banned imports detected",
+            )
+        )
         if not ban_ok:
             passed = False
 
         # Rule 3: Trust zone restriction
         zone_ok = manifest.trust_zone in self.policy.allowed_trust_zones
-        findings.append(PolicyGateFinding(
-            rule_id="trust_zone_allowed",
-            rule_type="trust_zone_restriction",
-            passed=zone_ok,
-            severity="HIGH" if not zone_ok else "LOW",
-            evidence=f"Zone {manifest.trust_zone.value} {'allowed' if zone_ok else 'NOT allowed'}",
-        ))
+        findings.append(
+            PolicyGateFinding(
+                rule_id="trust_zone_allowed",
+                rule_type="trust_zone_restriction",
+                passed=zone_ok,
+                severity="HIGH" if not zone_ok else "LOW",
+                evidence=f"Zone {manifest.trust_zone.value} {'allowed' if zone_ok else 'NOT allowed'}",
+            )
+        )
         if not zone_ok:
             passed = False
 
         # Rule 4: Telemetry surface restriction
-        telemetry_ok = all(
-            surf in self.policy.allowed_telemetry_surfaces
-            for surf in manifest.telemetry_surfaces
-        ) if manifest.telemetry_surfaces else True
-        findings.append(PolicyGateFinding(
-            rule_id="telemetry_surfaces",
-            rule_type="telemetry_restriction",
-            passed=telemetry_ok,
-            severity="HIGH" if not telemetry_ok else "LOW",
-            evidence=f"Telemetry surfaces: {manifest.telemetry_surfaces}",
-        ))
+        telemetry_ok = (
+            all(surf in self.policy.allowed_telemetry_surfaces for surf in manifest.telemetry_surfaces)
+            if manifest.telemetry_surfaces
+            else True
+        )
+        findings.append(
+            PolicyGateFinding(
+                rule_id="telemetry_surfaces",
+                rule_type="telemetry_restriction",
+                passed=telemetry_ok,
+                severity="HIGH" if not telemetry_ok else "LOW",
+                evidence=f"Telemetry surfaces: {manifest.telemetry_surfaces}",
+            )
+        )
         if not telemetry_ok:
             passed = False
 
         # Rule 5: Replay safety requirement
         if self.policy.require_replay_safe:
             replay_ok = manifest.replayability_claim
-            findings.append(PolicyGateFinding(
-                rule_id="replay_safe_required",
-                rule_type="replay_safety",
-                passed=replay_ok,
-                severity="CRITICAL" if not replay_ok else "LOW",
-                evidence=f"replayability_claim={manifest.replayability_claim}",
-            ))
+            findings.append(
+                PolicyGateFinding(
+                    rule_id="replay_safe_required",
+                    rule_type="replay_safety",
+                    passed=replay_ok,
+                    severity="CRITICAL" if not replay_ok else "LOW",
+                    evidence=f"replayability_claim={manifest.replayability_claim}",
+                )
+            )
             if not replay_ok:
                 passed = False
 
         # Rule 6: Determinism requirement
         if self.policy.require_deterministic:
             det_ok = manifest.deterministic_claim
-            findings.append(PolicyGateFinding(
-                rule_id="deterministic_required",
-                rule_type="determinism",
-                passed=det_ok,
-                severity="CRITICAL" if not det_ok else "LOW",
-                evidence=f"deterministic_claim={manifest.deterministic_claim}",
-            ))
+            findings.append(
+                PolicyGateFinding(
+                    rule_id="deterministic_required",
+                    rule_type="determinism",
+                    passed=det_ok,
+                    severity="CRITICAL" if not det_ok else "LOW",
+                    evidence=f"deterministic_claim={manifest.deterministic_claim}",
+                )
+            )
             if not det_ok:
                 passed = False
 
         # Rule 7: Resource bounds
         res_ok = manifest.resource_cpu_ms_max <= self.policy.max_cpu_ms
-        findings.append(PolicyGateFinding(
-            rule_id="resource_bounds",
-            rule_type="max_resource",
-            passed=res_ok,
-            severity="HIGH" if not res_ok else "LOW",
-            evidence=f"resource_cpu_ms_max={manifest.resource_cpu_ms_max} vs policy_max={self.policy.max_cpu_ms}",
-        ))
+        findings.append(
+            PolicyGateFinding(
+                rule_id="resource_bounds",
+                rule_type="max_resource",
+                passed=res_ok,
+                severity="HIGH" if not res_ok else "LOW",
+                evidence=f"resource_cpu_ms_max={manifest.resource_cpu_ms_max} vs policy_max={self.policy.max_cpu_ms}",
+            )
+        )
         if not res_ok:
             passed = False
 

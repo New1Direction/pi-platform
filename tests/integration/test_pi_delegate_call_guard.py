@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_delegate_call_guard import (
-    PiDelegateCallGuard,
     DelegateCallInput,
-    DelegateCallOutput,
-    is_strict_mode,
+    PiDelegateCallGuard,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -51,11 +48,7 @@ def test_delegate_call_vulnerable_contract():
         }
     }
     """
-    inp = DelegateCallInput(
-        file_path="VulnerableProxy.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = DelegateCallInput(file_path="VulnerableProxy.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_delegatecall(inp)
 
@@ -96,11 +89,7 @@ def test_delegate_call_compliant_proxy():
         }
     }
     """
-    inp = DelegateCallInput(
-        file_path="CompliantProxy.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = DelegateCallInput(file_path="CompliantProxy.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_delegatecall(inp)
 
@@ -138,31 +127,27 @@ def test_orchestrator_delegatecall_consensus_passed(monkeypatch):
             "vulnerable_functions": ["fallback"],
             "flagged_findings": ["Function fallback executes delegatecall"],
             "risk_score": 95.0,
-            "status": "REJECTED_DELEGATECALL_VULNERABILITY"
+            "status": "REJECTED_DELEGATECALL_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["fallback"],
             "flagged_findings": ["Function fallback executes delegatecall"],
             "risk_score": 95.0,
-            "status": "REJECTED_DELEGATECALL_VULNERABILITY"
+            "status": "REJECTED_DELEGATECALL_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["fallback"],
             "flagged_findings": ["Function fallback executes delegatecall"],
             "risk_score": 95.0,
-            "status": "REJECTED_DELEGATECALL_VULNERABILITY"
-        }
+            "status": "REJECTED_DELEGATECALL_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
         goal="delegatecall scan on Vuln.sol to verify upgrade safety",
-        context={
-            "file_path": "Vuln.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Vuln.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 

@@ -13,57 +13,51 @@ All deterministic. Zero randomness.
 
 from __future__ import annotations
 
-import json
 import os
 import tempfile
-from typing import Any, Dict, List
 
 import pytest
 
+from pi_connector_fabric.connectors.aws_iam.connector import AWSIAMConnector
+from pi_connector_fabric.connectors.docker.connector import DockerConnector
+from pi_connector_fabric.connectors.github_actions.connector import GitHubActionsConnector
+from pi_connector_fabric.connectors.k8s.connector import KubernetesConnector
+from pi_connector_fabric.connectors.opentelemetry.connector import OpenTelemetryConnector
+from pi_connector_fabric.connectors.postgresql.connector import PostgreSQLConnector
+from pi_connector_fabric.connectors.terraform.connector import TerraformStateConnector
+from pi_connector_fabric.marketplace.governance import (
+    ConnectorGovernance,
+    ConnectorMarketplaceRegistry,
+)
+from pi_connector_fabric.replay.import_pipeline import DigitalTwinImport
 from pi_connector_fabric.sdk.core import (
     ArtifactNormalizer,
-    BaseConnectorWorker,
     ConnectorCapabilityClass,
     ConnectorExecutionFence,
     ConnectorManifest,
     ConnectorSandboxPolicy,
     IngestionReceipt,
     NormalizedArtifact,
-    NormalizationError,
     register_connector,
-)
-from pi_connector_fabric.connectors.k8s.connector import KubernetesConnector
-from pi_connector_fabric.connectors.terraform.connector import TerraformStateConnector
-from pi_connector_fabric.connectors.opentelemetry.connector import OpenTelemetryConnector
-from pi_connector_fabric.connectors.aws_iam.connector import AWSIAMConnector
-from pi_connector_fabric.connectors.github_actions.connector import GitHubActionsConnector
-from pi_connector_fabric.connectors.docker.connector import DockerConnector
-from pi_connector_fabric.connectors.postgresql.connector import PostgreSQLConnector
-from pi_connector_fabric.marketplace.governance import (
-    ConnectorGovernance,
-    ConnectorMarketplaceRegistry,
 )
 from pi_connector_fabric.topology.engine import (
     CrossSystemDependencyGraph,
     RiskPropagationTopology,
-    TopologyEdge,
-    TopologyNode,
     UnifiedTopologyGraph,
 )
-from pi_connector_fabric.replay.import_pipeline import DigitalTwinImport
 from pi_event_fabric.governance.compiler import (
-    GovernanceEngine,
-    GovernanceRule,
     Condition,
     ConditionOperator,
     Effect,
+    GovernanceEngine,
+    GovernanceRule,
     PolicyCompiler,
 )
-
 
 # ──────────────────────────────
 #  Fixtures
 # ──────────────────────────────
+
 
 @pytest.fixture
 def marketplace():
@@ -118,73 +112,121 @@ def pg_connector():
 #  Connector SDK Tests
 # ──────────────────────────────
 
+
 class TestConnectorSDK:
     def test_connector_manifest_hash(self):
         m = ConnectorManifest(
-            connector_id="test.v1", name="Test", version="1.0.0",
-            description="", capability_classes=(), sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            target_systems=(), output_schemas=(), required_credentials=(), config_schema={},
+            connector_id="test.v1",
+            name="Test",
+            version="1.0.0",
+            description="",
+            capability_classes=(),
+            sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
+            target_systems=(),
+            output_schemas=(),
+            required_credentials=(),
+            config_schema={},
         )
         assert m.manifest_hash != ""
         assert len(m.manifest_hash) == 64
 
     def test_connector_manifest_deterministic_hash(self):
         m1 = ConnectorManifest(
-            connector_id="test.v1", name="Test", version="1.0.0",
-            description="desc", capability_classes=(ConnectorCapabilityClass.TOPOLOGY_READ,),
+            connector_id="test.v1",
+            name="Test",
+            version="1.0.0",
+            description="desc",
+            capability_classes=(ConnectorCapabilityClass.TOPOLOGY_READ,),
             sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            target_systems=("a",), output_schemas=("X",), required_credentials=(), config_schema={},
+            target_systems=("a",),
+            output_schemas=("X",),
+            required_credentials=(),
+            config_schema={},
         )
         m2 = ConnectorManifest(
-            connector_id="test.v1", name="Test", version="1.0.0",
-            description="desc", capability_classes=(ConnectorCapabilityClass.TOPOLOGY_READ,),
+            connector_id="test.v1",
+            name="Test",
+            version="1.0.0",
+            description="desc",
+            capability_classes=(ConnectorCapabilityClass.TOPOLOGY_READ,),
             sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            target_systems=("a",), output_schemas=("X",), required_credentials=(), config_schema={},
+            target_systems=("a",),
+            output_schemas=("X",),
+            required_credentials=(),
+            config_schema={},
         )
         assert m1.manifest_hash == m2.manifest_hash
 
     def test_ingestion_receipt_hash(self):
         r = IngestionReceipt(
-            receipt_id="r1", connector_id="c1", connector_version="1.0.0",
-            tenant_id="t1", actor_id="a1", correlation_id="c1",
-            ingestion_start="2026-01-01T00:00:00Z", ingestion_end="2026-01-01T00:00:01Z",
-            artifact_count=2, artifact_hashes=("h1", "h2"),
+            receipt_id="r1",
+            connector_id="c1",
+            connector_version="1.0.0",
+            tenant_id="t1",
+            actor_id="a1",
+            correlation_id="c1",
+            ingestion_start="2026-01-01T00:00:00Z",
+            ingestion_end="2026-01-01T00:00:01Z",
+            artifact_count=2,
+            artifact_hashes=("h1", "h2"),
             fence_used=ConnectorExecutionFence.SANDBOXED_READ,
             sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            error_count=0, errors=(),
+            error_count=0,
+            errors=(),
         )
         assert r.receipt_hash != ""
         assert r.verify() is True
 
     def test_ingestion_receipt_tampered_fails(self):
         r = IngestionReceipt(
-            receipt_id="r1", connector_id="c1", connector_version="1.0.0",
-            tenant_id="t1", actor_id="a1", correlation_id="c1",
-            ingestion_start="2026-01-01T00:00:00Z", ingestion_end="2026-01-01T00:00:01Z",
-            artifact_count=2, artifact_hashes=("h1", "h2"),
+            receipt_id="r1",
+            connector_id="c1",
+            connector_version="1.0.0",
+            tenant_id="t1",
+            actor_id="a1",
+            correlation_id="c1",
+            ingestion_start="2026-01-01T00:00:00Z",
+            ingestion_end="2026-01-01T00:00:01Z",
+            artifact_count=2,
+            artifact_hashes=("h1", "h2"),
             fence_used=ConnectorExecutionFence.SANDBOXED_READ,
             sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            error_count=0, errors=(),
+            error_count=0,
+            errors=(),
         )
         # Tamper with artifact count
         tampered = IngestionReceipt(
-            receipt_id="r1", connector_id="c1", connector_version="1.0.0",
-            tenant_id="t1", actor_id="a1", correlation_id="c1",
-            ingestion_start="2026-01-01T00:00:00Z", ingestion_end="2026-01-01T00:00:01Z",
-            artifact_count=99, artifact_hashes=("h1", "h2"),
+            receipt_id="r1",
+            connector_id="c1",
+            connector_version="1.0.0",
+            tenant_id="t1",
+            actor_id="a1",
+            correlation_id="c1",
+            ingestion_start="2026-01-01T00:00:00Z",
+            ingestion_end="2026-01-01T00:00:01Z",
+            artifact_count=99,
+            artifact_hashes=("h1", "h2"),
             fence_used=ConnectorExecutionFence.SANDBOXED_READ,
             sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            error_count=0, errors=(),
+            error_count=0,
+            errors=(),
             receipt_hash=r.receipt_hash,
         )
         assert tampered.verify() is False
 
     def test_normalized_artifact_hash(self):
         a = NormalizedArtifact(
-            artifact_id="a1", artifact_family="X", artifact_schema_version="1.0.0",
-            source_system="s1", connector_id="c1", connector_version="1.0.0",
-            tenant_id="t1", correlation_id="c1", created_at="2026-01-01T00:00:00Z",
-            payload={"x": 1}, provenance=(),
+            artifact_id="a1",
+            artifact_family="X",
+            artifact_schema_version="1.0.0",
+            source_system="s1",
+            connector_id="c1",
+            connector_version="1.0.0",
+            tenant_id="t1",
+            correlation_id="c1",
+            created_at="2026-01-01T00:00:00Z",
+            payload={"x": 1},
+            provenance=(),
         )
         assert a.artifact_hash != ""
         assert len(a.artifact_hash) == 64
@@ -206,13 +248,17 @@ class TestConnectorSDK:
 #  Normalization Engine Tests
 # ──────────────────────────────
 
+
 class TestNormalizationEngine:
     def test_normalize_topology(self):
         artifact = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod", "name": "app"}, {"id": "n2", "type": "svc", "name": "api"}],
             edges=[{"from": "n2", "to": "n1", "relation": "selects"}],
-            source_system="k8s", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         assert artifact.artifact_family == "TopologyArtifact"
         assert artifact.payload["node_count"] == 2
@@ -221,49 +267,69 @@ class TestNormalizationEngine:
     def test_normalize_identity_graph(self):
         artifact = ArtifactNormalizer.normalize_identity_graph(
             identities=[{"arn": "arn:aws:iam::123:role/Admin", "type": "role", "name": "Admin"}],
-            relationships=[{"from": "arn:aws:iam::123:role/Admin", "to": "arn:aws:iam::123:policy/P1", "relation": "attached"}],
-            source_system="aws", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            relationships=[
+                {"from": "arn:aws:iam::123:role/Admin", "to": "arn:aws:iam::123:policy/P1", "relation": "attached"}
+            ],
+            source_system="aws",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         assert artifact.artifact_family == "IdentityGraphArtifact"
 
     def test_normalize_dependency_graph(self):
         artifact = ArtifactNormalizer.normalize_dependency_graph(
             dependencies=[{"from": "a", "to": "b", "relation": "depends"}],
-            source_system="tf", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="tf",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         assert artifact.artifact_family == "DependencyGraphArtifact"
 
     def test_normalize_trace_topology(self):
         artifact = ArtifactNormalizer.normalize_trace_topology(
             spans=[{"span_id": "s1", "trace_id": "t1", "name": "GET /api"}],
-            source_system="otel", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="otel",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         assert artifact.artifact_family == "TraceTopologyArtifact"
 
     def test_normalize_infrastructure_state(self):
         artifact = ArtifactNormalizer.normalize_infrastructure_state(
             resources=[{"id": "r1", "type": "ec2", "region": "us-east-1"}],
-            source_system="aws", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="aws",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         assert artifact.artifact_family == "InfrastructureStateArtifact"
 
     def test_normalize_deployment_lineage(self):
         artifact = ArtifactNormalizer.normalize_deployment_lineage(
             deployments=[{"id": "d1", "name": "deploy", "status": "success"}],
-            source_system="gha", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="gha",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         assert artifact.artifact_family == "DeploymentLineageArtifact"
 
     def test_normalize_security_event(self):
         artifact = ArtifactNormalizer.normalize_security_event(
             events=[{"event_id": "e1", "action": "Allow", "principal": "user"}],
-            source_system="aws", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="aws",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         assert artifact.artifact_family == "SecurityEventArtifact"
 
@@ -276,6 +342,7 @@ class TestNormalizationEngine:
 # ──────────────────────────────
 #  Connector Ingestion Tests
 # ──────────────────────────────
+
 
 class TestKubernetesConnector:
     def test_ingest_basic(self, k8s_connector):
@@ -304,8 +371,11 @@ class TestTerraformConnector:
         tf_state = {
             "resources": [
                 {
-                    "module": "root", "type": "aws_instance", "name": "web",
-                    "provider": "provider.aws", "mode": "managed",
+                    "module": "root",
+                    "type": "aws_instance",
+                    "name": "web",
+                    "provider": "provider.aws",
+                    "mode": "managed",
                     "instances": [{"attributes": {"ami": "ami-123"}}],
                     "depends_on": ["aws_vpc.main"],
                 }
@@ -327,7 +397,13 @@ class TestOpenTelemetryConnector:
 class TestAWSIAMConnector:
     def test_ingest_identities(self, iam_connector):
         raw = {
-            "roles": [{"Arn": "arn:aws:iam::123:role/Admin", "RoleName": "Admin", "AttachedPolicies": [{"PolicyArn": "arn:aws:iam::123:policy/P1"}]}],
+            "roles": [
+                {
+                    "Arn": "arn:aws:iam::123:role/Admin",
+                    "RoleName": "Admin",
+                    "AttachedPolicies": [{"PolicyArn": "arn:aws:iam::123:policy/P1"}],
+                }
+            ],
             "users": [{"Arn": "arn:aws:iam::123:user/Alice", "UserName": "Alice", "Groups": []}],
             "groups": [{"Arn": "arn:aws:iam::123:group/Engineers", "GroupName": "Engineers"}],
         }
@@ -341,8 +417,15 @@ class TestGitHubActionsConnector:
     def test_ingest_deployments(self, gh_connector):
         raw = {
             "workflow_runs": [
-                {"id": 1, "name": "CI", "head_branch": "main", "head_sha": "abc123",
-                 "status": "completed", "conclusion": "success", "created_at": "2026-01-01T00:00:00Z"}
+                {
+                    "id": 1,
+                    "name": "CI",
+                    "head_branch": "main",
+                    "head_sha": "abc123",
+                    "status": "completed",
+                    "conclusion": "success",
+                    "created_at": "2026-01-01T00:00:00Z",
+                }
             ]
         }
         artifacts, receipt = gh_connector.ingest("t1", "u1", "c1", raw_state=raw)
@@ -370,7 +453,8 @@ class TestPostgreSQLConnector:
         raw = {
             "tables": [
                 {
-                    "schema": "public", "name": "users",
+                    "schema": "public",
+                    "name": "users",
                     "columns": [{"name": "id", "type": "int"}],
                     "foreign_keys": [{"ref_schema": "public", "ref_table": "accounts", "columns": ["account_id"]}],
                 }
@@ -386,6 +470,7 @@ class TestPostgreSQLConnector:
 # ──────────────────────────────
 #  Marketplace + Governance Tests
 # ──────────────────────────────
+
 
 class TestConnectorMarketplace:
     def test_register_manifest(self, marketplace):
@@ -425,19 +510,27 @@ class TestConnectorGovernance:
         marketplace.register(KubernetesConnector.MANIFEST)
         # Create governance rule: allow verified connectors
         rule = GovernanceRule(
-            rule_id="allow_verified", name="Allow Verified", description="",
+            rule_id="allow_verified",
+            name="Allow Verified",
+            description="",
             target_scope="global",
             conditions=(
                 Condition("action", ConditionOperator.EQUALS, "connector:ingest"),
                 Condition("connector_trust_tier", ConditionOperator.IN_SET, ["verified", "certified"]),
             ),
-            effect=Effect.ALLOW, priority=1, version="1",
+            effect=Effect.ALLOW,
+            priority=1,
+            version="1",
         )
         governance_engine.load_policy(PolicyCompiler.compile(rule))
 
         cg = ConnectorGovernance(marketplace, governance_engine)
         decision = cg.evaluate_connector_ingestion(
-            "connector.kubernetes.v1", "1.0.0", "t1", "u1", "c1",
+            "connector.kubernetes.v1",
+            "1.0.0",
+            "t1",
+            "u1",
+            "c1",
         )
         # K8s connector is unverified by default, so DENY
         assert decision.effect == Effect.DENY
@@ -445,22 +538,34 @@ class TestConnectorGovernance:
     def test_allow_any_connector_with_policy(self, marketplace, governance_engine):
         marketplace.register(KubernetesConnector.MANIFEST)
         rule = GovernanceRule(
-            rule_id="allow_all", name="Allow All Connectors", description="",
+            rule_id="allow_all",
+            name="Allow All Connectors",
+            description="",
             target_scope="global",
             conditions=(Condition("action", ConditionOperator.EQUALS, "connector:ingest"),),
-            effect=Effect.ALLOW, priority=1, version="1",
+            effect=Effect.ALLOW,
+            priority=1,
+            version="1",
         )
         governance_engine.load_policy(PolicyCompiler.compile(rule))
         cg = ConnectorGovernance(marketplace, governance_engine)
         decision = cg.evaluate_connector_ingestion(
-            "connector.kubernetes.v1", "1.0.0", "t1", "u1", "c1",
+            "connector.kubernetes.v1",
+            "1.0.0",
+            "t1",
+            "u1",
+            "c1",
         )
         assert decision.effect == Effect.ALLOW
 
     def test_unknown_connector_denied(self, marketplace, governance_engine):
         cg = ConnectorGovernance(marketplace, governance_engine)
         decision = cg.evaluate_connector_ingestion(
-            "unknown", "1.0.0", "t1", "u1", "c1",
+            "unknown",
+            "1.0.0",
+            "t1",
+            "u1",
+            "c1",
         )
         assert decision.effect == Effect.DENY
         assert decision.denied_by == "governance:unknown_connector"
@@ -477,14 +582,18 @@ class TestConnectorGovernance:
 #  Cross-System Topology Tests
 # ──────────────────────────────
 
+
 class TestCrossSystemTopology:
     def test_unified_graph_add_artifact(self):
         graph = UnifiedTopologyGraph("t1", "c1")
         artifact = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}, {"id": "n2", "type": "svc"}],
             edges=[{"from": "n1", "to": "n2", "relation": "serves"}],
-            source_system="k8s", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         nodes = graph.add_artifact(artifact)
         assert len(nodes) == 2
@@ -496,8 +605,11 @@ class TestCrossSystemTopology:
         artifact = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "a", "type": "x"}, {"id": "b", "type": "y"}],
             edges=[{"from": "a", "to": "b", "relation": "r"}],
-            source_system="s", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="s",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         graph.add_artifact(artifact)
         h1 = graph.graph_hash()
@@ -513,13 +625,19 @@ class TestCrossSystemTopology:
         artifact1 = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "k8s:svc1", "type": "service"}],
             edges=[],
-            source_system="k8s", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         artifact2 = ArtifactNormalizer.normalize_infrastructure_state(
             resources=[{"id": "tf:svc1", "type": "aws_lb"}],
-            source_system="tf", connector_id="c2", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="tf",
+            connector_id="c2",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         graph.add_artifact(artifact1)
         graph.add_artifact(artifact2)
@@ -530,16 +648,30 @@ class TestCrossSystemTopology:
     def test_cross_system_dependency_graph(self):
         csd = CrossSystemDependencyGraph("t1")
         a1 = NormalizedArtifact(
-            artifact_id="a1", artifact_family="X", artifact_schema_version="1",
-            source_system="k8s", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1", created_at="2026-01-01T00:00:00Z",
-            payload={"resources": [{"name": "web"}]}, provenance=(),
+            artifact_id="a1",
+            artifact_family="X",
+            artifact_schema_version="1",
+            source_system="k8s",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
+            created_at="2026-01-01T00:00:00Z",
+            payload={"resources": [{"name": "web"}]},
+            provenance=(),
         )
         a2 = NormalizedArtifact(
-            artifact_id="a2", artifact_family="Y", artifact_schema_version="1",
-            source_system="tf", connector_id="c2", connector_version="1",
-            tenant_id="t1", correlation_id="c1", created_at="2026-01-01T00:00:00Z",
-            payload={"resources": [{"name": "web"}]}, provenance=(),
+            artifact_id="a2",
+            artifact_family="Y",
+            artifact_schema_version="1",
+            source_system="tf",
+            connector_id="c2",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
+            created_at="2026-01-01T00:00:00Z",
+            payload={"resources": [{"name": "web"}]},
+            provenance=(),
         )
         csd.register_artifact(a1)
         csd.register_artifact(a2)
@@ -553,9 +685,12 @@ class TestCrossSystemTopology:
         for i in range(5):
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"n{i}", "type": "node"}],
-                edges=[{"from": f"n{i}", "to": f"n{(i+1)%5}", "relation": "connects"}],
-                source_system="s", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                edges=[{"from": f"n{i}", "to": f"n{(i + 1) % 5}", "relation": "connects"}],
+                source_system="s",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             graph.add_artifact(a)
 
@@ -569,9 +704,12 @@ class TestCrossSystemTopology:
         for i in range(4):
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"n{i}", "type": "node"}],
-                edges=[{"from": f"n{i}", "to": f"n{i+1}", "relation": "link"}] if i < 3 else [],
-                source_system="s", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                edges=[{"from": f"n{i}", "to": f"n{i + 1}", "relation": "link"}] if i < 3 else [],
+                source_system="s",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             graph.add_artifact(a)
         risk = RiskPropagationTopology(graph)
@@ -585,8 +723,11 @@ class TestCrossSystemTopology:
         a = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "a", "type": "x"}, {"id": "b", "type": "y"}],
             edges=[],
-            source_system="s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         graph.add_artifact(a)
         risk = RiskPropagationTopology(graph)
@@ -597,14 +738,18 @@ class TestCrossSystemTopology:
 #  Digital Twin Import + Replay Tests
 # ──────────────────────────────
 
+
 class TestDigitalTwinImport:
     def test_import_artifact(self):
         dt = DigitalTwinImport("t1")
         artifact = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         node = dt.import_artifact(artifact)
         assert node.node_id == "n1"
@@ -615,9 +760,12 @@ class TestDigitalTwinImport:
         for i in range(3):
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"n{i}", "type": "node"}],
-                edges=[{"from": f"n{i}", "to": f"n{(i+1)%3}", "relation": "link"}],
-                source_system="s", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                edges=[{"from": f"n{i}", "to": f"n{(i + 1) % 3}", "relation": "link"}],
+                source_system="s",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             dt.import_artifact(a)
         snap = dt.snapshot_topology()
@@ -630,8 +778,11 @@ class TestDigitalTwinImport:
         a1 = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}, {"id": "n2", "type": "svc"}],
             edges=[{"from": "n1", "to": "n2", "relation": "link"}],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         dt.import_artifact(a1)
 
@@ -643,8 +794,11 @@ class TestDigitalTwinImport:
         a2 = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n3", "type": "deploy"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         dt.import_artifact(a2)
 
@@ -658,8 +812,11 @@ class TestDigitalTwinImport:
         a = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         dt.import_artifact(a)
         prev = UnifiedTopologyGraph("t1", "prev")
@@ -672,9 +829,12 @@ class TestDigitalTwinImport:
         for i in range(3):
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"n{i}", "type": "node"}],
-                edges=[{"from": f"n{i}", "to": f"n{(i+1)%3}", "relation": "link"}],
-                source_system="s", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                edges=[{"from": f"n{i}", "to": f"n{(i + 1) % 3}", "relation": "link"}],
+                source_system="s",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             dt.import_artifact(a)
         incident = dt.incident_reconstruction("n0", max_hops=2)
@@ -686,18 +846,28 @@ class TestDigitalTwinImport:
         a = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         dt.import_artifact(a)
         receipt = IngestionReceipt(
-            receipt_id="r1", connector_id="c", connector_version="1",
-            tenant_id="t1", actor_id="u1", correlation_id="c1",
-            ingestion_start="2026-01-01T00:00:00Z", ingestion_end="2026-01-01T00:00:01Z",
-            artifact_count=1, artifact_hashes=(a.artifact_hash,),
+            receipt_id="r1",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            actor_id="u1",
+            correlation_id="c1",
+            ingestion_start="2026-01-01T00:00:00Z",
+            ingestion_end="2026-01-01T00:00:01Z",
+            artifact_count=1,
+            artifact_hashes=(a.artifact_hash,),
             fence_used=ConnectorExecutionFence.SANDBOXED_READ,
             sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-            error_count=0, errors=(),
+            error_count=0,
+            errors=(),
         )
         dt.import_receipt(receipt)
         replay = dt.temporal_replay([receipt], [])
@@ -708,24 +878,44 @@ class TestDigitalTwinImport:
     def test_cross_system_links_in_digital_twin(self):
         dt = DigitalTwinImport("t1")
         a1 = NormalizedArtifact(
-            artifact_id="a1", artifact_family="X", artifact_schema_version="1",
-            source_system="k8s", connector_id="c1", connector_version="1",
-            tenant_id="t1", correlation_id="c1", created_at="2026-01-01T00:00:00Z",
-            payload={"resources": [{"name": "web"}]}, provenance=(),
+            artifact_id="a1",
+            artifact_family="X",
+            artifact_schema_version="1",
+            source_system="k8s",
+            connector_id="c1",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
+            created_at="2026-01-01T00:00:00Z",
+            payload={"resources": [{"name": "web"}]},
+            provenance=(),
         )
         a2 = NormalizedArtifact(
-            artifact_id="a2", artifact_family="Y", artifact_schema_version="1",
-            source_system="tf", connector_id="c2", connector_version="1",
-            tenant_id="t1", correlation_id="c1", created_at="2026-01-01T00:00:00Z",
-            payload={"resources": [{"name": "web"}]}, provenance=(),
+            artifact_id="a2",
+            artifact_family="Y",
+            artifact_schema_version="1",
+            source_system="tf",
+            connector_id="c2",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
+            created_at="2026-01-01T00:00:00Z",
+            payload={"resources": [{"name": "web"}]},
+            provenance=(),
         )
         dt.import_artifact(a1)
         dt.import_artifact(a2)
-        dt.build_cross_system_links([{
-            "from_system": "k8s", "to_system": "tf",
-            "from_field": "resources.0.name", "to_field": "resources.0.name",
-            "relation": "same_name",
-        }])
+        dt.build_cross_system_links(
+            [
+                {
+                    "from_system": "k8s",
+                    "to_system": "tf",
+                    "from_field": "resources.0.name",
+                    "to_field": "resources.0.name",
+                    "relation": "same_name",
+                }
+            ]
+        )
         snap = dt.snapshot_topology()
         # Both artifacts + cross-system edge
         assert snap["edge_count"] >= 1
@@ -734,6 +924,7 @@ class TestDigitalTwinImport:
 # ──────────────────────────────
 #  End-to-End Integration
 # ──────────────────────────────
+
 
 class TestConnectorFabricIntegration:
     def test_full_pipeline_k8s_terraform(self, marketplace, governance_engine):
@@ -745,7 +936,9 @@ class TestConnectorFabricIntegration:
         k8s = KubernetesConnector(KubernetesConnector.MANIFEST, {})
         k8s_state = {
             "pods": [{"metadata": {"namespace": "prod", "name": "api", "labels": {"tier": "frontend"}}}],
-            "services": [{"metadata": {"namespace": "prod", "name": "api-svc"}, "spec": {"selector": {"tier": "frontend"}}}],
+            "services": [
+                {"metadata": {"namespace": "prod", "name": "api-svc"}, "spec": {"selector": {"tier": "frontend"}}}
+            ],
         }
         k8s_artifacts, k8s_receipt = k8s.ingest("t1", "u1", "run_1", raw_state=k8s_state)
 
@@ -753,8 +946,15 @@ class TestConnectorFabricIntegration:
         tf = TerraformStateConnector(TerraformStateConnector.MANIFEST, {})
         tf_state = {
             "resources": [
-                {"module": "root", "type": "aws_instance", "name": "api", "mode": "managed",
-                 "provider": "aws", "instances": [{"attributes": {"ami": "ami-123"}}], "depends_on": []}
+                {
+                    "module": "root",
+                    "type": "aws_instance",
+                    "name": "api",
+                    "mode": "managed",
+                    "provider": "aws",
+                    "instances": [{"attributes": {"ami": "ami-123"}}],
+                    "depends_on": [],
+                }
             ]
         }
         tf_artifacts, tf_receipt = tf.ingest("t1", "u1", "run_1", raw_state=tf_state)
@@ -777,13 +977,17 @@ class TestConnectorFabricIntegration:
 
         # Allow only topology_read connectors
         rule = GovernanceRule(
-            rule_id="allow_topology", name="Allow Topology", description="",
+            rule_id="allow_topology",
+            name="Allow Topology",
+            description="",
             target_scope="global",
             conditions=(
                 Condition("action", ConditionOperator.EQUALS, "connector:ingest"),
                 Condition("connector_trust_tier", ConditionOperator.IN_SET, ["unverified", "community", "verified"]),
             ),
-            effect=Effect.ALLOW, priority=1, version="1",
+            effect=Effect.ALLOW,
+            priority=1,
+            version="1",
         )
         governance_engine.load_policy(PolicyCompiler.compile(rule))
         cg = ConnectorGovernance(marketplace, governance_engine)
@@ -818,14 +1022,20 @@ class TestConnectorFabricIntegration:
         a1 = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="tenant_a", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="tenant_a",
+            correlation_id="c1",
         )
         a2 = ArtifactNormalizer.normalize_topology(
             nodes=[{"id": "n1", "type": "pod"}],
             edges=[],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="tenant_b", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="tenant_b",
+            correlation_id="c1",
         )
         dt_t1.import_artifact(a1)
         dt_t2.import_artifact(a2)
@@ -850,8 +1060,11 @@ class TestConnectorFabricIntegration:
                 {"from": "svc:a", "to": "svc:b", "relation": "calls"},
                 {"from": "svc:b", "to": "db:c", "relation": "connects"},
             ],
-            source_system="k8s", connector_id="c", connector_version="1",
-            tenant_id="t1", correlation_id="c1",
+            source_system="k8s",
+            connector_id="c",
+            connector_version="1",
+            tenant_id="t1",
+            correlation_id="c1",
         )
         graph.add_artifact(a)
         assert graph.get_neighbors("svc:a") == ["svc:b"]
@@ -862,9 +1075,12 @@ class TestConnectorFabricIntegration:
         for i in range(10):
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"node_{i}", "type": "service"}],
-                edges=[{"from": f"node_{i}", "to": f"node_{(i+1)%10}", "relation": "calls"}],
-                source_system="mesh", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                edges=[{"from": f"node_{i}", "to": f"node_{(i + 1) % 10}", "relation": "calls"}],
+                source_system="mesh",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             graph.add_artifact(a)
         risk = RiskPropagationTopology(graph)
@@ -880,21 +1096,31 @@ class TestConnectorFabricIntegration:
             a = ArtifactNormalizer.normalize_topology(
                 nodes=[{"id": f"n{i}", "type": "node"}],
                 edges=[],
-                source_system="s", connector_id="c", connector_version="1",
-                tenant_id="t1", correlation_id="c1",
+                source_system="s",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
             )
             dt.import_artifact(a)
             artifacts.append(a)
 
         receipts = [
             IngestionReceipt(
-                receipt_id=f"r{i}", connector_id="c", connector_version="1",
-                tenant_id="t1", actor_id="u1", correlation_id="c1",
-                ingestion_start="2026-01-01T00:00:00Z", ingestion_end="2026-01-01T00:00:01Z",
-                artifact_count=1, artifact_hashes=(a.artifact_hash,),
+                receipt_id=f"r{i}",
+                connector_id="c",
+                connector_version="1",
+                tenant_id="t1",
+                actor_id="u1",
+                correlation_id="c1",
+                ingestion_start="2026-01-01T00:00:00Z",
+                ingestion_end="2026-01-01T00:00:01Z",
+                artifact_count=1,
+                artifact_hashes=(a.artifact_hash,),
                 fence_used=ConnectorExecutionFence.SANDBOXED_READ,
                 sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
-                error_count=0, errors=(),
+                error_count=0,
+                errors=(),
             )
             for i, a in enumerate(artifacts)
         ]

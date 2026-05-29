@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -35,7 +34,9 @@ class PiDatabaseMigrationUnindexedSentry:
     def __init__(self) -> None:
         self.agent_name = "PiDatabaseMigrationUnindexedSentry"
 
-    def audit_migration_indexes(self, input_envelope: DatabaseMigrationUnindexedInput) -> DatabaseMigrationUnindexedOutput:
+    def audit_migration_indexes(
+        self, input_envelope: DatabaseMigrationUnindexedInput
+    ) -> DatabaseMigrationUnindexedOutput:
         code = input_envelope.migration_code
         vulnerable_elements = []
         flagged_findings = []
@@ -45,7 +46,11 @@ class PiDatabaseMigrationUnindexedSentry:
         lines = code.splitlines()
         for idx, line in enumerate(lines, 1):
             clean_line = line.strip()
-            if "foreign_key" in clean_line.lower() or "references" in clean_line.lower() or re.search(r'\b[a-zA-Z0-9_]+_id\b', clean_line.lower()):
+            if (
+                "foreign_key" in clean_line.lower()
+                or "references" in clean_line.lower()
+                or re.search(r"\b[a-zA-Z0-9_]+_id\b", clean_line.lower())
+            ):
                 # Check if this line has index/index: true or if there is an index created in the migration body
                 # Simple check: if index/key/unique is not found in the same line or migration block
                 if not any(idx_kw in code.lower() for idx_kw in ["index", "add_index", "create index", "unique_key"]):
@@ -72,5 +77,5 @@ class PiDatabaseMigrationUnindexedSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

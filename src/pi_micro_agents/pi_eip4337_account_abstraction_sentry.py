@@ -57,18 +57,18 @@ class PiEIP4337AccountAbstractionSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check for paymaster or account abstraction validation methods: validateUserOp, validatePaymasterUserOp
             if "validateUserOp" in name or "validatePaymasterUserOp" in name:
                 # ERC-4337 bans accessing global block metadata, blockhash, gasleft, tx.origin, timestamp, number etc.
                 forbidden_patterns = [
-                    (r'\btx\.origin\b', "tx.origin"),
-                    (r'\bblock\.blockhash\b', "block.blockhash"),
-                    (r'\bblock\.timestamp\b', "block.timestamp"),
-                    (r'\bblock\.number\b', "block.number"),
-                    (r'\bgasleft\s*\(', "gasleft()"),
+                    (r"\btx\.origin\b", "tx.origin"),
+                    (r"\bblock\.blockhash\b", "block.blockhash"),
+                    (r"\bblock\.timestamp\b", "block.timestamp"),
+                    (r"\bblock\.number\b", "block.number"),
+                    (r"\bgasleft\s*\(", "gasleft()"),
                 ]
                 for pattern, keyword in forbidden_patterns:
                     if re.search(pattern, body):
@@ -95,5 +95,5 @@ class PiEIP4337AccountAbstractionSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

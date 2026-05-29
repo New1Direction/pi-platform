@@ -9,14 +9,14 @@ No inference. No LLM calls. Deterministic only.
 from __future__ import annotations
 
 from pi_semantic_diff.models import (
-    SemanticIRTrace,
-    SemanticField,
-    DependencyGraph,
-    StateEdge,
     AuthInvariant,
+    DependencyGraph,
+    SemanticField,
+    SemanticIRTrace,
+    StateEdge,
 )
 from pi_semantic_diff.runtime import DiffRuntime
-from pi_semantic_radius.models import TopologyGraph, TopologyNode, TopologyEdge
+from pi_semantic_radius.models import TopologyEdge, TopologyGraph, TopologyNode
 from pi_semantic_radius.runtime import RadiusRuntime
 
 
@@ -40,11 +40,23 @@ def test_pipeline_diff_then_radius() -> None:
         ),
     ]
     baseline_graph = DependencyGraph(
-        edges=[StateEdge(upstream_endpoint="/api/users", upstream_field="id", downstream_endpoint="/api/users/{id}", downstream_field="id")],
+        edges=[
+            StateEdge(
+                upstream_endpoint="/api/users",
+                upstream_field="id",
+                downstream_endpoint="/api/users/{id}",
+                downstream_field="id",
+            )
+        ],
         nodes=["/api/users", "/api/users/{id}"],
     )
     baseline_auth = [
-        AuthInvariant(invariant_id="auth1", invariant_type="bearer", confidence=0.9, affected_endpoints=["/api/users", "/api/users/{id}"]),
+        AuthInvariant(
+            invariant_id="auth1",
+            invariant_type="bearer",
+            confidence=0.9,
+            affected_endpoints=["/api/users", "/api/users/{id}"],
+        ),
     ]
 
     # Modified snapshot: adds destructive endpoint, new dependency, auth drift
@@ -73,14 +85,31 @@ def test_pipeline_diff_then_radius() -> None:
     ]
     modified_graph = DependencyGraph(
         edges=[
-            StateEdge(upstream_endpoint="/api/users", upstream_field="id", downstream_endpoint="/api/users/{id}", downstream_field="id"),
-            StateEdge(upstream_endpoint="/api/users/{id}", upstream_field="id", downstream_endpoint="/api/audit", downstream_field="user_id"),
+            StateEdge(
+                upstream_endpoint="/api/users",
+                upstream_field="id",
+                downstream_endpoint="/api/users/{id}",
+                downstream_field="id",
+            ),
+            StateEdge(
+                upstream_endpoint="/api/users/{id}",
+                upstream_field="id",
+                downstream_endpoint="/api/audit",
+                downstream_field="user_id",
+            ),
         ],
         nodes=["/api/users", "/api/users/{id}", "/api/audit"],
     )
     modified_auth = [
-        AuthInvariant(invariant_id="auth1", invariant_type="bearer", confidence=0.9, affected_endpoints=["/api/users", "/api/users/{id}"]),
-        AuthInvariant(invariant_id="auth2", invariant_type="otp", confidence=0.7, affected_endpoints=["/api/users/{id}"]),
+        AuthInvariant(
+            invariant_id="auth1",
+            invariant_type="bearer",
+            confidence=0.9,
+            affected_endpoints=["/api/users", "/api/users/{id}"],
+        ),
+        AuthInvariant(
+            invariant_id="auth2", invariant_type="otp", confidence=0.7, affected_endpoints=["/api/users/{id}"]
+        ),
     ]
 
     # Run diff
@@ -99,7 +128,7 @@ def test_pipeline_diff_then_radius() -> None:
     # Assertions on diff report
     assert diff_report.drift_score > 0.0
     assert diff_report.state_mutation_expansion >= 1  # DELETE is destructive
-    assert diff_report.replay_unsafe_expansion >= 1   # DELETE is non-replayable
+    assert diff_report.replay_unsafe_expansion >= 1  # DELETE is non-replayable
     assert diff_report.report_hash != ""
 
     # Convert dependency graph to topology graph for radius
@@ -109,11 +138,13 @@ def test_pipeline_diff_then_radius() -> None:
             nodes[n] = TopologyNode(node_id=n)
         edges = []
         for e in dep_graph.edges:
-            edges.append(TopologyEdge(
-                edge_id=f"{e.upstream_endpoint}->{e.downstream_endpoint}",
-                upstream=e.upstream_endpoint,
-                downstream=e.downstream_endpoint,
-            ))
+            edges.append(
+                TopologyEdge(
+                    edge_id=f"{e.upstream_endpoint}->{e.downstream_endpoint}",
+                    upstream=e.upstream_endpoint,
+                    downstream=e.downstream_endpoint,
+                )
+            )
         return TopologyGraph(
             graph_id=dep_graph.session_window_id or "graph",
             nodes=nodes,

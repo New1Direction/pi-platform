@@ -57,13 +57,17 @@ class PiReadOnlyOracleManipulationSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check if function queries spot pricing methods of Balancer, Curve, Uniswap reserves, etc.
-            if ("getReserves" in body or "queryBatchSwap" in body or "get_dy" in body) and ("balanceOf" in body or "price" in name.lower() or "oracle" in name.lower()):
+            if ("getReserves" in body or "queryBatchSwap" in body or "get_dy" in body) and (
+                "balanceOf" in body or "price" in name.lower() or "oracle" in name.lower()
+            ):
                 # Check if it lacks TWAP or secondary oracle verifications (Chainlink fallback)
-                has_fallback = "latestRoundData" in body or "consult" in body or "observe" in body or "twap" in body.lower()
+                has_fallback = (
+                    "latestRoundData" in body or "consult" in body or "observe" in body or "twap" in body.lower()
+                )
                 if not has_fallback:
                     vulnerable_funcs.append(name)
                     flagged_findings.append(
@@ -89,5 +93,5 @@ class PiReadOnlyOracleManipulationSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

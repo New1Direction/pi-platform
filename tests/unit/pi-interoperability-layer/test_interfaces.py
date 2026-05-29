@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from pi_interoperability_layer.interfaces import (
-    WorkerInputEnvelope,
-    WorkerOutputEnvelope,
-    RuntimeMessage,
     ProvenanceChain,
     ReplaySafeRouter,
+    RuntimeMessage,
+    WorkerInputEnvelope,
+    WorkerOutputEnvelope,
 )
 
 

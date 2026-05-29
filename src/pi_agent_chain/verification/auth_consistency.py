@@ -39,8 +39,7 @@ class AuthConsistencyValidator:
     # Auth-related inferred types observed by SemanticTyperNode
     AUTH_TYPES = {"JWT", "JWT_Payload", "Base64", "HexDigest", "UNKNOWN_HEX"}
     # Auth-related header names (used for evidence extraction, not inference)
-    AUTH_HEADER_NAMES = {"authorization", "cookie", "x-csrf-token", "x-xsrf-token",
-                         "x-api-key", "x-auth-token"}
+    AUTH_HEADER_NAMES = {"authorization", "cookie", "x-csrf-token", "x-xsrf-token", "x-api-key", "x-auth-token"}
 
     def __init__(self, min_binding_confidence: float = 0.85, bounds: Optional[Any] = None) -> None:
         self.min_binding_confidence = min_binding_confidence
@@ -94,9 +93,7 @@ class AuthConsistencyValidator:
         We NEVER infer auth from field names alone.
         """
         evidence: List[AuthEvidence] = []
-        trace_by_endpoint: Dict[Tuple[str, str], SemanticIRTrace] = {
-            (t.endpoint_template, t.method): t for t in traces
-        }
+        trace_by_endpoint: Dict[Tuple[str, str], SemanticIRTrace] = {(t.endpoint_template, t.method): t for t in traces}
 
         for pkt in packets:
             key = (pkt.endpoint_path_template, pkt.method)
@@ -105,18 +102,14 @@ class AuthConsistencyValidator:
             # Extract from actual headers (observed values)
             for hk, hv in pkt.raw_headers:
                 hk.lower()
-                ev = self._classify_header_evidence(
-                    hk, hv, pkt, execution_id, trace
-                )
+                ev = self._classify_header_evidence(hk, hv, pkt, execution_id, trace)
                 if ev:
                     evidence.append(ev)
 
             # Extract from response headers (for auth transitions: 401/403)
             for hk, hv in pkt.response_headers:
                 if pkt.response_status in (401, 403):
-                    ev = self._classify_header_evidence(
-                        hk, hv, pkt, execution_id, trace, is_response=True
-                    )
+                    ev = self._classify_header_evidence(hk, hv, pkt, execution_id, trace, is_response=True)
                     if ev:
                         evidence.append(ev)
 
@@ -225,10 +218,9 @@ class AuthConsistencyValidator:
                 key = (f"{c1}:{fp1}", f"{c2}:{fp2}")
                 if (c1, fp1) in pkt_carriers and (c2, fp2) in pkt_carriers:
                     pair_stats[key]["co"] += 1
-                    pair_stats[key]["evidence"].extend([
-                        e.evidence_id for e in pkt_evs
-                        if (e.carrier, e.field_path) in ((c1, fp1), (c2, fp2))
-                    ])
+                    pair_stats[key]["evidence"].extend(
+                        [e.evidence_id for e in pkt_evs if (e.carrier, e.field_path) in ((c1, fp1), (c2, fp2))]
+                    )
                 else:
                     pair_stats[key]["disjoint"] += 1
 
@@ -278,9 +270,11 @@ class AuthConsistencyValidator:
         # --- TOKEN_REUSE: same value hash across multiple packets ---
         by_hash: Dict[str, List[AuthEvidence]] = defaultdict(list)
         for ev in evidence:
-            if ev.evidence_type in (AuthEvidenceType.BEARER_HEADER,
-                                     AuthEvidenceType.JWT_HEADER,
-                                     AuthEvidenceType.API_KEY_HEADER):
+            if ev.evidence_type in (
+                AuthEvidenceType.BEARER_HEADER,
+                AuthEvidenceType.JWT_HEADER,
+                AuthEvidenceType.API_KEY_HEADER,
+            ):
                 by_hash[ev.observed_value_hash].append(ev)
 
         reused = {h: evs for h, evs in by_hash.items() if len(evs) > 1}
@@ -318,16 +312,20 @@ class AuthConsistencyValidator:
                         evidence_refs=[e.evidence_id for e in csrf_ev + cookie_ev],
                         affected_endpoints=list({e.endpoint_template for e in csrf_ev + cookie_ev}),
                         confidence=round(conf, 4),
-                        epistemic_state=EpistemicState.OBSERVED if conf >= self.min_binding_confidence else EpistemicState.INFERRED,
+                        epistemic_state=EpistemicState.OBSERVED
+                        if conf >= self.min_binding_confidence
+                        else EpistemicState.INFERRED,
                     )
                 )
 
         # --- SESSION_ROTATION: token hash changes between sequential requests ---
         by_endpoint: Dict[str, List[AuthEvidence]] = defaultdict(list)
         for ev in evidence:
-            if ev.evidence_type in (AuthEvidenceType.BEARER_HEADER,
-                                     AuthEvidenceType.JWT_HEADER,
-                                     AuthEvidenceType.SESSION_COOKIE):
+            if ev.evidence_type in (
+                AuthEvidenceType.BEARER_HEADER,
+                AuthEvidenceType.JWT_HEADER,
+                AuthEvidenceType.SESSION_COOKIE,
+            ):
                 by_endpoint[ev.endpoint_template].append(ev)
 
         for endpoint, evs in by_endpoint.items():
@@ -385,10 +383,12 @@ class AuthConsistencyValidator:
             )
 
         # --- REPLAY_SURVIVABILITY: auth present in replayable traffic ---
-        replayable_auth = [e for e in evidence
-                          if e.evidence_type in (AuthEvidenceType.BEARER_HEADER,
-                                                  AuthEvidenceType.JWT_HEADER,
-                                                  AuthEvidenceType.API_KEY_HEADER)]
+        replayable_auth = [
+            e
+            for e in evidence
+            if e.evidence_type
+            in (AuthEvidenceType.BEARER_HEADER, AuthEvidenceType.JWT_HEADER, AuthEvidenceType.API_KEY_HEADER)
+        ]
         if replayable_auth:
             invariants.append(
                 AuthInvariant(
@@ -476,10 +476,12 @@ class AuthConsistencyValidator:
 
     def _compute_token_entropy(self, evidence: List[AuthEvidence]) -> float:
         """Compute Shannon entropy of observed token value hashes."""
-        hashes = [e.observed_value_hash for e in evidence
-                  if e.evidence_type in (AuthEvidenceType.BEARER_HEADER,
-                                          AuthEvidenceType.JWT_HEADER,
-                                          AuthEvidenceType.API_KEY_HEADER)]
+        hashes = [
+            e.observed_value_hash
+            for e in evidence
+            if e.evidence_type
+            in (AuthEvidenceType.BEARER_HEADER, AuthEvidenceType.JWT_HEADER, AuthEvidenceType.API_KEY_HEADER)
+        ]
         if not hashes:
             return 0.0
         freq: Dict[str, int] = {}

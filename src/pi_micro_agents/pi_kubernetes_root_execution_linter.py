@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
 import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
@@ -45,7 +43,7 @@ class PiKubernetesRootExecutionLinter:
         lines = code.splitlines()
         has_security_context = False
         has_run_as_non_root = False
-        
+
         for idx, line in enumerate(lines, 1):
             if "securityContext:" in line:
                 has_security_context = True
@@ -85,5 +83,5 @@ class PiKubernetesRootExecutionLinter:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

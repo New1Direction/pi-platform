@@ -2,30 +2,29 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents import (
-    PiSolidityERC20SafeApproveAuditor,
-    ERC20SafeApproveInput,
-    PiSolidityUndeclaredReturnVariableSentry,
-    UndeclaredReturnVariableInput,
-    PiSolidityYulMemoryOffsetAudit,
-    YulMemoryOffsetInput,
-    PiSolidityProxyCallTargetCheck,
-    ProxyCallTargetInput,
-    PiSolidityConstantPragmaValidation,
     ConstantPragmaInput,
+    ERC20SafeApproveInput,
     PiRustSolanaAccountDataValidation,
-    SolanaAccountDataInput,
-    PiRustSolanaMissingSignerAssert,
-    SolanaMissingSignerInput,
     PiRustSolanaArithmeticOverflowCheck,
-    SolanaArithmeticOverflowInput,
-    PiRustSolanaOwnerVerificationGuard,
-    SolanaOwnerVerificationInput,
     PiRustSolanaCPIInstructionSentry,
+    PiRustSolanaMissingSignerAssert,
+    PiRustSolanaOwnerVerificationGuard,
+    PiSolidityConstantPragmaValidation,
+    PiSolidityERC20SafeApproveAuditor,
+    PiSolidityProxyCallTargetCheck,
+    PiSolidityUndeclaredReturnVariableSentry,
+    PiSolidityYulMemoryOffsetAudit,
+    ProxyCallTargetInput,
+    SolanaAccountDataInput,
+    SolanaArithmeticOverflowInput,
     SolanaCPIInstructionInput,
+    SolanaMissingSignerInput,
+    SolanaOwnerVerificationInput,
+    UndeclaredReturnVariableInput,
+    YulMemoryOffsetInput,
 )
 
 
@@ -94,13 +93,17 @@ def test_solidity_undeclared_return_variable_sentry(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_undeclared_returns(UndeclaredReturnVariableInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_undeclared_returns(
+        UndeclaredReturnVariableInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "compute" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_UNDECLARED_RETURN_VARIABLE"
 
     monkeypatch.setenv("PI_UNDECLARED_RETURN_VARIABLE_STRICT_MODE", "false")
-    res_warn = agent.audit_undeclared_returns(UndeclaredReturnVariableInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_undeclared_returns(
+        UndeclaredReturnVariableInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_UNDECLARED_RETURN_VARIABLE"
 
@@ -111,7 +114,9 @@ def test_solidity_undeclared_return_variable_sentry(monkeypatch):
         }
     }
     """
-    res_safe = agent.audit_undeclared_returns(UndeclaredReturnVariableInput(file_path="Safe.sol", solidity_code=code_safe))
+    res_safe = agent.audit_undeclared_returns(
+        UndeclaredReturnVariableInput(file_path="Safe.sol", solidity_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 

@@ -2,30 +2,29 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents import (
     PiRustSolanaBorshSerializationLeak,
-    SolanaBorshLeakInput,
     PiRustSolanaReentrancyCrossProgramSentry,
-    SolanaReentrancyCrossInput,
     PiRustSolanaSysvarClockVerification,
-    SolanaSysvarClockInput,
-    PiZKSignalUnconstrainedConstraint,
-    ZKSignalUnconstrainedInput,
     PiZKDivByZeroConstraintAuditor,
-    ZKDivByZeroConstraintInput,
-    PiZKSignalShadowingSignalSentry,
-    ZKSignalShadowingInput,
-    PiZKPublicInputLeakageAuditor,
-    ZKPublicInputLeakageInput,
     PiZKNonPrimeFieldRangeSentry,
-    ZKNonPrimeFieldRangeInput,
-    PiZKUnusedConstraintVariables,
-    ZKUnusedConstraintInput,
     PiZKProofForgingValidationSentry,
+    PiZKPublicInputLeakageAuditor,
+    PiZKSignalShadowingSignalSentry,
+    PiZKSignalUnconstrainedConstraint,
+    PiZKUnusedConstraintVariables,
+    SolanaBorshLeakInput,
+    SolanaReentrancyCrossInput,
+    SolanaSysvarClockInput,
+    ZKDivByZeroConstraintInput,
+    ZKNonPrimeFieldRangeInput,
     ZKProofForgingValidationInput,
+    ZKPublicInputLeakageInput,
+    ZKSignalShadowingInput,
+    ZKSignalUnconstrainedInput,
+    ZKUnusedConstraintInput,
 )
 
 
@@ -154,13 +153,17 @@ def test_zk_signal_unconstrained_constraint(monkeypatch):
         out <-- in * 2;
     }
     """
-    res_vuln = agent.audit_unconstrained_signals(ZKSignalUnconstrainedInput(file_path="circuit.circom", circom_code=code_vuln))
+    res_vuln = agent.audit_unconstrained_signals(
+        ZKSignalUnconstrainedInput(file_path="circuit.circom", circom_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "out" in res_vuln.vulnerable_signals
     assert res_vuln.status == "REJECTED_ZK_SIGNAL_UNCONSTRAINED"
 
     monkeypatch.setenv("PI_ZK_SIGNAL_UNCONSTRAINED_STRICT_MODE", "false")
-    res_warn = agent.audit_unconstrained_signals(ZKSignalUnconstrainedInput(file_path="circuit.circom", circom_code=code_vuln))
+    res_warn = agent.audit_unconstrained_signals(
+        ZKSignalUnconstrainedInput(file_path="circuit.circom", circom_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_ZK_SIGNAL_UNCONSTRAINED"
 
@@ -171,7 +174,9 @@ def test_zk_signal_unconstrained_constraint(monkeypatch):
         out === in * 2;
     }
     """
-    res_safe = agent.audit_unconstrained_signals(ZKSignalUnconstrainedInput(file_path="circuit.circom", circom_code=code_safe))
+    res_safe = agent.audit_unconstrained_signals(
+        ZKSignalUnconstrainedInput(file_path="circuit.circom", circom_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -260,13 +265,17 @@ def test_zk_public_input_leakage_auditor(monkeypatch):
         public_val <-- secret_val;
     }
     """
-    res_vuln = agent.audit_public_input_leakage(ZKPublicInputLeakageInput(file_path="circuit.circom", circom_code=code_vuln))
+    res_vuln = agent.audit_public_input_leakage(
+        ZKPublicInputLeakageInput(file_path="circuit.circom", circom_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "secret_val" in res_vuln.vulnerable_signals
     assert res_vuln.status == "REJECTED_ZK_PUBLIC_INPUT_LEAKAGE"
 
     monkeypatch.setenv("PI_ZK_PUBLIC_INPUT_LEAKAGE_STRICT_MODE", "false")
-    res_warn = agent.audit_public_input_leakage(ZKPublicInputLeakageInput(file_path="circuit.circom", circom_code=code_vuln))
+    res_warn = agent.audit_public_input_leakage(
+        ZKPublicInputLeakageInput(file_path="circuit.circom", circom_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_ZK_PUBLIC_INPUT_LEAKAGE"
 
@@ -277,7 +286,9 @@ def test_zk_public_input_leakage_auditor(monkeypatch):
         public_val <-- commitment;
     }
     """
-    res_safe = agent.audit_public_input_leakage(ZKPublicInputLeakageInput(file_path="circuit.circom", circom_code=code_safe))
+    res_safe = agent.audit_public_input_leakage(
+        ZKPublicInputLeakageInput(file_path="circuit.circom", circom_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -296,7 +307,9 @@ def test_zk_non_prime_field_range_sentry(monkeypatch):
     """
     res_vuln = agent.audit_non_prime_range(ZKNonPrimeFieldRangeInput(file_path="circuit.circom", circom_code=code_vuln))
     assert not res_vuln.is_secure
-    assert "21888242871839275222246405745257275088548364400416034343698204186575808495618" in res_vuln.vulnerable_signals
+    assert (
+        "21888242871839275222246405745257275088548364400416034343698204186575808495618" in res_vuln.vulnerable_signals
+    )
     assert res_vuln.status == "REJECTED_ZK_NON_PRIME_FIELD"
 
     monkeypatch.setenv("PI_ZK_NON_PRIME_FIELD_STRICT_MODE", "false")
@@ -363,13 +376,17 @@ def test_zk_proof_forging_validation_sentry(monkeypatch):
         signal input in;
     }
     """
-    res_vuln = agent.audit_proof_forging(ZKProofForgingValidationInput(file_path="circuit.circom", circom_code=code_vuln))
+    res_vuln = agent.audit_proof_forging(
+        ZKProofForgingValidationInput(file_path="circuit.circom", circom_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "verifyProof" in res_vuln.vulnerable_signals
     assert res_vuln.status == "REJECTED_ZK_PROOF_FORGING"
 
     monkeypatch.setenv("PI_ZK_PROOF_FORGING_STRICT_MODE", "false")
-    res_warn = agent.audit_proof_forging(ZKProofForgingValidationInput(file_path="circuit.circom", circom_code=code_vuln))
+    res_warn = agent.audit_proof_forging(
+        ZKProofForgingValidationInput(file_path="circuit.circom", circom_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_ZK_PROOF_FORGING"
 
@@ -379,6 +396,8 @@ def test_zk_proof_forging_validation_sentry(monkeypatch):
         signal input commitment;
     }
     """
-    res_safe = agent.audit_proof_forging(ZKProofForgingValidationInput(file_path="circuit.circom", circom_code=code_safe))
+    res_safe = agent.audit_proof_forging(
+        ZKProofForgingValidationInput(file_path="circuit.circom", circom_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"

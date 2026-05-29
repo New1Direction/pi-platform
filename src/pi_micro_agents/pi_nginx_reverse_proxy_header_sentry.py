@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -41,7 +40,7 @@ class PiNginxReverseProxyHeaderSentry:
         flagged_findings = []
 
         # Find location blocks
-        location_blocks = re.findall(r'location\s+([a-zA-Z0-9_\-\./]+)\s*\{([\s\S]*?)\}', code)
+        location_blocks = re.findall(r"location\s+([a-zA-Z0-9_\-\./]+)\s*\{([\s\S]*?)\}", code)
 
         for path, body in location_blocks:
             if "proxy_pass" in body:
@@ -72,5 +71,5 @@ class PiNginxReverseProxyHeaderSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

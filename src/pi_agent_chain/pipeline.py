@@ -83,9 +83,7 @@ class PipelineDriver:
         # Workers are stateless transforms. The kernel owns execution.
         self.acquirer = AcquisitionGatewayNode(source="MANUAL")
         self.extractor = StructuralExtractorNode()
-        self.typer = SemanticTyperNode(
-            confidence_threshold=self.config.semantic_confidence_threshold
-        )
+        self.typer = SemanticTyperNode(confidence_threshold=self.config.semantic_confidence_threshold)
         self.mapper = FlowMapperNode()
         self.synthesizer = SpecSynthesizerNode()
         self.verifier = DifferentialVerifierNode(
@@ -157,7 +155,9 @@ class PipelineDriver:
             governed_packets.append(gov)
             # Store packet as OBSERVED artifact
             art = self.registry.derive_artifact(
-                gov.packet, "NormalizedTrafficPacket", "AcquisitionGatewayNode",
+                gov.packet,
+                "NormalizedTrafficPacket",
+                "AcquisitionGatewayNode",
                 provenance=[trace_id],
                 source_execution_id=response.execution_id,
                 originating_runtime_state=RuntimeState.CAPTURING,
@@ -219,7 +219,9 @@ class PipelineDriver:
         for trace, resp in zip(traces, typer_responses):
             parent_ids = [a.artifact_id for a in observed_artifacts]  # OBSERVED parents
             art = self.registry.derive_artifact(
-                trace, "SemanticIRTrace", "SemanticTyperNode",
+                trace,
+                "SemanticIRTrace",
+                "SemanticTyperNode",
                 provenance=[f"trace:{trace_id}", f"packet:{trace.endpoint_template}"],
                 parent_artifact_ids=parent_ids,
                 source_execution_id=resp.execution_id,
@@ -251,18 +253,22 @@ class PipelineDriver:
         critical_auth = [v for v in auth_report.violations if v.severity == "CRITICAL"]
         if critical_auth:
             return self._halt(
-                trace_id, kernel, "auth_consistency",
+                trace_id,
+                kernel,
+                "auth_consistency",
                 WorkerResponse(
                     root_goal_id=trace_id,
                     worker_id="auth_consistency_validator",
                     status="VERIFICATION_MISMATCH",
                     errors=[v.rule for v in critical_auth],
-                )
+                ),
             )
 
         # Store auth report as artifact
         auth_artifact = self.registry.derive_artifact(
-            auth_report, "AuthConsistencyReport", "AuthConsistencyValidator",
+            auth_report,
+            "AuthConsistencyReport",
+            "AuthConsistencyValidator",
             provenance=[f"trace:{trace_id}", f"traces:{len(traces)}"],
             parent_artifact_ids=[a.artifact_id for a in trace_artifacts],
             source_execution_id=trace_id,
@@ -273,24 +279,26 @@ class PipelineDriver:
         self.registry.store(auth_artifact)
 
         # ——— State Transition FSM Extraction (EXTRACTING checkpoint) ———
-        fsm, fsm_violations = self.state_validator.extract_fsm(
-            traces, packets, auth_report, execution_id=trace_id
-        )
+        fsm, fsm_violations = self.state_validator.extract_fsm(traces, packets, auth_report, execution_id=trace_id)
         critical_fsm = [v for v in fsm_violations if v.severity == "CRITICAL"]
         if critical_fsm and auth_report.passed:
             # Only halt on CRITICAL FSM violations if verifier already passed
             return self._halt(
-                trace_id, kernel, "fsm_bounds",
+                trace_id,
+                kernel,
+                "fsm_bounds",
                 WorkerResponse(
                     root_goal_id=trace_id,
                     worker_id="state_transition_validator",
                     status="VERIFICATION_MISMATCH",
                     errors=[v.rule for v in critical_fsm],
-                )
+                ),
             )
 
         fsm_artifact = self.registry.derive_artifact(
-            fsm, "ProtocolStateMachine", "StateTransitionValidator",
+            fsm,
+            "ProtocolStateMachine",
+            "StateTransitionValidator",
             provenance=[f"trace:{trace_id}", f"nodes:{fsm.node_count()}", f"edges:{fsm.edge_count()}"],
             parent_artifact_ids=[auth_artifact.artifact_id] + [a.artifact_id for a in trace_artifacts],
             source_execution_id=trace_id,
@@ -303,25 +311,32 @@ class PipelineDriver:
         # ——— Semantic Quorum Resolution (EXTRACTING checkpoint) ———
         # Execute AFTER FSM extraction but BEFORE dependency graph freezing
         all_artifacts = self.registry.all_artifacts()
-        quorum_report = self.semantic_quorum.execute(
-            all_artifacts, execution_id=trace_id, registry=self.registry
-        )
+        quorum_report = self.semantic_quorum.execute(all_artifacts, execution_id=trace_id, registry=self.registry)
         critical_quorum = [v for v in quorum_report.violations if v.severity in ("CRITICAL", "ERROR")]
         if critical_quorum:
             return self._halt(
-                trace_id, kernel, "quorum_violation",
+                trace_id,
+                kernel,
+                "quorum_violation",
                 WorkerResponse(
                     root_goal_id=trace_id,
                     worker_id="semantic_quorum",
                     status="VERIFICATION_MISMATCH",
                     errors=[v.rule for v in critical_quorum],
-                )
+                ),
             )
 
         quorum_artifact = self.registry.derive_artifact(
-            quorum_report, "SemanticQuorumReport", "SemanticQuorum",
-            provenance=[f"trace:{trace_id}", f"claims:{len(quorum_report.claims)}", f"intersections:{len(quorum_report.intersections)}"],
-            parent_artifact_ids=[fsm_artifact.artifact_id, auth_artifact.artifact_id] + [a.artifact_id for a in trace_artifacts],
+            quorum_report,
+            "SemanticQuorumReport",
+            "SemanticQuorum",
+            provenance=[
+                f"trace:{trace_id}",
+                f"claims:{len(quorum_report.claims)}",
+                f"intersections:{len(quorum_report.intersections)}",
+            ],
+            parent_artifact_ids=[fsm_artifact.artifact_id, auth_artifact.artifact_id]
+            + [a.artifact_id for a in trace_artifacts],
             source_execution_id=trace_id,
             originating_runtime_state=RuntimeState.EXTRACTING,
             input_hash=self._hash_payload(json.dumps([t.compute_hash() for t in traces], sort_keys=True)),
@@ -342,18 +357,26 @@ class PipelineDriver:
         critical_entropy = [v for v in entropy_report.violations if v.severity in ("CRITICAL", "ERROR")]
         if critical_entropy:
             return self._halt(
-                trace_id, kernel, "entropy_regression",
+                trace_id,
+                kernel,
+                "entropy_regression",
                 WorkerResponse(
                     root_goal_id=trace_id,
                     worker_id="entropy_analysis",
                     status="VERIFICATION_MISMATCH",
                     errors=[v.rule for v in critical_entropy],
-                )
+                ),
             )
 
         entropy_artifact = self.registry.derive_artifact(
-            entropy_report, "EntropyAnalysisReport", "EntropyAnalysis",
-            provenance=[f"trace:{trace_id}", f"composite_entropy:{entropy_report.snapshot.composite_entropy}", f"convergence:{entropy_report.convergence.score}"],
+            entropy_report,
+            "EntropyAnalysisReport",
+            "EntropyAnalysis",
+            provenance=[
+                f"trace:{trace_id}",
+                f"composite_entropy:{entropy_report.snapshot.composite_entropy}",
+                f"convergence:{entropy_report.convergence.score}",
+            ],
             parent_artifact_ids=[quorum_artifact.artifact_id, fsm_artifact.artifact_id],
             source_execution_id=trace_id,
             originating_runtime_state=RuntimeState.EXTRACTING,
@@ -379,7 +402,9 @@ class PipelineDriver:
         graph = DependencyGraph(**payload)
 
         graph_artifact = self.registry.derive_artifact(
-            graph, "DependencyGraph", "FlowMapperNode",
+            graph,
+            "DependencyGraph",
+            "FlowMapperNode",
             provenance=[f"trace:{trace_id}", f"traces:{len(traces)}"],
             parent_artifact_ids=[a.artifact_id for a in trace_artifacts],
             source_execution_id=response.execution_id,
@@ -415,7 +440,9 @@ class PipelineDriver:
         spec = SynthesizedSpec(**payload)
 
         spec_artifact = self.registry.derive_artifact(
-            spec, "SynthesizedSpec", "SpecSynthesizerNode",
+            spec,
+            "SynthesizedSpec",
+            "SpecSynthesizerNode",
             provenance=[f"trace:{trace_id}", f"graph:{graph.session_window_id}"],
             parent_artifact_ids=[graph_artifact.artifact_id] + [a.artifact_id for a in trace_artifacts],
             source_execution_id=response.execution_id,
@@ -423,7 +450,8 @@ class PipelineDriver:
             input_hash=response.input_hash,
             output_hash=response.output_hash,
             trace_hash=response.trace_hash,
-            evidence_refs=[f"artifact:{graph_artifact.artifact_id}"] + [f"artifact:{a.artifact_id}" for a in trace_artifacts],
+            evidence_refs=[f"artifact:{graph_artifact.artifact_id}"]
+            + [f"artifact:{a.artifact_id}" for a in trace_artifacts],
         )
         self.registry.store(spec_artifact)
 
@@ -448,48 +476,48 @@ class PipelineDriver:
             # Bottom-up promotion: traces -> graph -> spec
             # Each promotion requires provenance closure
             for ta in trace_artifacts:
-                allowed, violations = self.provenance_validator.can_promote(
-                    ta, EpistemicState.VERIFIED
-                )
+                allowed, violations = self.provenance_validator.can_promote(ta, EpistemicState.VERIFIED)
                 if not allowed:
                     return self._halt(
-                        trace_id, kernel, "provenance_trace",
+                        trace_id,
+                        kernel,
+                        "provenance_trace",
                         WorkerResponse(
                             root_goal_id=trace_id,
                             worker_id="provenance_validator",
                             status="VERIFICATION_MISMATCH",
                             errors=[v.rule for v in violations],
-                        )
+                        ),
                     )
                 self.registry.promote(ta, EpistemicState.VERIFIED, trust_delta=0.2)
 
-            allowed, violations = self.provenance_validator.can_promote(
-                graph_artifact, EpistemicState.VERIFIED
-            )
+            allowed, violations = self.provenance_validator.can_promote(graph_artifact, EpistemicState.VERIFIED)
             if not allowed:
                 return self._halt(
-                    trace_id, kernel, "provenance_graph",
+                    trace_id,
+                    kernel,
+                    "provenance_graph",
                     WorkerResponse(
                         root_goal_id=trace_id,
                         worker_id="provenance_validator",
                         status="VERIFICATION_MISMATCH",
                         errors=[v.rule for v in violations],
-                    )
+                    ),
                 )
             self.registry.promote(graph_artifact, EpistemicState.VERIFIED, trust_delta=0.2)
 
-            allowed, violations = self.provenance_validator.can_promote(
-                spec_artifact, EpistemicState.VERIFIED
-            )
+            allowed, violations = self.provenance_validator.can_promote(spec_artifact, EpistemicState.VERIFIED)
             if not allowed:
                 return self._halt(
-                    trace_id, kernel, "provenance_spec",
+                    trace_id,
+                    kernel,
+                    "provenance_spec",
                     WorkerResponse(
                         root_goal_id=trace_id,
                         worker_id="provenance_validator",
                         status="VERIFICATION_MISMATCH",
                         errors=[v.rule for v in violations],
-                    )
+                    ),
                 )
             self.registry.promote(spec_artifact, EpistemicState.VERIFIED, trust_delta=0.3)
         else:
@@ -513,21 +541,19 @@ class PipelineDriver:
                         method=delta.action.upper(),
                         fields=orig_trace.fields,
                         is_frozen=orig_trace.is_frozen,
-                        epistemic_state=EpistemicState.CONTESTED if delta.contradiction_detected else orig_trace.epistemic_state,
+                        epistemic_state=EpistemicState.CONTESTED
+                        if delta.contradiction_detected
+                        else orig_trace.epistemic_state,
                         provenance=[f"replay:{trace_id}"],
                         generated_by="ReplayValidator",
                     )
-                    diff, r_violations = self.replay_validator.compare(
-                        orig_trace, replay_trace, execution_id=trace_id
-                    )
+                    diff, r_violations = self.replay_validator.compare(orig_trace, replay_trace, execution_id=trace_id)
                     replay_diffs.append(diff)
                     replay_violations.extend(r_violations)
         else:
             # Sanity check: compare first trace to itself (should be STRICT_EQUIVALENT)
             if traces:
-                diff, r_violations = self.replay_validator.compare(
-                    traces[0], traces[0], execution_id=trace_id
-                )
+                diff, r_violations = self.replay_validator.compare(traces[0], traces[0], execution_id=trace_id)
                 replay_diffs.append(diff)
                 replay_violations.extend(r_violations)
 
@@ -535,18 +561,21 @@ class PipelineDriver:
         critical_replay = [v for v in replay_violations if v.severity == "CRITICAL"]
         if critical_replay and report.passed:
             return self._halt(
-                trace_id, kernel, "replay_critical",
+                trace_id,
+                kernel,
+                "replay_critical",
                 WorkerResponse(
                     root_goal_id=trace_id,
                     worker_id="replay_validator",
                     status="VERIFICATION_MISMATCH",
                     errors=[v.rule for v in critical_replay],
-                )
+                ),
             )
 
         # ——— Final ledger entries ———
         self._log_trace(
-            trace_id, "PipelineDriver",
+            trace_id,
+            "PipelineDriver",
             self._hash_payload(json.dumps([p.compute_hash() for p in packets])),
             json.dumps({"status": "SUCCESS" if report.passed else "CONTESTED"}),
             report.passed,
@@ -576,9 +605,7 @@ class PipelineDriver:
     # --- Worker wrappers (pure transforms, no state, no orchestration) ---
 
     def _acquire(self, envelope, raw_req: str, raw_resp: str) -> Dict[str, Any]:
-        gov = self.acquirer.from_raw_http_pair(
-            raw_req, raw_resp, url_override=self.base_url
-        )
+        gov = self.acquirer.from_raw_http_pair(raw_req, raw_resp, url_override=self.base_url)
         return {"payload": gov.model_dump(), "type": "GovernedPacket"}
 
     def _extract(self, envelope, packet: NormalizedTrafficPacket) -> Dict[str, Any]:
@@ -599,6 +626,7 @@ class PipelineDriver:
 
     def _verify(self, envelope, spec: SynthesizedSpec, packets: List[NormalizedTrafficPacket]) -> Dict[str, Any]:
         import asyncio
+
         report = asyncio.run(self.verifier.verify(spec, packets))
         return {"payload": report.model_dump(), "type": "VerificationReport"}
 
@@ -613,14 +641,17 @@ class PipelineDriver:
     ) -> Dict[str, Any]:
         """Emit a governed halt response."""
         self._log_trace(
-            trace_id, "PipelineDriver",
+            trace_id,
+            "PipelineDriver",
             response.input_hash or "",
-            json.dumps({
-                "status": "HALTED",
-                "stage": stage,
-                "worker_status": response.status,
-                "errors": response.errors,
-            }),
+            json.dumps(
+                {
+                    "status": "HALTED",
+                    "stage": stage,
+                    "worker_status": response.status,
+                    "errors": response.errors,
+                }
+            ),
             False,
             error="; ".join(response.errors) if response.errors else "Governance halt",
         )

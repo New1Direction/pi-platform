@@ -217,7 +217,12 @@ class BlastRadiusValidationPass:
         # 3. Auth surface expansion
         max_trace_iter = min(len(traces), bounds.max_endpoints_per_trace)
         for tidx, trace in enumerate(traces[:max_trace_iter]):
-            auth_fields = [f for f in trace.fields if "auth" in f.inferred_type.lower() or f.path.lower() in ("authorization", "x-api-key", "cookie", "csrf")]
+            auth_fields = [
+                f
+                for f in trace.fields
+                if "auth" in f.inferred_type.lower()
+                or f.path.lower() in ("authorization", "x-api-key", "cookie", "csrf")
+            ]
             if len(auth_fields) > limits.max_auth_fields_per_endpoint:
                 violations.append(
                     builder.error(
@@ -258,9 +263,7 @@ class BlastRadiusValidationPass:
         # 4. Replay propagation scope growth
         # Count side-effect-bound endpoints and replay scope nodes
         side_effect_endpoints = [
-            trace.endpoint_template
-            for trace in traces
-            if self._classify_trace(trace) == "SIDE_EFFECT_BOUND"
+            trace.endpoint_template for trace in traces if self._classify_trace(trace) == "SIDE_EFFECT_BOUND"
         ]
         if len(side_effect_endpoints) > limits.max_side_effect_bound_endpoints:
             violations.append(

@@ -38,7 +38,9 @@ class DeFiSlippageInput(BaseModel):
 class DeFiSlippageOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if DeFi swap calls have proper slippage protection")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed slippage security and optimization findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed slippage security and optimization findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_SLIPPAGE_RISK, REJECTED_SLIPPAGE_RISK)")
 
@@ -48,7 +50,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
     functions = []
     code_len = len(solidity_code)
 
-    pattern = re.compile(r'\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -63,10 +65,10 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             func_name = "receive"
 
         start_idx = match.start()
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -75,9 +77,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -104,13 +106,15 @@ class PiDeFiSlippageGuard:
         functions = extract_solidity_functions(code)
 
         for func_name, func_body, start_line in functions:
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Mode 1: Zero Slippage Uniswap Swaps Scan
             # Identify calls to swap methods of Uniswap V2/V3 Router or standard dex routers
             # E.g. swapExactTokensForTokens, swapExactETHForTokens, swapTokensForExactTokens, swapExactTokensForETH, swap
-            swap_match = re.search(r'\b(swapExact[a-zA-Z0-9_]*|swap[a-zA-Z0-9_]*Exact[a-zA-Z0-9_]*|swap)\b\s*\(', cleaned_body)
+            swap_match = re.search(
+                r"\b(swapExact[a-zA-Z0-9_]*|swap[a-zA-Z0-9_]*Exact[a-zA-Z0-9_]*|swap)\b\s*\(", cleaned_body
+            )
             if swap_match:
                 # Let's inspect the arguments of the swap call.
                 # Specifically, we look for hardcoded '0' or 'uint256(0)' as one of the parameters.
@@ -119,19 +123,19 @@ class PiDeFiSlippageGuard:
                 # representing amountOutMin, let's flag it.
                 # E.g. swapExactTokensForTokens(..., 0, ...)
                 zero_slippage_match = re.search(
-                    r'\b(swapExact[a-zA-Z0-9_]*|swap[a-zA-Z0-9_]*Exact[a-zA-Z0-9_]*|swap)\b\s*\(\s*([^;]+)\s*\)',
+                    r"\b(swapExact[a-zA-Z0-9_]*|swap[a-zA-Z0-9_]*Exact[a-zA-Z0-9_]*|swap)\b\s*\(\s*([^;]+)\s*\)",
                     cleaned_body,
-                    re.DOTALL
+                    re.DOTALL,
                 )
                 if zero_slippage_match:
                     args_str = zero_slippage_match.group(2)
-                    args = [arg.strip() for arg in args_str.split(',')]
+                    args = [arg.strip() for arg in args_str.split(",")]
 
                     # If the number of arguments suggests Uniswap swap signature
                     # amountOutMin is typically the second arg, but any arg being exactly '0' or 'uint256(0)' is highly suspicious.
                     is_zero = False
                     for arg in args:
-                        if arg == '0' or arg == 'uint256(0)' or arg == 'uint(0)':
+                        if arg == "0" or arg == "uint256(0)" or arg == "uint(0)":
                             is_zero = True
                             break
 
@@ -149,10 +153,13 @@ class PiDeFiSlippageGuard:
             # we suggest adding slippage settings.
             if swap_match:
                 # Get the function signature definition
-                sig_match = re.match(r'\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(([^)]*)\)', func_body)
+                sig_match = re.match(r"\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(([^)]*)\)", func_body)
                 if sig_match:
                     params_str = sig_match.group(3).lower()
-                    if not any(keyword in params_str for keyword in ["slippage", "minamount", "amountoutmin", "minreturn", "minout"]):
+                    if not any(
+                        keyword in params_str
+                        for keyword in ["slippage", "minamount", "amountoutmin", "minreturn", "minout"]
+                    ):
                         flagged_findings.append(
                             f"DeFi Integration Check: Function '{func_name}' on Line {start_line} wraps a swap but "
                             f"does not accept a dynamic user-defined or oracle-derived slippage limit or amountOutMin parameter. "
@@ -176,5 +183,5 @@ class PiDeFiSlippageGuard:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

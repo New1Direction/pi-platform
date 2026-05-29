@@ -15,16 +15,79 @@ import {
 
 const API_BASE = "/api/v1";
 
-async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
+const JWT_STORAGE_KEY = "pi.console.jwt";
+
+export function setJwt(token: string) {
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(JWT_STORAGE_KEY, token);
+  }
+}
+
+export function clearJwt() {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(JWT_STORAGE_KEY);
+  }
+}
+
+export function getJwt(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(JWT_STORAGE_KEY);
+}
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "X-Tenant-ID": getTenantId(),
+  };
+  const token = getJwt();
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+async function fetchJson<T>(
+  path: string,
+  init?: RequestInit,
+  validate?: (data: unknown) => T,
+): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { "Content-Type": "application/json", "X-Tenant-ID": getTenantId() },
+    headers: authHeaders(),
     ...init,
   });
   if (!res.ok) {
     const err = await res.text();
-    throw new Error(`${res.status}: ${err}`);
+    console.error(`[pi-api] ${res.status} ${path}:`, err);
+    throw new Error(`Request failed (${res.status}). Please try again.`);
   }
-  return res.json() as Promise<T>;
+  const data: unknown = await res.json();
+  if (validate) {
+    try {
+      return validate(data);
+    } catch (e) {
+      console.error(`[pi-api] response shape validation failed for ${path}:`, e);
+      throw new Error("Response from server was malformed. Please try again.");
+    }
+  }
+  return data as T;
+}
+
+/**
+ * Lightweight structural guard. Throws if `data` is not an object with the
+ * listed keys present (value types are not checked, but null is rejected).
+ * Use sparingly — TypeScript already covers compile-time shape; this is
+ * just a runtime tripwire for backend drift.
+ */
+export function requireKeys<T>(data: unknown, keys: ReadonlyArray<keyof T & string>): T {
+  if (data === null || typeof data !== "object") {
+    throw new Error("expected object");
+  }
+  for (const k of keys) {
+    if (!(k in (data as Record<string, unknown>))) {
+      throw new Error(`missing key: ${k}`);
+    }
+  }
+  return data as T;
 }
 
 let _tenantId = "default";
@@ -115,11 +178,19 @@ export async function getAuditLog(
 }
 
 export async function createSession(tenantId: string, llmEnabled = false): Promise<{ session_id: string; tenant_id: string }> {
-  const res = await fetch(`${API_BASE}/sessions/create?tenant_id=${tenantId}&llm_enabled=${llmEnabled}`, {
+  const params = new URLSearchParams({ tenant_id: tenantId, llm_enabled: String(llmEnabled) });
+  const headers: Record<string, string> = { "X-Tenant-ID": tenantId };
+  const token = getJwt();
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+  const res = await fetch(`${API_BASE}/sessions/create?${params}`, {
     method: "POST",
-    headers: { "X-Tenant-ID": tenantId },
+    headers,
   });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const err = await res.text();
+    console.error("[pi-api] createSession failed:", err);
+    throw new Error(`Session creation failed (${res.status}). Please try again.`);
+  }
   return res.json();
 }
 

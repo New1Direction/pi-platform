@@ -2,30 +2,29 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents import (
-    PiSolidityReentrancyGuardOverlapSentry,
-    ReentrancyGuardOverlapInput,
-    PiSolidityTxOriginCallCheckSentry,
-    TxOriginCallCheckInput,
-    PiSolidityArrayLengthMutationSentry,
     ArrayLengthMutationInput,
-    PiSolidityExternalContractsReturnCheck,
-    ExternalContractsReturnInput,
-    PiSolidityUnboundedLoopsInStateMutation,
-    UnboundedLoopsStateInput,
-    PiSolidityDivideBeforeMultiplyAuditor,
     DivideBeforeMultiplyInput,
-    PiSolidityInitializableGapSentry,
+    ExternalContractsReturnInput,
     InitializableGapInput,
-    PiSoliditySelfdestructCodeEraseSentry,
-    SelfdestructCodeEraseInput,
-    PiSoliditySignatureOmittedReplaySentry,
-    SignatureOmittedReplayInput,
-    PiSolidityOwnerTimelockSentry,
     OwnerTimelockInput,
+    PiSolidityArrayLengthMutationSentry,
+    PiSolidityDivideBeforeMultiplyAuditor,
+    PiSolidityExternalContractsReturnCheck,
+    PiSolidityInitializableGapSentry,
+    PiSolidityOwnerTimelockSentry,
+    PiSolidityReentrancyGuardOverlapSentry,
+    PiSoliditySelfdestructCodeEraseSentry,
+    PiSoliditySignatureOmittedReplaySentry,
+    PiSolidityTxOriginCallCheckSentry,
+    PiSolidityUnboundedLoopsInStateMutation,
+    ReentrancyGuardOverlapInput,
+    SelfdestructCodeEraseInput,
+    SignatureOmittedReplayInput,
+    TxOriginCallCheckInput,
+    UnboundedLoopsStateInput,
 )
 
 
@@ -57,14 +56,18 @@ def test_solidity_reentrancy_guard_overlap_sentry(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_reentrancy_overlap(ReentrancyGuardOverlapInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_reentrancy_overlap(
+        ReentrancyGuardOverlapInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "withdraw" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_REENTRANCY_GUARD_OVERLAP"
 
     # Toggle warning mode
     monkeypatch.setenv("PI_REENTRANCY_GUARD_OVERLAP_STRICT_MODE", "false")
-    res_warn = agent.audit_reentrancy_overlap(ReentrancyGuardOverlapInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_reentrancy_overlap(
+        ReentrancyGuardOverlapInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_REENTRANCY_GUARD_OVERLAP"
 
@@ -75,7 +78,9 @@ def test_solidity_reentrancy_guard_overlap_sentry(monkeypatch):
         }
     }
     """
-    res_safe = agent.audit_reentrancy_overlap(ReentrancyGuardOverlapInput(file_path="Safe.sol", solidity_code=code_safe))
+    res_safe = agent.audit_reentrancy_overlap(
+        ReentrancyGuardOverlapInput(file_path="Safe.sol", solidity_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -137,14 +142,18 @@ def test_solidity_array_length_mutation_sentry(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_array_length_mutation(ArrayLengthMutationInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_array_length_mutation(
+        ArrayLengthMutationInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "corrupt" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_ARRAY_LENGTH_MUTATION"
 
     # Toggle warning mode
     monkeypatch.setenv("PI_ARRAY_LENGTH_MUTATION_STRICT_MODE", "false")
-    res_warn = agent.audit_array_length_mutation(ArrayLengthMutationInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_array_length_mutation(
+        ArrayLengthMutationInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_ARRAY_LENGTH_MUTATION"
 
@@ -156,7 +165,9 @@ def test_solidity_array_length_mutation_sentry(monkeypatch):
         }
     }
     """
-    res_safe = agent.audit_array_length_mutation(ArrayLengthMutationInput(file_path="Safe.sol", solidity_code=code_safe))
+    res_safe = agent.audit_array_length_mutation(
+        ArrayLengthMutationInput(file_path="Safe.sol", solidity_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -174,14 +185,18 @@ def test_solidity_external_contracts_return_check(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_external_returns(ExternalContractsReturnInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_external_returns(
+        ExternalContractsReturnInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "callExternal" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_EXTERNAL_CONTRACTS_RETURN"
 
     # Toggle warning mode
     monkeypatch.setenv("PI_EXTERNAL_CONTRACTS_RETURN_STRICT_MODE", "false")
-    res_warn = agent.audit_external_returns(ExternalContractsReturnInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_external_returns(
+        ExternalContractsReturnInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_EXTERNAL_CONTRACTS_RETURN"
 
@@ -217,14 +232,18 @@ def test_solidity_unbounded_loops_in_state_mutation(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_unbounded_loops(UnboundedLoopsStateInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_unbounded_loops(
+        UnboundedLoopsStateInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "updateAll" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_UNBOUNDED_LOOPS_STATE"
 
     # Toggle warning mode
     monkeypatch.setenv("PI_UNBOUNDED_LOOPS_STATE_STRICT_MODE", "false")
-    res_warn = agent.audit_unbounded_loops(UnboundedLoopsStateInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_unbounded_loops(
+        UnboundedLoopsStateInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_UNBOUNDED_LOOPS_STATE"
 
@@ -257,14 +276,18 @@ def test_solidity_divide_before_multiply_auditor(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_divide_multiply(DivideBeforeMultiplyInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_divide_multiply(
+        DivideBeforeMultiplyInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "calculate" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_DIVIDE_BEFORE_MULTIPLY"
 
     # Toggle warning mode
     monkeypatch.setenv("PI_DIVIDE_BEFORE_MULTIPLY_STRICT_MODE", "false")
-    res_warn = agent.audit_divide_multiply(DivideBeforeMultiplyInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_divide_multiply(
+        DivideBeforeMultiplyInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_DIVIDE_BEFORE_MULTIPLY"
 
@@ -327,14 +350,18 @@ def test_solidity_selfdestruct_code_erase_sentry(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_selfdestruct_usage(SelfdestructCodeEraseInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_selfdestruct_usage(
+        SelfdestructCodeEraseInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "kill" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_SELFDESTRUCT_CODE_ERASE"
 
     # Toggle warning mode
     monkeypatch.setenv("PI_SELFDESTRUCT_CODE_ERASE_STRICT_MODE", "false")
-    res_warn = agent.audit_selfdestruct_usage(SelfdestructCodeEraseInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_selfdestruct_usage(
+        SelfdestructCodeEraseInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_SELFDESTRUCT_CODE_ERASE"
 
@@ -363,14 +390,18 @@ def test_solidity_signature_omitted_replay_sentry(monkeypatch):
         }
     }
     """
-    res_vuln = agent.audit_signature_replay(SignatureOmittedReplayInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_signature_replay(
+        SignatureOmittedReplayInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "hashMessage" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_SIGNATURE_OMITTED_REPLAY"
 
     # Toggle warning mode
     monkeypatch.setenv("PI_SIGNATURE_OMITTED_REPLAY_STRICT_MODE", "false")
-    res_warn = agent.audit_signature_replay(SignatureOmittedReplayInput(file_path="Vulnerable.sol", solidity_code=code_vuln))
+    res_warn = agent.audit_signature_replay(
+        SignatureOmittedReplayInput(file_path="Vulnerable.sol", solidity_code=code_vuln)
+    )
     assert res_warn.is_secure
     assert res_warn.status == "WARN_SIGNATURE_OMITTED_REPLAY"
 

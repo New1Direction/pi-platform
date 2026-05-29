@@ -29,25 +29,30 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Pydantic-Enforced Input/Output Envelopes
 class ExternalContractGuardInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level: STRICT, MEDIUM")
 
+
 class ExternalContractGuardOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from obvious unsafe external call risks")
-    vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names or variable names")
+    vulnerable_functions: List[str] = Field(
+        default_factory=list, description="Vulnerable function names or variable names"
+    )
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed external contract safety findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_EXTERNAL_RISK, REJECTED_EXTERNAL_RISK)")
+
 
 # Helper to extract functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
     functions = []
     code_len = len(solidity_code)
 
-    pattern = re.compile(r'\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -62,10 +67,10 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             func_name = "receive"
 
         start_idx = match.start()
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -74,9 +79,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -85,6 +90,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 3. Core Micro-Agent Class
 class PiExternalContractGuard:
@@ -102,22 +108,24 @@ class PiExternalContractGuard:
         functions = extract_solidity_functions(code)
 
         # Clean comments
-        code_clean = re.sub(r'//.*', '', code)
-        code_clean = re.sub(r'/\*.*?\*/', '', code_clean, flags=re.DOTALL)
+        code_clean = re.sub(r"//.*", "", code)
+        code_clean = re.sub(r"/\*.*?\*/", "", code_clean, flags=re.DOTALL)
 
         for func_name, func_body, start_line in functions:
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Mode 1: Untrusted External Contract call checking
             # Identify setting of external addresses (e.g. constructor or setter function taking address parameter)
             # Flag if parameter is assigned to state variable without address(0) validation check
-            address_param_match = re.search(r'\bfunction\b\s+([a-zA-Z0-9_]+)\s*\(\s*address\s+([a-zA-Z0-9_]+)\b', func_body)
+            address_param_match = re.search(
+                r"\bfunction\b\s+([a-zA-Z0-9_]+)\s*\(\s*address\s+([a-zA-Z0-9_]+)\b", func_body
+            )
             if address_param_match:
                 setter_func = address_param_match.group(1)
                 param_name = address_param_match.group(2)
                 # Check if param is set without "address(0)" or "0x" require validation
-                if re.search(r'\b' + re.escape(param_name) + r'\s*=\s*[a-zA-Z0-9_]+', cleaned_body):
+                if re.search(r"\b" + re.escape(param_name) + r"\s*=\s*[a-zA-Z0-9_]+", cleaned_body):
                     if not any(check in cleaned_body for check in ["address(0)", "0x0"]):
                         vulnerable_funcs.append(setter_func)
                         flagged_findings.append(
@@ -152,5 +160,5 @@ class PiExternalContractGuard:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

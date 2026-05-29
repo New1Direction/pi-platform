@@ -1,16 +1,13 @@
 """Integration tests for PiCentralizationSentry — dual-use centralization risk linter."""
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_centralization_sentry import (
-    PiCentralizationSentry,
     CentralizationInput,
     CentralizationOutput,
+    PiCentralizationSentry,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
-
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 # ── Fixtures & Mock Contracts ───────────────────────────────────────────────
 
@@ -78,14 +75,16 @@ def clean_env(monkeypatch):
 
 # ── Tests: CentralizationSentry Heuristics ───────────────────────────────────
 
-class TestCentralizationSentry:
 
+class TestCentralizationSentry:
     def test_vulnerable_centralization_detected(self) -> None:
         agent = PiCentralizationSentry()
-        result = agent.audit_centralization(CentralizationInput(
-            file_path="CentralizedContract.sol",
-            solidity_code=VULNERABLE_CENTRALIZATION,
-        ))
+        result = agent.audit_centralization(
+            CentralizationInput(
+                file_path="CentralizedContract.sol",
+                solidity_code=VULNERABLE_CENTRALIZATION,
+            )
+        )
         assert isinstance(result, CentralizationOutput)
         assert result.is_secure is False
         assert "mint" in result.vulnerable_functions
@@ -95,20 +94,24 @@ class TestCentralizationSentry:
 
     def test_vulnerable_timelock_delay_warning(self) -> None:
         agent = PiCentralizationSentry()
-        result = agent.audit_centralization(CentralizationInput(
-            file_path="VulnerableTimelock.sol",
-            solidity_code=VULNERABLE_TIMELOCK,
-        ))
+        result = agent.audit_centralization(
+            CentralizationInput(
+                file_path="VulnerableTimelock.sol",
+                solidity_code=VULNERABLE_TIMELOCK,
+            )
+        )
         assert isinstance(result, CentralizationOutput)
         assert result.is_secure is True  # timelock floor warning is low risk
         assert any("minimum floor" in finding for finding in result.flagged_findings)
 
     def test_safe_centralization_passes(self) -> None:
         agent = PiCentralizationSentry()
-        result = agent.audit_centralization(CentralizationInput(
-            file_path="SafeDecentralized.sol",
-            solidity_code=SAFE_CENTRALIZATION,
-        ))
+        result = agent.audit_centralization(
+            CentralizationInput(
+                file_path="SafeDecentralized.sol",
+                solidity_code=SAFE_CENTRALIZATION,
+            )
+        )
         assert isinstance(result, CentralizationOutput)
         assert result.is_secure is True
         assert len(result.vulnerable_functions) == 0
@@ -116,10 +119,12 @@ class TestCentralizationSentry:
 
     def test_safe_timelock_passes(self) -> None:
         agent = PiCentralizationSentry()
-        result = agent.audit_centralization(CentralizationInput(
-            file_path="SafeTimelock.sol",
-            solidity_code=SAFE_TIMELOCK,
-        ))
+        result = agent.audit_centralization(
+            CentralizationInput(
+                file_path="SafeTimelock.sol",
+                solidity_code=SAFE_TIMELOCK,
+            )
+        )
         assert isinstance(result, CentralizationOutput)
         assert result.is_secure is True
         # Should not flag correct minimum floor
@@ -128,20 +133,24 @@ class TestCentralizationSentry:
     def test_warn_only_mode(self, monkeypatch) -> None:
         monkeypatch.setenv("PI_CENTRALIZATION_STRICT_MODE", "false")
         agent = PiCentralizationSentry()
-        result = agent.audit_centralization(CentralizationInput(
-            file_path="CentralizedContract.sol",
-            solidity_code=VULNERABLE_CENTRALIZATION,
-        ))
+        result = agent.audit_centralization(
+            CentralizationInput(
+                file_path="CentralizedContract.sol",
+                solidity_code=VULNERABLE_CENTRALIZATION,
+            )
+        )
         assert isinstance(result, CentralizationOutput)
         assert result.is_secure is True
         assert result.status == "WARN_CENTRALIZATION_RISK"
 
     def test_model_dump_and_serialization(self) -> None:
         agent = PiCentralizationSentry()
-        result = agent.audit_centralization(CentralizationInput(
-            file_path="SafeTimelock.sol",
-            solidity_code=SAFE_TIMELOCK,
-        ))
+        result = agent.audit_centralization(
+            CentralizationInput(
+                file_path="SafeTimelock.sol",
+                solidity_code=SAFE_TIMELOCK,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -150,16 +159,19 @@ class TestCentralizationSentry:
 
 # ── Tests: Orchestration NLP & Consensus Integration ────────────────────────
 
+
 def test_orchestrator_nlp_routing_to_centralization_sentry() -> None:
     orchestrator = PiOrchestrator()
-    result = orchestrator.execute_goal(OrchestratorInput(
-        goal="Perform a centralization risk audit and verify timelock setups.",
-        context={
-            "file_path": "CentralizedContract.sol",
-            "solidity_code": VULNERABLE_CENTRALIZATION,
-            "check_level": "STRICT"
-        }
-    ))
+    result = orchestrator.execute_goal(
+        OrchestratorInput(
+            goal="Perform a centralization risk audit and verify timelock setups.",
+            context={
+                "file_path": "CentralizedContract.sol",
+                "solidity_code": VULNERABLE_CENTRALIZATION,
+                "check_level": "STRICT",
+            },
+        )
+    )
     assert result.success is False
     assert "PiCentralizationSentry" in result.routed_agent
     assert result.risk_score == 80.0

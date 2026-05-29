@@ -1,7 +1,11 @@
 from __future__ import annotations
-import os, json, re
+
+import os
+import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_PERF_STRICT_MODE")
@@ -9,16 +13,21 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class HotPathAllocationInput(BaseModel):
     file_path: str = Field(..., description="Source code file path")
     source_code: str = Field(..., description="C# or Python source code")
-    hot_path_lines: List[int] = Field(default_factory=list, description="Line indices known to be in performance hot paths")
+    hot_path_lines: List[int] = Field(
+        default_factory=list, description="Line indices known to be in performance hot paths"
+    )
+
 
 class HotPathAllocationOutput(BaseModel):
     is_secure: bool = Field(..., description="True if no allocation anti-patterns exist on hot paths")
     flagged_hotspots: List[str] = Field(default_factory=list, description="Details of allocation anti-patterns flagged")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status (PASSED, WARN_PERF_RISK, REJECTED_PERF_RISK)")
+
 
 class PiHotPathAllocationAuditor:
     """Specialized high-performance diagnostics micro-agent."""
@@ -33,10 +42,10 @@ class PiHotPathAllocationAuditor:
 
         # Anti-pattern regexes
         patterns = {
-            r'\.ToLower\(\)': "ToLower() allocates a new string copy. Consider OrdinalIgnoreCase comparisons.",
-            r'\.Substring\(': "Substring() allocates a new string object. Use Span<T> or Memory<T> slices.",
-            r'new\s+Dictionary<': "Per-call instantiation of dictionary within path. Hoist or cache as FrozenDictionary.",
-            r'Regex\(': "Non-compiled Regex instantiation in path. Hoist to static or use [GeneratedRegex].",
+            r"\.ToLower\(\)": "ToLower() allocates a new string copy. Consider OrdinalIgnoreCase comparisons.",
+            r"\.Substring\(": "Substring() allocates a new string object. Use Span<T> or Memory<T> slices.",
+            r"new\s+Dictionary<": "Per-call instantiation of dictionary within path. Hoist or cache as FrozenDictionary.",
+            r"Regex\(": "Non-compiled Regex instantiation in path. Hoist to static or use [GeneratedRegex].",
         }
 
         for idx, line in enumerate(code.splitlines(), 1):
@@ -56,8 +65,5 @@ class PiHotPathAllocationAuditor:
                 is_secure = True
 
         return HotPathAllocationOutput(
-            is_secure=is_secure,
-            flagged_hotspots=hotspots,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_hotspots=hotspots, risk_score=risk_score, status=status
         )

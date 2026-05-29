@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_signature_replay_scout import (
     PiSignatureReplayScout,
     SignatureInput,
-    SignatureOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -44,7 +41,7 @@ def test_signature_vulnerable_contract():
         ) public {
             bytes32 messageHash = keccak256(abi.encodePacked(from, to, amount));
             bytes32 ethSignedMessageHash = keccak256(abi.encodePacked("\\x19Ethereum Signed Message:\\n32", messageHash));
-            
+
             // Vulnerable ecrecover signature check (allows replay attacks)
             address signer = ecrecover(ethSignedMessageHash, v, r, s);
             require(signer == from, "Invalid signature");
@@ -54,11 +51,7 @@ def test_signature_vulnerable_contract():
         }
     }
     """
-    inp = SignatureInput(
-        file_path="VulnerableSig.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = SignatureInput(file_path="VulnerableSig.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_signature(inp)
 
@@ -103,11 +96,7 @@ def test_signature_compliant_contract():
         }
     }
     """
-    inp = SignatureInput(
-        file_path="CompliantSig.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = SignatureInput(file_path="CompliantSig.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_signature(inp)
 
@@ -142,31 +131,27 @@ def test_orchestrator_signature_consensus_passed(monkeypatch):
             "vulnerable_functions": ["verify"],
             "flagged_findings": ["Function verify recovers signature"],
             "risk_score": 95.0,
-            "status": "REJECTED_SIGNATURE_REPLAY_VULNERABILITY"
+            "status": "REJECTED_SIGNATURE_REPLAY_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["verify"],
             "flagged_findings": ["Function verify recovers signature"],
             "risk_score": 95.0,
-            "status": "REJECTED_SIGNATURE_REPLAY_VULNERABILITY"
+            "status": "REJECTED_SIGNATURE_REPLAY_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["verify"],
             "flagged_findings": ["Function verify recovers signature"],
             "risk_score": 95.0,
-            "status": "REJECTED_SIGNATURE_REPLAY_VULNERABILITY"
-        }
+            "status": "REJECTED_SIGNATURE_REPLAY_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
         goal="signature replay check on Vuln.sol to verify replay vectors",
-        context={
-            "file_path": "Vuln.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Vuln.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 

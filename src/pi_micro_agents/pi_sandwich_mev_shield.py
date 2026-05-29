@@ -57,16 +57,20 @@ class PiSandwichMEVShield:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Mode 1: Check for swap operations
-            swap_match = re.search(r'\b(swapExactTokensForTokens|swapTokensForExactTokens|exactInput|exactOutput|swap)\b', body)
-            
+            swap_match = re.search(
+                r"\b(swapExactTokensForTokens|swapTokensForExactTokens|exactInput|exactOutput|swap)\b", body
+            )
+
             if swap_match:
                 # Mode 2: Verify if amountOutMin is hardcoded to 0
-                zero_slippage_match = re.search(r'amountOutMin\s*=\s*0|minAmountOut\s*=\s*0|amountOutMinimum\s*=\s*0', body)
-                hardcoded_swap_zero = re.search(r'\bswapExactTokensForTokens\s*\(\s*[^,]+,\s*0\s*,', body)
+                zero_slippage_match = re.search(
+                    r"amountOutMin\s*=\s*0|minAmountOut\s*=\s*0|amountOutMinimum\s*=\s*0", body
+                )
+                hardcoded_swap_zero = re.search(r"\bswapExactTokensForTokens\s*\(\s*[^,]+,\s*0\s*,", body)
 
                 if zero_slippage_match or hardcoded_swap_zero:
                     vulnerable_funcs.append(name)
@@ -93,5 +97,5 @@ class PiSandwichMEVShield:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

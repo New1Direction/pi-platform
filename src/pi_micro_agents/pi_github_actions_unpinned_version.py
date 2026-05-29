@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 import os
 import re
 from typing import List
@@ -47,17 +46,17 @@ class PiGithubActionsUnpinnedVersion:
             if clean_line.startswith("uses:") or "uses:" in clean_line:
                 # Exclude local actions or official actions that are ignored, focus on third-party actions
                 # Action usage format: uses: owner/repo@tagOrSha or owner/repo/path@tagOrSha
-                match = re.search(r'uses:\s*([a-zA-Z0-9_\-\./]+)@([a-zA-Z0-9_\-\.]+)', clean_line)
+                match = re.search(r"uses:\s*([a-zA-Z0-9_\-\./]+)@([a-zA-Z0-9_\-\.]+)", clean_line)
                 if match:
                     action_name = match.group(1)
                     ref = match.group(2)
-                    
+
                     # Ignore local actions (e.g. uses: ./.github/actions/something)
                     if action_name.startswith("./"):
                         continue
 
                     # Check if ref is a full 40-character hex commit SHA
-                    is_sha = re.match(r'^[a-fA-F0-9]{40}$', ref)
+                    is_sha = re.match(r"^[a-fA-F0-9]{40}$", ref)
                     if not is_sha:
                         vulnerable_elements.append(f"Line {idx}")
                         flagged_findings.append(
@@ -82,5 +81,5 @@ class PiGithubActionsUnpinnedVersion:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

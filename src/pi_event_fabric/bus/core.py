@@ -14,6 +14,7 @@ import hashlib
 import json
 import sqlite3
 import threading
+from contextlib import closing
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum
@@ -63,6 +64,7 @@ class PartitionKey:
 # ──────────────────────────────
 #  Event Header (immutable)
 # ──────────────────────────────
+
 
 @dataclass(frozen=True)
 class EventHeader:
@@ -114,6 +116,7 @@ class EventHeader:
 #  Domain Event (full record)
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class DomainEvent:
     header: EventHeader
@@ -154,6 +157,7 @@ class DomainEvent:
 #  Deterministic Consumer Checkpoint
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class ConsumerCheckpoint:
     consumer_id: str
@@ -164,13 +168,17 @@ class ConsumerCheckpoint:
     checkpointed_at: str
 
     def _compute_hash(self) -> str:
-        data = json.dumps({
-            "consumer_id": self.consumer_id,
-            "partition_key": self.partition_key,
-            "last_consumed_offset": self.last_consumed_offset,
-            "last_event_id": self.last_event_id,
-            "checkpointed_at": self.checkpointed_at,
-        }, sort_keys=True, separators=(",", ":"))
+        data = json.dumps(
+            {
+                "consumer_id": self.consumer_id,
+                "partition_key": self.partition_key,
+                "last_consumed_offset": self.last_consumed_offset,
+                "last_event_id": self.last_event_id,
+                "checkpointed_at": self.checkpointed_at,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
         return hashlib.sha256(data.encode()).hexdigest()
 
     def verify(self) -> bool:
@@ -180,6 +188,7 @@ class ConsumerCheckpoint:
 # ──────────────────────────────
 #  EventBus Storage Layer
 # ──────────────────────────────
+
 
 class EventBusStorage:
     """SQLite-backed append-only event storage.
@@ -250,10 +259,9 @@ class EventBusStorage:
 
     def _ensure_schema(self) -> None:
         with self._lock:
-            conn = sqlite3.connect(self.db_path, check_same_thread=False)
-            conn.executescript(self.SCHEMA)
-            conn.commit()
-            conn.close()
+            with closing(sqlite3.connect(self.db_path, check_same_thread=False)) as conn:
+                conn.executescript(self.SCHEMA)
+                conn.commit()
 
     def _conn(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
@@ -263,8 +271,7 @@ class EventBusStorage:
     # ── Partition Management ─────────────────────────────────
 
     def _get_or_create_partition(self, partition_key: str) -> Tuple[int, str, str]:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             row = conn.execute(
                 "SELECT current_offset, last_event_id, last_event_hash FROM event_partitions WHERE partition_key = ?",
                 (partition_key,),
@@ -280,8 +287,7 @@ class EventBusStorage:
             return (row["current_offset"], row["last_event_id"], row["last_event_hash"])
 
     def _increment_partition(self, partition_key: str, event_id: str, event_hash: str) -> int:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             row = conn.execute(
                 "SELECT current_offset FROM event_partitions WHERE partition_key = ?",
                 (partition_key,),
@@ -317,11 +323,16 @@ class EventBusStorage:
         payload_json = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
         payload_hash = hashlib.sha256(payload_json.encode()).hexdigest()
 
-        with self._lock:
-            conn = self._conn()
-            conn.execute("BEGIN IMMEDIATE")
+        # isolation_level="IMMEDIATE" makes every implicit transaction acquire
+        # the write lock straight away — that's what we want for the
+        # read-modify-write below. The previous BEGIN IMMEDIATE on top of
+        # autocommit (isolation_level=None) was a no-op with confusing semantics.
+        with (
+            self._lock,
+            closing(sqlite3.connect(self.db_path, check_same_thread=False, isolation_level="IMMEDIATE")) as conn,
+        ):
+            conn.row_factory = sqlite3.Row
             try:
-                # Get or create partition atomically
                 row = conn.execute(
                     "SELECT current_offset, last_event_hash FROM event_partitions WHERE partition_key = ?",
                     (partition_key,),
@@ -364,11 +375,19 @@ class EventBusStorage:
                         correlation_id, previous_event_hash, payload_hash, event_hash, payload_json
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
-                        event.header.event_id, event.header.event_type.value, event.header.partition_key,
-                        event.header.partition_offset, event.header.timestamp, event.header.ordering_key,
-                        event.header.author_tenant_id, event.header.author_actor_id,
-                        event.header.correlation_id, event.header.previous_event_hash,
-                        event.header.payload_hash, event.event_hash, payload_json,
+                        event.header.event_id,
+                        event.header.event_type.value,
+                        event.header.partition_key,
+                        event.header.partition_offset,
+                        event.header.timestamp,
+                        event.header.ordering_key,
+                        event.header.author_tenant_id,
+                        event.header.author_actor_id,
+                        event.header.correlation_id,
+                        event.header.previous_event_hash,
+                        event.header.payload_hash,
+                        event.event_hash,
+                        payload_json,
                     ),
                 )
                 # Update partition metadata atomically within same transaction
@@ -380,8 +399,6 @@ class EventBusStorage:
             except Exception:
                 conn.rollback()
                 raise
-            finally:
-                conn.close()
 
         return event
 
@@ -398,8 +415,7 @@ class EventBusStorage:
 
         Tenant isolation enforced via filter.
         """
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             if tenant_filter:
                 rows = conn.execute(
                     """SELECT * FROM events
@@ -416,31 +432,25 @@ class EventBusStorage:
                        LIMIT ?""",
                     (partition_key, start_offset, limit),
                 ).fetchall()
-            conn.close()
 
         return [self._row_to_event(dict(r)) for r in rows]
 
     def read_event(self, event_id: str) -> Optional[DomainEvent]:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             row = conn.execute("SELECT * FROM events WHERE event_id = ?", (event_id,)).fetchone()
-            conn.close()
         return self._row_to_event(dict(row)) if row else None
 
     def read_by_correlation(self, correlation_id: str) -> List[DomainEvent]:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             rows = conn.execute(
                 "SELECT * FROM events WHERE correlation_id = ? ORDER BY global_offset ASC",
                 (correlation_id,),
             ).fetchall()
-            conn.close()
         return [self._row_to_event(dict(r)) for r in rows]
 
     def get_partition_tail(self, partition_key: str, n: int = 10) -> List[DomainEvent]:
         """Get the last N events from a partition."""
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             rows = conn.execute(
                 """SELECT * FROM events
                    WHERE partition_key = ?
@@ -448,17 +458,14 @@ class EventBusStorage:
                    LIMIT ?""",
                 (partition_key, n),
             ).fetchall()
-            conn.close()
         return [self._row_to_event(dict(r)) for r in rows][::-1]
 
     def get_partition_metadata(self, partition_key: str) -> Optional[Dict[str, Any]]:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             row = conn.execute(
                 "SELECT * FROM event_partitions WHERE partition_key = ?",
                 (partition_key,),
             ).fetchone()
-            conn.close()
         return dict(row) if row else None
 
     def _row_to_event(self, row: Dict[str, Any]) -> DomainEvent:
@@ -481,9 +488,9 @@ class EventBusStorage:
     # ── Checkpoint Management ────────────────────────────────
 
     def write_checkpoint(self, checkpoint: ConsumerCheckpoint) -> None:
-        with self._lock:
-            conn = self._conn()
-            conn.execute("""
+        with self._lock, closing(self._conn()) as conn:
+            conn.execute(
+                """
                 INSERT INTO checkpoints (consumer_id, partition_key, last_consumed_offset, last_event_id, checkpoint_hash, checkpointed_at)
                 VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(consumer_id, partition_key) DO UPDATE SET
@@ -491,22 +498,24 @@ class EventBusStorage:
                     last_event_id = excluded.last_event_id,
                     checkpoint_hash = excluded.checkpoint_hash,
                     checkpointed_at = excluded.checkpointed_at
-            """, (
-                checkpoint.consumer_id, checkpoint.partition_key,
-                checkpoint.last_consumed_offset, checkpoint.last_event_id,
-                checkpoint.checkpoint_hash, checkpoint.checkpointed_at,
-            ))
+            """,
+                (
+                    checkpoint.consumer_id,
+                    checkpoint.partition_key,
+                    checkpoint.last_consumed_offset,
+                    checkpoint.last_event_id,
+                    checkpoint.checkpoint_hash,
+                    checkpoint.checkpointed_at,
+                ),
+            )
             conn.commit()
-            conn.close()
 
     def read_checkpoint(self, consumer_id: str, partition_key: str) -> Optional[ConsumerCheckpoint]:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             row = conn.execute(
                 "SELECT * FROM checkpoints WHERE consumer_id = ? AND partition_key = ?",
                 (consumer_id, partition_key),
             ).fetchone()
-            conn.close()
         if not row:
             return None
         return ConsumerCheckpoint(
@@ -536,7 +545,9 @@ class EventBusStorage:
             # Verify event hash correctness
             recomputed = event._compute_hash() if i > 0 else event.event_hash  # First event has no prev
             if expected != recomputed:
-                errors.append(f"hash_mismatch at offset {event.header.partition_offset}: expected={expected}, got={recomputed}")
+                errors.append(
+                    f"hash_mismatch at offset {event.header.partition_offset}: expected={expected}, got={recomputed}"
+                )
             # Verify chain linkage
             if i > 0:
                 prev_hash = events[i - 1].event_hash
@@ -549,32 +560,47 @@ class EventBusStorage:
 
     # ── Epoch Management ─────────────────────────────────────
 
-    def establish_epoch(self, epoch_number: int, established_by: str, metadata: Dict[str, Any] = None) -> Dict[str, Any]:
+    def establish_epoch(
+        self, epoch_number: int, established_by: str, metadata: Dict[str, Any] = None
+    ) -> Dict[str, Any]:
         clk = DeterministicClock(clock_id="eventbus")
         marker = clk.ordered_now()
-        coord_data = json.dumps({
-            "epoch_number": epoch_number,
-            "established_at": canonical_timestamp(marker.wall_time),
-            "established_by": established_by,
-            "metadata": metadata or {},
-        }, sort_keys=True, default=str)
+        coord_data = json.dumps(
+            {
+                "epoch_number": epoch_number,
+                "established_at": canonical_timestamp(marker.wall_time),
+                "established_by": established_by,
+                "metadata": metadata or {},
+            },
+            sort_keys=True,
+            default=str,
+        )
         coord_hash = hashlib.sha256(coord_data.encode()).hexdigest()
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             conn.execute(
                 "INSERT INTO epoch_markers (epoch_number, established_at, ordering_key, established_by, metadata_json) VALUES (?, ?, ?, ?, ?)",
-                (epoch_number, canonical_timestamp(marker.wall_time), marker.ordering_key, established_by, json.dumps(metadata or {}, sort_keys=True)),
+                (
+                    epoch_number,
+                    canonical_timestamp(marker.wall_time),
+                    marker.ordering_key,
+                    established_by,
+                    json.dumps(metadata or {}, sort_keys=True),
+                ),
             )
             conn.commit()
-            epoch_id = conn.execute("SELECT epoch_id FROM epoch_markers WHERE epoch_number = ?", (epoch_number,)).fetchone()["epoch_id"]
-            conn.close()
-        return {"epoch_id": epoch_id, "epoch_number": epoch_number, "ordering_key": marker.ordering_key, "coordination_hash": coord_hash}
+            epoch_id = conn.execute(
+                "SELECT epoch_id FROM epoch_markers WHERE epoch_number = ?", (epoch_number,)
+            ).fetchone()["epoch_id"]
+        return {
+            "epoch_id": epoch_id,
+            "epoch_number": epoch_number,
+            "ordering_key": marker.ordering_key,
+            "coordination_hash": coord_hash,
+        }
 
     def get_epoch(self, epoch_number: int) -> Optional[Dict[str, Any]]:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             row = conn.execute("SELECT * FROM epoch_markers WHERE epoch_number = ?", (epoch_number,)).fetchone()
-            conn.close()
         if not row:
             return None
         return dict(row)
@@ -582,13 +608,11 @@ class EventBusStorage:
     # ── Stats ────────────────────────────────────────────────
 
     def get_stats(self) -> Dict[str, Any]:
-        with self._lock:
-            conn = self._conn()
+        with self._lock, closing(self._conn()) as conn:
             event_count = conn.execute("SELECT COUNT(*) as c FROM events").fetchone()["c"]
             partition_count = conn.execute("SELECT COUNT(*) as c FROM event_partitions").fetchone()["c"]
             checkpoint_count = conn.execute("SELECT COUNT(*) as c FROM checkpoints").fetchone()["c"]
             epoch_count = conn.execute("SELECT COUNT(*) as c FROM epoch_markers").fetchone()["c"]
-            conn.close()
         return {
             "event_count": event_count,
             "partition_count": partition_count,
@@ -600,6 +624,7 @@ class EventBusStorage:
 # ──────────────────────────────
 #  Deterministic Consumer
 # ──────────────────────────────
+
 
 class DeterministicConsumer:
     """Deterministic event consumer with checkpointed progress.
@@ -657,6 +682,7 @@ class DeterministicConsumer:
 # ──────────────────────────────
 #  Event Replay Engine
 # ──────────────────────────────
+
 
 class EventReplayEngine:
     """Read-only replay of events from any point in the past.

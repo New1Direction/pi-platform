@@ -46,7 +46,9 @@ class PiDeterministicOutputValid:
     def __init__(self) -> None:
         self.agent_name = "PiDeterministicOutputValid"
 
-    def validate_deterministic_output(self, input_envelope: DeterministicOutputValidInput) -> DeterministicOutputValidOutput:
+    def validate_deterministic_output(
+        self, input_envelope: DeterministicOutputValidInput
+    ) -> DeterministicOutputValidOutput:
         content = input_envelope.output_content
         flagged_findings = []
 
@@ -58,7 +60,7 @@ class PiDeterministicOutputValid:
             r"ignore\s+previous\s+instructions",
             r"ignore\s+system\s+commands",
             r"\[hallucination\]",
-            r"\[system_leak\]"
+            r"\[system_leak\]",
         ]
 
         for pattern in leakage_patterns:
@@ -80,8 +82,5 @@ class PiDeterministicOutputValid:
                 is_secure = True
 
         return DeterministicOutputValidOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

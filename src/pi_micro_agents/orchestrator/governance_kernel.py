@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
+
 from pi_agent_interceptor.proxy import PIGovernShield
 
 logger = logging.getLogger("pi_platform.governance")
@@ -9,6 +10,7 @@ logger = logging.getLogger("pi_platform.governance")
 
 class GovernanceViolationError(Exception):
     """Raised when runtime limits or security constraints are breached."""
+
     pass
 
 
@@ -20,7 +22,7 @@ class PiRuntimeGovernanceKernel:
         max_time_ms: float = 5000.0,
         max_tokens: int = 100000,
         min_trust_rating: float = 0.7,
-        disallowed_imports: Optional[List[str]] = None
+        disallowed_imports: Optional[List[str]] = None,
     ) -> None:
         self.max_time_ms = max_time_ms
         self.max_tokens = max_tokens
@@ -43,9 +45,7 @@ class PiRuntimeGovernanceKernel:
         # 1. Use the pre-existing PIGovernShield inspect_ast checks
         violations = PIGovernShield.inspect_ast(source_code)
         if violations:
-            raise GovernanceViolationError(
-                f"AST security screening failed: {', '.join(violations)}"
-            )
+            raise GovernanceViolationError(f"AST security screening failed: {', '.join(violations)}")
 
         # 2. Check for explicit disallowed library imports in raw text or import statements
         for forbidden in self.disallowed_imports:

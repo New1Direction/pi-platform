@@ -57,9 +57,9 @@ class PiEIP712SignatureLinter:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check if function performs signature verification / ecrecover / ECDSA.recover
             if "ecrecover" in body or "recover" in body:
                 # Check for dynamic domain separator inclusion (should contain block.chainid or similar dynamic elements)
@@ -88,5 +88,5 @@ class PiEIP712SignatureLinter:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -53,29 +53,29 @@ class PiSolidityERC20TransferRecipientSentry:
         flagged_findings = []
 
         # Find all functions performing transfer or transferFrom calls
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Match transfers: e.g. token.transfer(recipient, amount) or token.transferFrom(sender, recipient, amount)
-            transfers = re.findall(r'\.\s*(transfer|transferFrom)\s*\(([^)]+)\)', body)
+            transfers = re.findall(r"\.\s*(transfer|transferFrom)\s*\(([^)]+)\)", body)
             if transfers:
                 for method, params in transfers:
                     # Extract recipient param (the first parameter for transfer, second for transferFrom)
                     param_list = [p.strip() for p in params.split(",")]
                     if len(param_list) > 0:
-                        recipient = param_list[0] if method == "transfer" else (param_list[1] if len(param_list) > 1 else "")
+                        recipient = (
+                            param_list[0] if method == "transfer" else (param_list[1] if len(param_list) > 1 else "")
+                        )
                         if recipient:
                             # Check if body contains validations for this recipient address
                             # E.g. require(recipient != address(0), ...) or require(recipient != address(this), ...)
                             has_validation = False
                             # Look for require/assert checking the recipient against address(0), address(this), etc.
-                            patterns = [
-                                rf'address\s*\(\s*0\s*\)',
-                                rf'address\s*\(\s*this\s*\)',
-                                rf'0x0'
-                            ]
+                            patterns = [r"address\s*\(\s*0\s*\)", r"address\s*\(\s*this\s*\)", r"0x0"]
                             for pat in patterns:
-                                if re.search(rf'require\s*\(\s*{recipient}\s*!=\s*{pat}', body) or re.search(rf'require\s*\(\s*{pat}\s*!=\s*{recipient}', body):
+                                if re.search(rf"require\s*\(\s*{recipient}\s*!=\s*{pat}", body) or re.search(
+                                    rf"require\s*\(\s*{pat}\s*!=\s*{recipient}", body
+                                ):
                                     has_validation = True
                                     break
 
@@ -105,5 +105,5 @@ class PiSolidityERC20TransferRecipientSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

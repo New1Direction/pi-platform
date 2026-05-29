@@ -28,7 +28,9 @@ def main() -> None:
 
 @main.command()
 @click.option("--policy", "-p", required=True, type=click.Path(exists=True), help="Path to architecture-policy.json")
-@click.option("--artifacts", "-a", required=True, type=click.Path(exists=True), help="Path to artifact JSON file or directory")
+@click.option(
+    "--artifacts", "-a", required=True, type=click.Path(exists=True), help="Path to artifact JSON file or directory"
+)
 @click.option("--output", "-o", type=click.Path(), help="Path to write validation report JSON")
 @click.option("--strict", is_flag=True, help="Fail-closed: treat warnings as failures")
 def validate(policy: str, artifacts: str, output: str | None, strict: bool) -> None:
@@ -37,7 +39,9 @@ def validate(policy: str, artifacts: str, output: str | None, strict: bool) -> N
     artifact_path = Path(artifacts)
 
     if artifact_path.is_dir():
-        report = validate_recon_output(policy_path=policy_path, recon_output_dir=artifact_path, output_report_path=output)
+        report = validate_recon_output(
+            policy_path=policy_path, recon_output_dir=artifact_path, output_report_path=output
+        )
     else:
         report = run_validator(policy_path=policy_path, artifact_paths=[artifact_path])
         if output:

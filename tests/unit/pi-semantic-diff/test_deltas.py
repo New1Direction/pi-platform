@@ -2,21 +2,20 @@
 
 from __future__ import annotations
 
-from pi_semantic_diff.models import (
-    SemanticIRTrace,
-    SemanticField,
-    DependencyGraph,
-    StateEdge,
-    AuthInvariant,
-)
 from pi_semantic_diff.deltas import (
-    compute_endpoint_deltas,
-    compute_dependency_deltas,
     compute_auth_deltas,
+    compute_dependency_deltas,
+    compute_drift_score,
+    compute_endpoint_deltas,
     compute_replay_surface_deltas,
     compute_structural_delta_score,
-    compute_semantic_delta_score,
-    compute_drift_score,
+)
+from pi_semantic_diff.models import (
+    AuthInvariant,
+    DependencyGraph,
+    SemanticField,
+    SemanticIRTrace,
+    StateEdge,
 )
 
 
@@ -71,7 +70,9 @@ def test_mutation_class_transition_detected() -> None:
 def test_dependency_edge_added() -> None:
     baseline = DependencyGraph(edges=[], nodes=["n1"])
     modified = DependencyGraph(
-        edges=[StateEdge(upstream_endpoint="n1", upstream_field="id", downstream_endpoint="n2", downstream_field="user_id")],
+        edges=[
+            StateEdge(upstream_endpoint="n1", upstream_field="id", downstream_endpoint="n2", downstream_field="user_id")
+        ],
         nodes=["n1", "n2"],
     )
     deltas = compute_dependency_deltas(baseline, modified)
@@ -96,11 +97,10 @@ def test_replay_surface_new_unsafe_endpoint() -> None:
 
 
 def test_structural_score_bounded() -> None:
-    ep_deltas = [
-        SemanticIRTrace(endpoint_template="/a", method="GET").model_copy(update={"presence": "ADDED"})
-    ]
+    [SemanticIRTrace(endpoint_template="/a", method="GET").model_copy(update={"presence": "ADDED"})]
     # Can't pass SemanticIRTrace to structural score; it expects EndpointDelta
     from pi_semantic_diff.models import EndpointDelta
+
     endpoint_deltas = [EndpointDelta(endpoint_template="/a", method="GET", presence="ADDED")]
     dep_deltas = []
     score = compute_structural_delta_score(endpoint_deltas, dep_deltas)

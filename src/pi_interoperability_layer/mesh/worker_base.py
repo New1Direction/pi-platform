@@ -66,15 +66,26 @@ class WorkerBase(ABC):
 
         # Input validation
         if len(input_slot_ids) > self.contract.max_input_slots:
-            return self._make_receipt(phase, input_slot_ids, [], "RESOURCE_EXCEEDED", f"Inputs {len(input_slot_ids)} > max {self.contract.max_input_slots}")
+            return self._make_receipt(
+                phase,
+                input_slot_ids,
+                [],
+                "RESOURCE_EXCEEDED",
+                f"Inputs {len(input_slot_ids)} > max {self.contract.max_input_slots}",
+            )
 
         # Schema validation
         for sid in input_slot_ids:
             slot = self.bus.read(sid)
             if slot is None:
                 return self._make_receipt(phase, input_slot_ids, [], "SCHEMA_MISMATCH", f"Missing slot: {sid}")
-            if slot.artifact_type not in self.contract.required_input_artifact_types and self.contract.required_input_artifact_types:
-                return self._make_receipt(phase, input_slot_ids, [], "SCHEMA_MISMATCH", f"Unexpected artifact type: {slot.artifact_type}")
+            if (
+                slot.artifact_type not in self.contract.required_input_artifact_types
+                and self.contract.required_input_artifact_types
+            ):
+                return self._make_receipt(
+                    phase, input_slot_ids, [], "SCHEMA_MISMATCH", f"Unexpected artifact type: {slot.artifact_type}"
+                )
 
         # Bounded execution with wall-clock guard
         start = time.perf_counter()
@@ -82,15 +93,36 @@ class WorkerBase(ABC):
             output_slots = self._run(phase, input_slot_ids)
         except Exception as exc:
             elapsed = (time.perf_counter() - start) * 1000
-            return self._make_receipt(phase, input_slot_ids, [], "FAIL", f"Exception: {type(exc).__name__}: {exc}", resource_usage={"cpu_ms": elapsed})
+            return self._make_receipt(
+                phase,
+                input_slot_ids,
+                [],
+                "FAIL",
+                f"Exception: {type(exc).__name__}: {exc}",
+                resource_usage={"cpu_ms": elapsed},
+            )
 
         elapsed = (time.perf_counter() - start) * 1000
         if elapsed > self.contract.max_execution_ms:
-            return self._make_receipt(phase, input_slot_ids, output_slots, "TIMEOUT", f"Elapsed {elapsed:.1f}ms > max {self.contract.max_execution_ms}ms", resource_usage={"cpu_ms": elapsed})
+            return self._make_receipt(
+                phase,
+                input_slot_ids,
+                output_slots,
+                "TIMEOUT",
+                f"Elapsed {elapsed:.1f}ms > max {self.contract.max_execution_ms}ms",
+                resource_usage={"cpu_ms": elapsed},
+            )
 
         # Output count validation
         if len(output_slots) > self.contract.max_output_slots:
-            return self._make_receipt(phase, input_slot_ids, output_slots, "RESOURCE_EXCEEDED", f"Outputs {len(output_slots)} > max {self.contract.max_output_slots}", resource_usage={"cpu_ms": elapsed})
+            return self._make_receipt(
+                phase,
+                input_slot_ids,
+                output_slots,
+                "RESOURCE_EXCEEDED",
+                f"Outputs {len(output_slots)} > max {self.contract.max_output_slots}",
+                resource_usage={"cpu_ms": elapsed},
+            )
 
         # Determinism proof: hash of output payloads
         determinism_proof = self._compute_determinism_proof(output_slots)

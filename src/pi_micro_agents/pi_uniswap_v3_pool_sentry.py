@@ -57,12 +57,12 @@ class PiUniswapV3PoolSentry:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Mode 1: Check for direct slot0 queries
-            slot0_match = re.search(r'\.slot0\s*\(', body)
-            observe_match = re.search(r'\.observe\s*\(', body)
+            slot0_match = re.search(r"\.slot0\s*\(", body)
+            observe_match = re.search(r"\.observe\s*\(", body)
 
             if slot0_match and not observe_match:
                 vulnerable_funcs.append(name)
@@ -89,5 +89,5 @@ class PiUniswapV3PoolSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

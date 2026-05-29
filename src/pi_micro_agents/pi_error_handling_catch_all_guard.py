@@ -1,9 +1,11 @@
 from __future__ import annotations
+
 import ast
 import os
-import re
 from typing import List
+
 from pydantic import BaseModel, Field
+
 
 def is_strict_mode() -> bool:
     env_val = os.getenv("PI_ERROR_CATCH_STRICT_MODE")
@@ -11,15 +13,18 @@ def is_strict_mode() -> bool:
         return env_val.lower() == "true"
     return True
 
+
 class ErrorCatchInput(BaseModel):
     file_path: str = Field(..., description="Path of the code file being audited")
     code_content: str = Field(..., description="Source code content")
+
 
 class ErrorCatchOutput(BaseModel):
     is_secure: bool = Field(..., description="True if no try-except/catch blocks swallow errors silently")
     swallowed_error_blocks: List[str] = Field(default_factory=list, description="List of swallowed error blocks found")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiErrorHandlingCatchAllGuard:
     """Deterministic micro-agent that audits exception handling blocks to prevent silent error swallowing."""
@@ -40,7 +45,7 @@ class PiErrorHandlingCatchAllGuard:
                     def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
                         # Check body of the except handler
                         is_swallowed = True
-                        
+
                         for body_node in ast.walk(node):
                             # If it raises an exception or re-raises, it's not swallowed
                             if isinstance(body_node, ast.Raise):
@@ -53,23 +58,24 @@ class PiErrorHandlingCatchAllGuard:
                                     call_repr = body_node.func.attr
                                 elif isinstance(body_node.func, ast.Name):
                                     call_repr = body_node.func.id
-                                    
-                                if any(x in call_repr.lower() for x in ["exception", "error", "warn", "fail", "halt", "log"]):
+
+                                if any(
+                                    x in call_repr.lower()
+                                    for x in ["exception", "error", "warn", "fail", "halt", "log"]
+                                ):
                                     is_swallowed = False
                                     break
 
                         if is_swallowed:
                             # Verify if body is just pass or print
-                            types_in_body = [type(n) for n in node.body]
+                            [type(n) for n in node.body]
                             if len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
                                 detail = "body is empty 'pass'"
                             else:
                                 detail = "no active logging or raise statements found in block"
-                            
-                            swallowed.append(
-                                f"Line {node.lineno}: Silent exception block found ({detail})"
-                            )
-                        
+
+                            swallowed.append(f"Line {node.lineno}: Silent exception block found ({detail})")
+
                         self.generic_visit(node)
 
                 visitor = CatchAllVisitor()
@@ -84,7 +90,7 @@ class PiErrorHandlingCatchAllGuard:
             except_block_started = False
             except_indent = 0
             except_line_idx = -1
-            
+
             for idx, line in enumerate(lines, start=1):
                 stripped = line.strip()
                 if except_block_started:
@@ -99,9 +105,14 @@ class PiErrorHandlingCatchAllGuard:
                                 f"Line {except_line_idx}: Silent exception handling block detected via regex"
                             )
                             except_block_started = False
-                
+
                 # Detect the start of an except or catch block
-                if stripped.startswith("except:") or stripped.startswith("except ") or stripped.startswith("catch ") or stripped.startswith("catch("):
+                if (
+                    stripped.startswith("except:")
+                    or stripped.startswith("except ")
+                    or stripped.startswith("catch ")
+                    or stripped.startswith("catch(")
+                ):
                     except_block_started = True
                     except_indent = len(line) - len(line.lstrip())
                     except_line_idx = idx
@@ -118,8 +129,5 @@ class PiErrorHandlingCatchAllGuard:
                 is_secure = True
 
         return ErrorCatchOutput(
-            is_secure=is_secure,
-            swallowed_error_blocks=swallowed,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, swallowed_error_blocks=swallowed, risk_score=risk_score, status=status
         )
