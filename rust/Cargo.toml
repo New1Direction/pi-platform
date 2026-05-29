@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/pi-agents", "crates/pi-py"]
+members = ["crates/pi-agents", "crates/pi-py", "crates/pi-event-fabric"]
 
 [workspace.package]
 version = "0.1.0"

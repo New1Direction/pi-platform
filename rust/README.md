@@ -15,8 +15,35 @@ Rust core (pi-agents)  ──maturin/PyO3──▶  Python module `pi_core`  ◀
 | Path | What it is |
 |------|------------|
 | `crates/pi-agents/` | Pure-Rust agent core. One module per agent under `src/agents/`, a name→fn `registry.rs`, and `pyutil.rs` (Python `splitlines`/`strip` semantics). |
-| `crates/pi-py/` | The single PyO3 crate. Builds a `cdylib` named `pi_core` exposing `run_agent(name, input_json)` and `list_agents()`. |
+| `crates/pi-event-fabric/` | **Stateful module:** Rust port of `pi_event_fabric.bus.core` — SQLite-backed (`rusqlite`, bundled), cryptographically-chained append-only event log. `canonical.rs` = byte-exact CPython `json.dumps(sort_keys, ensure_ascii, compact)` incl. float repr; `event.rs` = SHA-256 event hashing; `storage.rs` = append/read/chain-verify/checkpoints with an **injectable clock**. |
+| `crates/pi-py/` | The single PyO3 crate. Builds a `cdylib` named `pi_core` exposing `run_agent`/`list_agents` and the `EventBus` class. |
 | `parity/` | The equivalence harness: `test_parity.py` (curated samples), `fuzz_parity.py` (independent differential fuzzer), and one `specs/<agent>.py` per ported agent. |
+
+## Stateful core — event fabric (the architecture's real test)
+
+The agent sweep proved the *pattern-matcher* half. `pi-event-fabric` proves the
+**stateful, persistent, cryptographic** half — a SQLite-backed append-only event
+bus with SHA-256 event chaining, partition offsets, checkpoints, and replay.
+
+- **Byte-identical parity** with the Python original across a curated op sequence
+  (multi-partition, multi-tenant, unicode/control/nested payloads, big ints,
+  correlation grouping, tenant-filtered reads, tail, metadata, stats, chain
+  verification, hash-verified checkpoints) — **including every SHA-256
+  `event_hash` and the full chain**.
+- **Randomized differential fuzz** (`event_fabric_fuzz.py`): 2,000+ random
+  append sequences + full read/chain/stats sweep, **0 divergences** — both
+  without and **with floats** (after porting CPython float repr into canonical JSON).
+
+**The headline finding: the "DeterministicEventBus" is not deterministic.**
+Its `DeterministicClock.now()` reads wall-clock time, so identical inputs hash
+differently across runs (proven empirically); its `sequence_counter` is frozen
+and never increments. The Rust port makes the clock **injectable**, so the bus
+is *genuinely* deterministic — and the parity harness feeds both sides the same
+clock to prove byte-identical hashing. The port is arguably more correct than
+the original. (Saved as a project memory.)
+
+Run: `PYTHONPATH=.:../../src python event_fabric_parity.py` and
+`… python event_fabric_fuzz.py 2000 --floats` (after `maturin develop`).
 
 ## Status — 205 agents ported, fully verified
 
