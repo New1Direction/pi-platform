@@ -165,12 +165,19 @@ fn governance_op(op: &str, args_json: &str) -> PyResult<String> {
     json_dispatch(pi_event_fabric::governance_compiler::dispatch, op, args_json)
 }
 
+/// pi_agent_chain fail-closed gates (schema_gate / transition_gate).
+#[pyfunction]
+fn gate_op(op: &str, args_json: &str) -> PyResult<String> {
+    json_dispatch(pi_event_fabric::governance_gates::dispatch, op, args_json)
+}
+
 #[pymodule]
 fn pi_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_agent, m)?)?;
     m.add_function(wrap_pyfunction!(list_agents, m)?)?;
     m.add_function(wrap_pyfunction!(schema_op, m)?)?;
     m.add_function(wrap_pyfunction!(governance_op, m)?)?;
+    m.add_function(wrap_pyfunction!(gate_op, m)?)?;
     m.add_class::<EventBus>()?;
     m.add("__doc__", "PI Platform deterministic agent core (Rust/PyO3).")?;
     Ok(())

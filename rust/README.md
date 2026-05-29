@@ -58,6 +58,23 @@ persistence plumbing, scoped out. Remaining event-fabric files (`ordering/shard`
 Run: `PYTHONPATH=.:../../src python event_fabric_parity.py`,
 `… event_fabric_fuzz.py 2000 --floats`, `… schema_governance_parity.py` (after `maturin develop`).
 
+## Governance kernel (`pi_agent_chain`) — fail-closed gates
+
+A verified start on the second stateful core. The two deterministic **fail-closed
+gates** are ported (`governance_gates.rs`, exposed via `pi_core.gate_op`):
+- **SchemaGate** — worker-output structural validation (required fields + JSON-Schema
+  type checks, with Python's `isinstance(bool, int)` quirk preserved).
+- **TransitionGate** — finite-state-machine enforcement (canonical transitions,
+  status match, depth/branch caps).
+
+`governance_gates_parity.py` compares both against the Python originals
+byte-for-byte (rule / severity / context / action_taken, incl. ordered
+`payload_keys`). The non-deterministic `violation_id` (uuid) and `detected_at`
+(utcnow) are excluded — another instance of the platform's "deterministic" code
+carrying wall-clock/random fields. Remaining kernel pieces (`hooks`, the entropy
+monitor, `kernel` orchestration, `pipeline`, `models`, `ledger`, `verification/*`)
+are follow-on.
+
 ## Status — 205 agents ported, fully verified
 
 - **205** micro-agents ported to Rust (six parallel orchestration batches + 2 hand-built). This exhausts the clean self-contained pool (stdlib + pydantic, no relative imports).
