@@ -18,12 +18,13 @@ Rust core (pi-agents)  ──maturin/PyO3──▶  Python module `pi_core`  ◀
 | `crates/pi-py/` | The single PyO3 crate. Builds a `cdylib` named `pi_core` exposing `run_agent(name, input_json)` and `list_agents()`. |
 | `parity/` | The equivalence harness: `test_parity.py` (curated samples), `fuzz_parity.py` (independent differential fuzzer), and one `specs/<agent>.py` per ported agent. |
 
-## Status — 131 agents ported, fully verified
+## Status — 166 agents ported, fully verified
 
-- **131** micro-agents ported to Rust (four parallel orchestration batches + 2 hand-built: the template and one whose subagent failed to write files).
-- **484** Rust unit tests pass — deterministically, including under forced 16-thread parallelism.
-- **1,335** curated parity tests pass — every ported agent is byte-identical to its Python original across hand-picked edge cases and env-var branches.
-- **65,500** differential-fuzz comparisons per run — **0** divergences on inputs the porters never saw (CRLF / lone `\r` / `U+2028` / oversized / Unicode), including float-stress on the Shannon-entropy agent.
+- **166** micro-agents ported to Rust (five parallel orchestration batches + 2 hand-built: the template and one whose subagent failed to write files).
+- **615** Rust unit tests pass — deterministically, including under forced 16-thread parallelism.
+- **1,714** curated parity tests pass — every ported agent is byte-identical to its Python original across hand-picked edge cases and env-var branches.
+- **66,400** general differential-fuzz comparisons per run — **0** divergences on inputs the porters never saw (CRLF / lone `\r` / `U+2028` / oversized / Unicode), including float-stress on the Shannon-entropy agent.
+- **13,600** *structured-code* fuzz comparisons (`fuzz_structured.py`) targeting the 17 agents whose originals used regex lookaround — random Solidity/Vyper/Circom function blocks with nested braces, newline-spanning args, CRLF — **0** divergences.
 
 Equivalence — not "it compiles" — is the gate.
 
@@ -86,7 +87,7 @@ PYTHONPATH=.:../../src python fuzz_parity.py 1000   # 25k differential compariso
 The orchestration surfaced these real risks; all are currently handled or bounded:
 
 - **Line/space semantics** — Rust `.lines()`/`.trim()` ≠ Python `.splitlines()`/`.strip()`. Always go through `pyutil`. (Covered.)
-- **`regex` crate** has no lookahead/lookbehind/backreferences. Agents using them must be restructured; the porter must flag it. (None in this batch needed it.)
+- **`regex` crate** has no lookahead/lookbehind/backreferences. 17 agents needed it — their function-block regexes (`(?=\n\s*function|\Z)` etc.) were rewritten as header-match + manual body-span scanning. Verified byte-faithful by `fuzz_structured.py` (13.6k structured-code trials). One (`vyper_state_lock`) also had to extend Rust's whitespace set with `U+001C/1D/1E` to match Python's `\S`.
 - **Float exactness** — agents emitting floats (entropy, scores) rely on IEEE-754 f64 matching CPython. Verified bit-identical here (incl. 5k entropy trials), but `round()` (banker's rounding) and division-heavy agents need per-agent checking.
 - **Unicode case folding** — Python `str.lower()` vs Rust `to_lowercase()` can differ on exotic codepoints; immaterial for ASCII trigger tokens but noted.
 
