@@ -77,6 +77,12 @@ def test_parity(stem, idx, mod, sample):
     # order-insensitive sets — testing the real contract, not a hash accident.
     py_out, rs_out = _normalize(py_out, mod), _normalize(rs_out, mod)
 
+    # A spec may define sanitize(out) to drop/normalize fields that are
+    # non-portable by nature (wall-clock timestamps; a foreign library's error
+    # wording, e.g. CPython json vs serde_json). Applied identically to both.
+    if hasattr(mod, "sanitize"):
+        py_out, rs_out = mod.sanitize(py_out), mod.sanitize(rs_out)
+
     assert rs_out == py_out, (
         f"\nPARITY MISMATCH {stem}[{idx}] (agent={mod.RUST_NAME})"
         f"\n  input: {data}  env: {env}"

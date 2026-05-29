@@ -18,13 +18,13 @@ Rust core (pi-agents)  ──maturin/PyO3──▶  Python module `pi_core`  ◀
 | `crates/pi-py/` | The single PyO3 crate. Builds a `cdylib` named `pi_core` exposing `run_agent(name, input_json)` and `list_agents()`. |
 | `parity/` | The equivalence harness: `test_parity.py` (curated samples), `fuzz_parity.py` (independent differential fuzzer), and one `specs/<agent>.py` per ported agent. |
 
-## Status — 166 agents ported, fully verified
+## Status — 205 agents ported, fully verified
 
-- **166** micro-agents ported to Rust (five parallel orchestration batches + 2 hand-built: the template and one whose subagent failed to write files).
-- **615** Rust unit tests pass — deterministically, including under forced 16-thread parallelism.
-- **1,714** curated parity tests pass — every ported agent is byte-identical to its Python original across hand-picked edge cases and env-var branches.
-- **66,400** general differential-fuzz comparisons per run — **0** divergences on inputs the porters never saw (CRLF / lone `\r` / `U+2028` / oversized / Unicode), including float-stress on the Shannon-entropy agent.
-- **13,600** *structured-code* fuzz comparisons (`fuzz_structured.py`) targeting the 17 agents whose originals used regex lookaround — random Solidity/Vyper/Circom function blocks with nested braces, newline-spanning args, CRLF — **0** divergences.
+- **205** micro-agents ported to Rust (six parallel orchestration batches + 2 hand-built). This exhausts the clean self-contained pool (stdlib + pydantic, no relative imports).
+- **779** Rust unit tests pass — deterministically, including under forced 16-thread parallelism.
+- **2,145** curated parity tests pass — every ported agent is byte-identical to its Python original across hand-picked edge cases and env-var branches.
+- **82,000** general differential-fuzz comparisons per run — **0** divergences on inputs the porters never saw (CRLF / lone `\r` / `U+2028` / oversized / Unicode), including float-stress on the Shannon-entropy agent.
+- **8,500** *structured-code* fuzz comparisons (`fuzz_structured.py`) targeting the 17 agents whose originals used regex lookaround — random Solidity/Vyper/Circom function blocks with nested braces, newline-spanning args, CRLF — **0** divergences.
 
 Equivalence — not "it compiles" — is the gate.
 
@@ -40,6 +40,19 @@ Equivalence — not "it compiles" — is the gate.
 >    reads `~/.antigravitycli/config.json` then a `__file__`-relative repo config. The latter
 >    path isn't reproducible from a compiled lib; in this repo the key is absent so it resolves
 >    to the `True` default — the Rust port replicates env + home-config and documents the rest.
+>
+> 5. **A real port bug — i64 overflow.** `memorystore_connection_auditor` parsed the Redis
+>    port with `i64::parse`, which overflows on 20+ digit ports and spuriously set
+>    `is_valid=false`. Python's `int()` is arbitrary precision (its `except ValueError` is
+>    dead code), so it never invalidates. Fixed with `i128` + saturate; `is_valid`/`status`/
+>    `issues` now match for all inputs. **Caught by a compiler dead-assignment warning**, then
+>    a targeted huge-port test — the generic string fuzzer never synthesizes `rediss://h:<20 digits>/`.
+>
+> 6. **Non-portable fields → `sanitize()`.** Two agents emit values that can't be byte-matched
+>    by nature: `niche_scraper` (`scraped_at = datetime.now()`, wall-clock) and
+>    `gcp_iam_policy_risk_auditor` (embeds the JSON parser's error string; CPython `json` ≠
+>    `serde_json` wording). Each spec defines `sanitize(out)` to drop/normalize just that field;
+>    all deterministic fields are still compared. The agents' real behavior is identical.
 >
 > 2. **Non-deterministic originals.** `pi_threat_model_generator` builds a list via
 >    `list(set(...))` — order is hash-randomized per CPython process, so byte-identical

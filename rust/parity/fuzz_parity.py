@@ -109,6 +109,14 @@ def main():
                         if isinstance(d.get(fld), list):
                             d[fld] = sorted(d[fld], key=lambda x: json.dumps(x, sort_keys=True))
 
+            # spec-defined sanitize() for non-portable fields (timestamps, foreign
+            # error wording), applied identically to both sides
+            if hasattr(spec, "sanitize"):
+                if isinstance(py, dict):
+                    py = spec.sanitize(py)
+                if isinstance(rs, dict):
+                    rs = spec.sanitize(rs)
+
             if py_err and rs_err:
                 both_err += 1
                 continue
