@@ -8,6 +8,7 @@ trust zone enforcement, provenance ledger, semantic normalization.
 from __future__ import annotations
 
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 from pi_extension_governor.governor import ExtensionGovernor
@@ -665,3 +666,153 @@ def test_governor_receipt_chain_integrity() -> None:
             governor.process_bundle(bundle, source, {})
 
         assert ledger.verify_chain() is True
+
+
+# ── Reproducibility Regression Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+#
+# These guard the "deterministic kernel" claim: an identity/content hash must
+# be a pure function of LOGICAL content, never of wall-clock time or random
+# uuids. Each test builds the SAME logical object TWICE as two FRESH instances
+# (so the wall-clock default fields differ between them) and asserts the hashes
+# are IDENTICAL, while also asserting the wall-clock/id metadata is still
+# recorded (the fields are kept, just excluded from the hash).
+
+
+class TestExtensionGovernorReproducibility:
+    """Same logical input -> same hash across fresh constructions/runs."""
+
+    @staticmethod
+    def _make_manifest(build_ts: datetime) -> ExtensionManifest:
+        return ExtensionManifest(
+            extension_id="ext_repro",
+            package_name="repro-ext",
+            package_version="1.0.0",
+            package_hash="pkg_hash_repro",
+            capability_class=CapabilityClass.OPENAPI_TOOLING,
+            deterministic_claim=True,
+            replayability_claim=True,
+            trust_zone=TrustZone.GOVERNED_EXTENSION,
+            provenance_build_timestamp=build_ts,
+        )
+
+    def test_manifest_hash_is_reproducible_across_build_timestamps(self) -> None:
+        # Two fresh manifests, identical logical content, DIFFERENT wall-clock
+        # provenance_build_timestamp. The content hash must be identical.
+        m1 = self._make_manifest(datetime(2020, 1, 1, tzinfo=timezone.utc))
+        m2 = self._make_manifest(datetime(2026, 5, 29, 12, 34, 56, tzinfo=timezone.utc))
+
+        assert m1.provenance_build_timestamp != m2.provenance_build_timestamp
+        assert m1.compute_hash() == m2.compute_hash()
+
+        # Timestamp metadata is still recorded on each manifest.
+        assert m1.provenance_build_timestamp == datetime(2020, 1, 1, tzinfo=timezone.utc)
+        assert m2.provenance_build_timestamp is not None
+
+    def test_manifest_hash_default_timestamp_is_reproducible(self) -> None:
+        # Even using the live datetime.now() default, two fresh manifests built
+        # at (potentially) different instants must hash identically.
+        m1 = ExtensionManifest(
+            extension_id="ext_default",
+            package_name="default-ext",
+            package_version="2.1.0",
+            package_hash="pkg_default",
+            capability_class=CapabilityClass.STATIC_ANALYZER,
+        )
+        m2 = ExtensionManifest(
+            extension_id="ext_default",
+            package_name="default-ext",
+            package_version="2.1.0",
+            package_hash="pkg_default",
+            capability_class=CapabilityClass.STATIC_ANALYZER,
+        )
+        assert m1.compute_hash() == m2.compute_hash()
+        # The auto-populated wall-clock metadata is still present.
+        assert m1.provenance_build_timestamp is not None
+        assert m2.provenance_build_timestamp is not None
+
+    def test_bundle_hash_is_reproducible_across_created_at(self) -> None:
+        # Two fresh bundles wrapping logically identical manifests, with
+        # DIFFERENT created_at, must produce the same bundle hash.
+        m1 = self._make_manifest(datetime(2020, 1, 1, tzinfo=timezone.utc))
+        m2 = self._make_manifest(datetime(2026, 5, 29, tzinfo=timezone.utc))
+        b1 = ExtensionBundle(
+            bundle_id="bundle_repro",
+            manifest=m1,
+            payload_hash="payload_repro",
+            created_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        )
+        b2 = ExtensionBundle(
+            bundle_id="bundle_repro",
+            manifest=m2,
+            payload_hash="payload_repro",
+            created_at=datetime(2026, 5, 29, 9, 0, 0, tzinfo=timezone.utc),
+        )
+        assert b1.created_at != b2.created_at
+        assert b1.compute_bundle_hash() == b2.compute_bundle_hash()
+        # created_at metadata is still recorded.
+        assert b1.created_at == datetime(2020, 1, 1, tzinfo=timezone.utc)
+        assert b2.created_at is not None
+
+    def test_receipt_hash_is_reproducible_across_execution_timestamp(self) -> None:
+        # Two fresh receipts with identical logical content but DIFFERENT
+        # execution_timestamp / execution_duration_ms must hash identically.
+        common = dict(
+            receipt_id="rcpt_repro",
+            extension_id="ext_repro",
+            package_hash="pkg_hash_repro",
+            worker_contract_version="1.0.0",
+            output_hash="out_hash_repro",
+            deterministic_fingerprint="out_hash_repro",
+            replay_lineage=["ext_repro"],
+        )
+        r1 = ExtensionExecutionReceipt(
+            execution_timestamp=datetime(2020, 1, 1, tzinfo=timezone.utc),
+            execution_duration_ms=100,
+            **common,
+        )
+        r2 = ExtensionExecutionReceipt(
+            execution_timestamp=datetime(2026, 5, 29, 12, 0, 0, tzinfo=timezone.utc),
+            execution_duration_ms=999,
+            **common,
+        )
+        assert r1.execution_timestamp != r2.execution_timestamp
+        assert r1.execution_duration_ms != r2.execution_duration_ms
+        assert r1.compute_hash() == r2.compute_hash()
+        # Wall-clock metadata is still recorded on each receipt.
+        assert r1.execution_timestamp == datetime(2020, 1, 1, tzinfo=timezone.utc)
+        assert r2.execution_duration_ms == 999
+
+    def test_receipt_id_is_content_addressed_not_random(self) -> None:
+        # Admitting the SAME logical extension twice (two fresh governor stacks)
+        # must yield the SAME receipt_id, proving it is derived from content and
+        # not from a random uuid4.
+        def _admit_once() -> str:
+            with tempfile.TemporaryDirectory() as td:
+                policy = ExtensionGovernancePolicy()
+                ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
+                trust = TrustZoneEnforcer()
+                governor = ExtensionGovernor(policy, ledger, trust)
+                manifest = ExtensionManifest(
+                    extension_id="receipt_repro_ext",
+                    package_name="receipt-repro",
+                    package_version="1.0.0",
+                    package_hash="hash_receipt_repro",
+                    capability_class=CapabilityClass.OPENAPI_TOOLING,
+                    deterministic_claim=True,
+                    replayability_claim=True,
+                    network_access=False,
+                    trust_zone=TrustZone.GOVERNED_EXTENSION,
+                )
+                bundle = ExtensionBundle(
+                    bundle_id="receipt_repro_bundle", manifest=manifest, payload_hash="ph_repro"
+                )
+                source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'k': 1}}"
+                result = governor.process_bundle(bundle, source, {})
+                assert result.admitted is True
+                assert result.provenance_receipt_id is not None
+                return result.provenance_receipt_id
+
+        id1 = _admit_once()
+        id2 = _admit_once()
+        assert id1 == id2
+        assert id1.startswith("rcpt_receipt_repro_ext_")

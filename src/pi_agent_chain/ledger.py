@@ -133,8 +133,28 @@ class StateLedger:
         }
 
     def compute_state_hash(self, trace_id: str) -> str:
+        """Content-addressed deterministic state hash.
+
+        The hash is a pure function of the LOGICAL execution content (node
+        names, input hashes, outputs, seeds, etc.) plus causal/structural
+        ordering. The following are recorded as metadata in
+        :meth:`get_state_packet` but are intentionally EXCLUDED from the
+        hashed input so that the same logical trace reproduces the same state
+        hash across runs:
+
+        - per-row wall-clock ``timestamp`` values (volatile clock), and
+        - the ``trace_id`` itself, which is a random ``uuid4`` correlation id
+          (a non-logical identifier; folding it in salts every run).
+        """
         packet = self.get_state_packet(trace_id)
-        canonical = json.dumps(packet, sort_keys=True, separators=(",", ":"))
+        canonical_packet = {
+            "total_steps": packet["total_steps"],
+            "steps": [
+                {k: v for k, v in step.items() if k != "timestamp"}
+                for step in packet["steps"]
+            ],
+        }
+        canonical = json.dumps(canonical_packet, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode()).hexdigest()
 
     @staticmethod

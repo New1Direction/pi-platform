@@ -310,3 +310,80 @@ class TestQuotaEnforcement:
         q.record_composition("t2")
         assert q.get("t1").compositions_submitted == 1
         assert q.get("t2").compositions_submitted == 1
+
+
+class TestSimulationReportReproducibility:
+    """Reproducibility: the SimulationReport hash a deterministic kernel sells as
+    proof must be a pure function of logical content — NOT salted by uuid4 report_id
+    or wall-clock generated_at. The same logical composition simulated twice (two
+    fresh CoreAdapter instances, two fresh runs) must produce an IDENTICAL
+    report_hash and an IDENTICAL content-addressed report_id, while still recording
+    a generated_at timestamp.
+    """
+
+    def _build_request(self):
+        # Pin request_id so two fresh requests share identical logical content
+        # (request_id is otherwise uuid4-defaulted and flows into the report).
+        return ExplicitCompositionRequest(
+            request_id="ecr_repro_fixed",
+            tenant_id="t1",
+            console_session_id="sess_repro",
+            nodes=[
+                CompositionNode(node_id="n1", runtime="pi-semantic-recon", operation="VALIDATE"),
+                CompositionNode(node_id="n2", runtime="pi-semantic-diff", operation="DIFF"),
+            ],
+            edges=[CompositionEdge(source="n1", target="n2")],
+        )
+
+    def test_simulation_report_hash_is_reproducible(self):
+        from pi_console.services import CoreAdapter
+
+        # Two FRESH adapters + two FRESH identical requests => two independent runs.
+        report_a = CoreAdapter().simulate(self._build_request()).report
+        report_b = CoreAdapter().simulate(self._build_request()).report
+
+        assert report_a.report_hash == report_b.report_hash
+        assert len(report_a.report_hash) == 64
+        # report_id must now be content-addressed (no uuid4 salt) and reproducible.
+        assert report_a.report_id == report_b.report_id
+        assert report_a.report_id.startswith("sim_")
+
+    def test_simulation_report_id_is_deterministic_not_uuid(self):
+        from pi_console.services import CoreAdapter
+
+        # uuid4 hex is 32 chars; a content-addressed id derived from sha256[:16]
+        # is 16 hex chars. More importantly: two fresh runs match (no randomness).
+        ids = {CoreAdapter().simulate(self._build_request()).report.report_id for _ in range(3)}
+        assert len(ids) == 1, f"report_id is not deterministic across runs: {ids}"
+
+    def test_simulation_report_still_records_timestamp(self):
+        from datetime import datetime
+
+        from pi_console.services import CoreAdapter
+
+        report = CoreAdapter().simulate(self._build_request()).report
+        # The wall-clock field is still STORED/RETURNED as metadata — just excluded
+        # from the hash. It must not have been deleted in the determinism fix.
+        assert report.generated_at is not None
+        assert isinstance(report.generated_at, datetime)
+
+    def test_simulation_report_hash_excludes_wall_clock_and_random(self):
+        from datetime import datetime
+
+        from pi_console.schemas import SimulationReport
+        from pi_console.services import CoreAdapter
+
+        report = CoreAdapter().simulate(self._build_request()).report
+        # Independently recompute the advertised hash and confirm it matches the
+        # stored value — proving the hash is a pure function of the report payload
+        # (which compute_hash() takes with generated_at excluded), and that a
+        # mutated generated_at / report_id-as-content does not change it.
+        assert report.compute_hash() == report.report_hash
+        # Same logical content but a different wall-clock generated_at must hash
+        # identically (generated_at is excluded from compute_hash).
+        nudged = report.model_copy(
+            update={"generated_at": datetime.fromisoformat("2000-01-01T00:00:00+00:00")}
+        )
+        assert nudged.compute_hash() == report.report_hash
+
+        _ = SimulationReport  # keep import meaningful / referenced

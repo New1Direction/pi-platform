@@ -521,6 +521,19 @@ class CoreAdapter:
             replay_safe=len(dag_errors) == 0 and len(bounds_violations) == 0,
             report_hash="",
         )
+        # Content-address the report_id BEFORE hashing. SimulationReport.report_id
+        # defaults to f"sim_{uuid.uuid4().hex[:16]}" and SimulationReport.compute_hash
+        # folds report_id into the hashed payload — so a random report_id makes the
+        # advertised "deterministic report_hash" change every run. Derive report_id
+        # deterministically from the logical report content (everything except the
+        # random/wall-clock fields report_id/report_hash/generated_at) so the same
+        # logical simulation reproduces the same report_id, and therefore the same
+        # report_hash, across runs. The field is preserved — it is still a unique
+        # per-content identifier — just no longer salted by uuid4.
+        content_payload = report.model_dump(exclude={"report_id", "report_hash", "generated_at"})
+        content_canonical = json.dumps(content_payload, sort_keys=True, separators=(",", ":"), default=str)
+        deterministic_report_id = f"sim_{hashlib.sha256(content_canonical.encode()).hexdigest()[:16]}"
+        report = report.model_copy(update={"report_id": deterministic_report_id})
         report = report.model_copy(update={"report_hash": report.compute_hash()})
 
         can_execute = report.dag_valid and report.bounds_respected and len(report.policy_violations) == 0

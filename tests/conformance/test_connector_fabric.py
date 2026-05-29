@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import os
 import tempfile
+import time
 
 import pytest
 
@@ -1131,3 +1132,133 @@ class TestConnectorFabricIntegration:
         replay2 = dt.temporal_replay(receipts, [])
         assert replay["replay_hash"] == replay2["replay_hash"]
         assert len(replay["replay_hash"]) == 64
+
+
+# ──────────────────────────────
+#  Reproducibility Regression (determinism contract)
+# ──────────────────────────────
+
+
+class TestHashReproducibility:
+    """Regression tests for the "deterministic kernel" claim.
+
+    A content/identity hash must be a pure function of the LOGICAL content of an
+    object. It must NOT vary because of wall-clock timestamps or random ids.
+    These tests build the SAME logical object twice (two fresh instances,
+    deliberately separated by a sleep so any wall-clock contamination would
+    differ) and assert IDENTICAL hashes, while also asserting the wall-clock
+    metadata is still recorded.
+    """
+
+    @staticmethod
+    def _k8s_state():
+        return {
+            "pods": [{"metadata": {"namespace": "default", "name": "pod1", "labels": {"app": "web"}}}],
+            "services": [
+                {"metadata": {"namespace": "default", "name": "svc1"}, "spec": {"selector": {"app": "web"}}}
+            ],
+        }
+
+    def test_ingestion_receipt_hash_is_reproducible(self):
+        # Two fresh ingestion runs of identical logical input. Wall-clock
+        # ingestion_start/ingestion_end differ between runs, but receipt_hash
+        # must not.
+        c1 = KubernetesConnector(KubernetesConnector.MANIFEST, {})
+        _, r1 = c1.ingest("t1", "u1", "run_1", raw_state=self._k8s_state())
+        time.sleep(0.01)
+        c2 = KubernetesConnector(KubernetesConnector.MANIFEST, {})
+        _, r2 = c2.ingest("t1", "u1", "run_1", raw_state=self._k8s_state())
+
+        # Identity hash is reproducible despite differing wall-clock metadata.
+        assert r1.receipt_hash == r2.receipt_hash
+        assert len(r1.receipt_hash) == 64
+
+        # The timestamps are still RECORDED as metadata (not deleted), and they
+        # genuinely capture wall-clock time (so they differ between the runs).
+        assert r1.ingestion_start and r1.ingestion_end
+        assert r2.ingestion_start and r2.ingestion_end
+        assert (r1.ingestion_start, r1.ingestion_end) != (r2.ingestion_start, r2.ingestion_end)
+
+        # Receipts must still self-verify.
+        assert r1.verify() is True
+        assert r2.verify() is True
+
+    def test_ingestion_receipt_hash_excludes_wall_clock(self):
+        # Same logical receipt, different wall-clock timestamps -> same hash.
+        common = dict(
+            receipt_id="r1",
+            connector_id="c1",
+            connector_version="1.0.0",
+            tenant_id="t1",
+            actor_id="a1",
+            correlation_id="c1",
+            artifact_count=2,
+            artifact_hashes=("h1", "h2"),
+            fence_used=ConnectorExecutionFence.SANDBOXED_READ,
+            sandbox_policy=ConnectorSandboxPolicy.READ_ONLY,
+            error_count=0,
+            errors=(),
+        )
+        r1 = IngestionReceipt(
+            ingestion_start="2026-01-01T00:00:00Z",
+            ingestion_end="2026-01-01T00:00:01Z",
+            **common,
+        )
+        r2 = IngestionReceipt(
+            ingestion_start="2030-12-31T23:59:59Z",
+            ingestion_end="2031-01-01T00:00:42Z",
+            **common,
+        )
+        assert r1.receipt_hash == r2.receipt_hash
+        # But the timestamps themselves are still stored distinctly.
+        assert r1.ingestion_start != r2.ingestion_start
+        assert r1.to_dict()["ingestion_start"] == "2026-01-01T00:00:00Z"
+
+    def test_normalized_artifact_hash_is_reproducible(self):
+        # artifact_hash already excludes created_at; lock that contract in.
+        def build():
+            return ArtifactNormalizer.normalize_topology(
+                nodes=[{"id": "n2", "type": "svc"}, {"id": "n1", "type": "pod"}],
+                edges=[{"from": "n2", "to": "n1", "relation": "selects"}],
+                source_system="k8s",
+                connector_id="c1",
+                connector_version="1",
+                tenant_id="t1",
+                correlation_id="c1",
+            )
+
+        a1 = build()
+        time.sleep(0.01)
+        a2 = build()
+        assert a1.artifact_hash == a2.artifact_hash
+        assert len(a1.artifact_hash) == 64
+        # created_at is still recorded and reflects real wall-clock time.
+        assert a1.created_at and a2.created_at
+        assert a1.created_at != a2.created_at
+
+    def test_snapshot_graph_hash_is_reproducible(self):
+        # The snapshot's identity is its graph_hash, which must be content
+        # addressed. snapshot_at remains recorded wall-clock metadata.
+        def build_snapshot():
+            dt = DigitalTwinImport("t1")
+            for i in range(3):
+                a = ArtifactNormalizer.normalize_topology(
+                    nodes=[{"id": f"n{i}", "type": "node"}],
+                    edges=[{"from": f"n{i}", "to": f"n{(i + 1) % 3}", "relation": "link"}],
+                    source_system="s",
+                    connector_id="c",
+                    connector_version="1",
+                    tenant_id="t1",
+                    correlation_id="c1",
+                )
+                dt.import_artifact(a)
+            return dt.snapshot_topology()
+
+        s1 = build_snapshot()
+        time.sleep(0.01)
+        s2 = build_snapshot()
+        assert s1["graph_hash"] == s2["graph_hash"]
+        assert len(s1["graph_hash"]) == 64
+        # snapshot_at metadata is still present and reflects wall-clock time.
+        assert s1["snapshot_at"] and s2["snapshot_at"]
+        assert s1["snapshot_at"] != s2["snapshot_at"]

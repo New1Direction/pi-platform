@@ -38,8 +38,12 @@ class ExecutionReceipt(BaseModel):
     model_config = {"frozen": False}
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash. Excludes the random receipt_id
+        # (uuid4-derived) and the wall-clock timestamp so the same logical
+        # receipt reproduces the same hash across runs. Causal position is
+        # captured by previous_receipt_hash (chain link). receipt_id and
+        # timestamp remain STORED as receipt metadata.
         payload = {
-            "receipt_id": self.receipt_id,
             "worker_class": self.worker_class,
             "worker_id": self.worker_id,
             "phase": self.phase,
@@ -50,7 +54,6 @@ class ExecutionReceipt(BaseModel):
             "determinism_proof": self.determinism_proof,
             "resource_usage": self.resource_usage,
             "previous_receipt_hash": self.previous_receipt_hash,
-            "timestamp": self.timestamp.isoformat(),
         }
         payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
         return hashlib.sha256(payload_bytes).hexdigest()
@@ -70,14 +73,17 @@ class PhaseBoundaryReceipt(BaseModel):
     model_config = {"frozen": False}
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash. Excludes the random boundary_id
+        # (uuid4-derived) and the wall-clock timestamp so the same logical
+        # boundary reproduces the same hash across runs. Causal position is
+        # captured by previous_boundary_hash (chain link). boundary_id and
+        # timestamp remain STORED as boundary metadata.
         payload = {
-            "boundary_id": self.boundary_id,
             "phase": self.phase,
             "worker_receipt_ids": sorted(self.worker_receipt_ids),
             "merged_output_slot_id": self.merged_output_slot_id,
             "phase_status": self.phase_status,
             "previous_boundary_hash": self.previous_boundary_hash,
-            "timestamp": self.timestamp.isoformat(),
         }
         payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
         return hashlib.sha256(payload_bytes).hexdigest()

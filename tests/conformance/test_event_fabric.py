@@ -1092,3 +1092,106 @@ class TestEventFabricIntegration:
         )
         assert d1.decision_hash == d2.decision_hash
         assert d1.decision_hash != ""
+
+
+# ──────────────────────────────
+#  Deterministic Replay (regression gate)
+# ──────────────────────────────
+#
+# These tests guard the platform's headline claim: the SAME logical event must
+# produce the SAME content hash across independent runs/instances. Before the
+# content-addressing fix, event_hash folded in wall-clock timestamp/ordering_key
+# (and event_id embedded the ordering_key), so identical appends hashed
+# differently every run. If anyone reintroduces wall-clock into the identity
+# hash, these tests must fail.
+
+
+def _fresh_storage():
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as f:
+        path = f.name
+    return EventBusStorage(path), path
+
+
+class TestDeterministicReplay:
+    def test_same_event_hashes_identically_across_instances(self):
+        """Two independent stores, same logical event -> identical event_hash."""
+        s1, p1 = _fresh_storage()
+        s2, p2 = _fresh_storage()
+        try:
+            e1 = s1.append(EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"k": "v", "n": 1}, "t1", "u1", "c1")
+            e2 = s2.append(EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"k": "v", "n": 1}, "t1", "u1", "c1")
+            assert e1.event_hash == e2.event_hash, "identical logical events must hash identically"
+            assert e1.header.event_id == e2.header.event_id, "event_id must be wall-clock-free"
+        finally:
+            os.unlink(p1)
+            os.unlink(p2)
+
+    def test_full_chain_is_reproducible_across_runs(self):
+        """A sequence of appends rebuilds an identical hash chain on a fresh store."""
+        seq = [
+            (EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"i": 0}, "t1", "u1", "c1"),
+            (EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"i": 1}, "t1", "u1", "c1"),
+            (EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"i": 2}, "t1", "u1", "c2"),
+        ]
+
+        def run():
+            s, p = _fresh_storage()
+            try:
+                return [s.append(*args).event_hash for args in seq]
+            finally:
+                os.unlink(p)
+
+        assert run() == run(), "the whole hash chain must be reproducible across runs"
+
+    def test_hash_excludes_wall_clock_but_timestamp_is_still_recorded(self):
+        """Determinism does not mean we lose the timestamp — it's metadata, not identity."""
+        s, p = _fresh_storage()
+        try:
+            e = s.append(EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"x": 1}, "t1", "u1", "c1")
+            assert e.header.timestamp, "wall-clock timestamp must still be recorded as metadata"
+            # recomputing the identity hash must equal the stored hash (chain-verify relies on this)
+            assert e._compute_hash() == e.event_hash
+        finally:
+            os.unlink(p)
+
+    def test_genesis_event_is_chain_verified(self):
+        """The first event is now recomputed by verify_partition_chain (no genesis hole)."""
+        s, p = _fresh_storage()
+        try:
+            s.append(EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"i": 0}, "t1", "u1", "c1")
+            s.append(EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"i": 1}, "t1", "u1", "c1")
+            ok, errors = s.verify_partition_chain(PartitionKey.ARTIFACTS)
+            assert ok and not errors
+
+            # Tamper with the genesis payload but keep its stored hash -> must be detected.
+            import sqlite3
+
+            conn = sqlite3.connect(p)
+            conn.execute(
+                "UPDATE events SET payload_json = ? WHERE partition_offset = 1",
+                ('{"i":999}',),
+            )
+            conn.commit()
+            conn.close()
+            ok2, errors2 = s.verify_partition_chain(PartitionKey.ARTIFACTS)
+            assert not ok2 and errors2, "tampered genesis event must fail chain verification"
+        finally:
+            os.unlink(p)
+
+    def test_consumer_checkpoint_hash_is_deterministic(self):
+        """Re-consuming the same offsets yields the same checkpoint hash across runs."""
+        def run():
+            s, p = _fresh_storage()
+            try:
+                for i in range(3):
+                    s.append(EventType.ARTIFACT_CREATED, PartitionKey.ARTIFACTS, {"i": i}, "t1", "u1", "c1")
+                consumer = DeterministicConsumer("consumer_a", s)
+                consumer.consume(PartitionKey.ARTIFACTS, lambda e: None)
+                cp = consumer.get_checkpoint(PartitionKey.ARTIFACTS)
+                return cp.checkpoint_hash
+            finally:
+                os.unlink(p)
+
+        h1 = run()
+        h2 = run()
+        assert h1 == h2 and h1, "checkpoint hash must be reproducible across runs"

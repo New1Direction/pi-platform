@@ -124,8 +124,13 @@ class RiskReport(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
+        # Content-addressed: the report hash is a pure function of the logical
+        # risk content. report_id (a random uuid-derived execution id) and
+        # generated_at (wall-clock) are stored/returned as metadata but are
+        # excluded from the hashed input so the same logical input reproduces
+        # the same hash across runs.
         payload = json.dumps(
-            self.model_dump(exclude={"report_hash", "generated_at"}),
+            self.model_dump(exclude={"report_hash", "generated_at", "report_id"}),
             sort_keys=True,
             separators=(",", ":"),
             default=str,

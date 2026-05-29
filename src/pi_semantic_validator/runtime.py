@@ -74,6 +74,25 @@ class ValidatorRuntime:
         combined = "|".join(hashes)
         return hashlib.sha256(combined.encode()).hexdigest()
 
+    @staticmethod
+    def _compute_report_id(
+        policy_hash: str,
+        artifacts_hash: str,
+        status: str,
+        violations: List[GovernanceViolation],
+    ) -> str:
+        """Content-addressed report id.
+
+        Derived deterministically from the report's logical content so the
+        same logical validation reproduces the same ``report_id`` across runs.
+        Wall-clock and random uuids are intentionally excluded. Violation
+        rules are sorted to make the derivation order-independent.
+        """
+        rules = sorted(v.rule for v in violations)
+        material = "|".join([policy_hash, artifacts_hash, status, *rules])
+        digest = hashlib.sha256(material.encode()).hexdigest()
+        return f"report_{digest[:16]}"
+
     def _bounded_collect(
         self,
         new_violations: List[GovernanceViolation],
@@ -183,7 +202,12 @@ class ValidatorRuntime:
         }
 
         return ValidationReport(
-            report_id=f"report_{uuid.uuid4().hex[:16]}",
+            report_id=self._compute_report_id(
+                policy_hash=policy_hash,
+                artifacts_hash=artifacts_hash,
+                status=status,
+                violations=self._violations,
+            ),
             execution_id=self._execution_id,
             policy_hash=policy_hash,
             artifacts_hash=artifacts_hash,

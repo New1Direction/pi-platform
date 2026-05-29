@@ -289,8 +289,20 @@ class ExtensionGovernor:
         # Provenance receipt
         provenance_receipt_id = None
         if admitted:
+            # Derive the receipt id deterministically from the receipt's logical
+            # content instead of a random uuid4, so the receipt id (which feeds
+            # the chain hash) is content-addressed and reproducible across runs.
+            receipt_fingerprint = hashlib.sha256(
+                "|".join(
+                    [
+                        manifest.extension_id,
+                        manifest.package_hash,
+                        sandbox_result.output_hash,
+                    ]
+                ).encode()
+            ).hexdigest()[:12]
             receipt = ExtensionExecutionReceipt(
-                receipt_id=f"rcpt_{manifest.extension_id}_{__import__('uuid').uuid4().hex[:12]}",
+                receipt_id=f"rcpt_{manifest.extension_id}_{receipt_fingerprint}",
                 extension_id=manifest.extension_id,
                 package_hash=manifest.package_hash,
                 worker_contract_version="1.0.0",

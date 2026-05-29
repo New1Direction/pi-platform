@@ -10,6 +10,38 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 # ──────────────────────────────
+#  Determinism: fields excluded from content-addressed hashes
+# ──────────────────────────────
+#
+# Identity/content hashes must be a pure function of LOGICAL content plus
+# structural/causal position. Wall-clock timestamps and random ids (or values
+# derived from them) are kept as STORED/RETURNED metadata but are NEVER folded
+# into a content hash — otherwise the same logical artifact produces a
+# different hash on every run, defeating the reproducibility claim.
+_VOLATILE_HASH_FIELDS = frozenset(
+    {
+        # Wall-clock timestamps
+        "frozen_at",
+        "synthesized_at",
+        "verified_at",
+        "generated_at",
+        "measured_at",
+        "observed_at",
+        "detected_at",
+        "first_observed_at",
+        "last_observed_at",
+        "first_detected",
+        "captured_at",
+        "timestamp",
+        # Random / uuid-derived identifiers (not part of logical content)
+        "session_window_id",
+        # Self-referential hash slot (must not feed its own hash)
+        "semantic_hash",
+    }
+)
+
+
+# ──────────────────────────────
 #  Primitive Enums (top-level)
 # ──────────────────────────────
 
@@ -199,7 +231,14 @@ class SemanticIRTrace(BaseModel):
     generated_by: str = "SemanticTyperNode"
 
     def compute_hash(self) -> str:
-        payload = json.dumps(self.model_dump(), sort_keys=True, default=str)
+        # Content-addressed: exclude wall-clock ``frozen_at`` (and the
+        # self-referential ``semantic_hash`` slot). ``frozen_at`` is still
+        # stored on the model as metadata; it just does not feed the hash.
+        payload = json.dumps(
+            self.model_dump(exclude=set(_VOLATILE_HASH_FIELDS)),
+            sort_keys=True,
+            default=str,
+        )
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
@@ -230,7 +269,15 @@ class DependencyGraph(BaseModel):
     generated_by: str = "FlowMapperNode"
 
     def compute_hash(self) -> str:
-        payload = json.dumps(self.model_dump(), sort_keys=True, default=str)
+        # Content-addressed: exclude the uuid4-derived ``session_window_id``
+        # (a random id, not logical content) and the self-referential
+        # ``semantic_hash`` slot. ``session_window_id`` remains on the model
+        # as metadata.
+        payload = json.dumps(
+            self.model_dump(exclude=set(_VOLATILE_HASH_FIELDS)),
+            sort_keys=True,
+            default=str,
+        )
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
@@ -310,7 +357,13 @@ class VerificationReport(BaseModel):
     verified_at: datetime = Field(default_factory=datetime.utcnow)
 
     def compute_hash(self) -> str:
-        payload = json.dumps(self.model_dump(), sort_keys=True, default=str)
+        # Content-addressed: exclude wall-clock ``verified_at``. It remains
+        # stored on the model as metadata; it just does not feed the hash.
+        payload = json.dumps(
+            self.model_dump(exclude=set(_VOLATILE_HASH_FIELDS)),
+            sort_keys=True,
+            default=str,
+        )
         return hashlib.sha256(payload.encode()).hexdigest()
 
 

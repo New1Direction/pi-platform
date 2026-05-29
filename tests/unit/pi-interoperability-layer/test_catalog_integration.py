@@ -174,11 +174,15 @@ def test_ingest_receipt_hash_determinism() -> None:
     )
     r1 = worker.ingest_page("", "all", 1, 10)
     r2 = worker.ingest_page("", "all", 1, 10)
-    # Receipt hashes differ due to timestamp, but structure is identical
+    # Receipt hashes are content-addressed: the wall-clock timestamp is excluded
+    # from the hash, so the same logical page reproduces an identical hash.
     assert r1.receipt_hash != ""
     assert r2.receipt_hash != ""
+    assert r1.receipt_hash == r2.receipt_hash
     assert r1.ingest_id == r2.ingest_id
     assert r1.packages_ingested == r2.packages_ingested
+    # The wall-clock timestamp is still recorded as metadata on each receipt.
+    assert r1.timestamp != ""
 
 
 # ── Classifier Worker Tests ────────────────────────────────────────

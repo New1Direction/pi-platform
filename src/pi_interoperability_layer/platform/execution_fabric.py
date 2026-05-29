@@ -54,14 +54,15 @@ class WorkerLease:
     output_size_max: int = 10 * 1024 * 1024
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash. Excludes the random lease_id/worker_id
+        # (uuid4-derived) and the wall-clock leased_at so the same logical lease
+        # reproduces the same hash across runs. All three remain STORED on the
+        # lease as metadata.
         data = json.dumps(
             {
-                "lease_id": self.lease_id,
-                "worker_id": self.worker_id,
                 "shard_id": self.shard_id,
                 "phase_number": self.phase_number,
                 "manifest_id": self.manifest_id,
-                "leased_at": self.leased_at,
                 "cpu_ms_max": self.cpu_ms_max,
                 "memory_mb_max": self.memory_mb_max,
                 "output_size_max": self.output_size_max,
