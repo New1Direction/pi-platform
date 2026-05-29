@@ -29,8 +29,8 @@ pub struct EventHeader {
 }
 
 impl EventHeader {
-    /// Equivalent of Python `EventHeader.serialize()` — the dict that gets
-    /// canonically JSON-encoded for the event hash.
+    /// Equivalent of Python `EventHeader.serialize()` — the FULL header dict used
+    /// for storage/serialization (and full-record parity comparison).
     pub fn to_value(&self) -> Value {
         let mut m = Map::new();
         m.insert("event_id".into(), json!(self.event_id));
@@ -39,6 +39,24 @@ impl EventHeader {
         m.insert("partition_offset".into(), json!(self.partition_offset));
         m.insert("timestamp".into(), json!(self.timestamp));
         m.insert("ordering_key".into(), json!(self.ordering_key));
+        m.insert("author_tenant_id".into(), json!(self.author_tenant_id));
+        m.insert("author_actor_id".into(), json!(self.author_actor_id));
+        m.insert("correlation_id".into(), json!(self.correlation_id));
+        m.insert("previous_event_hash".into(), json!(self.previous_event_hash));
+        m.insert("payload_hash".into(), json!(self.payload_hash));
+        Value::Object(m)
+    }
+
+    /// Content-addressed identity dict used for the event hash. Mirrors the Python
+    /// `DomainEvent._compute_hash`: covers the logical event + causal position but
+    /// DELIBERATELY excludes the wall-clock fields (timestamp, ordering_key) and the
+    /// event_id (which embeds the ordering_key), so the same logical event hashes
+    /// identically across runs — genuine deterministic replay.
+    pub fn identity_value(&self) -> Value {
+        let mut m = Map::new();
+        m.insert("event_type".into(), json!(self.event_type));
+        m.insert("partition_key".into(), json!(self.partition_key));
+        m.insert("partition_offset".into(), json!(self.partition_offset));
         m.insert("author_tenant_id".into(), json!(self.author_tenant_id));
         m.insert("author_actor_id".into(), json!(self.author_actor_id));
         m.insert("correlation_id".into(), json!(self.correlation_id));
@@ -62,9 +80,10 @@ impl DomainEvent {
         DomainEvent { header, payload, event_hash }
     }
 
-    /// Mirrors `DomainEvent._compute_hash`.
+    /// Mirrors `DomainEvent._compute_hash`: content-addressed over the header
+    /// IDENTITY (no wall-clock / event_id) + payload.
     pub fn compute_hash(header: &EventHeader, payload: &Value) -> String {
-        let header_json = dumps_canonical(&header.to_value());
+        let header_json = dumps_canonical(&header.identity_value());
         let payload_json = dumps_canonical(payload);
         sha256_hex(&format!("{header_json}{payload_json}"))
     }

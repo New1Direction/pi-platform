@@ -86,12 +86,13 @@ pub struct ConsumerCheckpoint {
 
 impl ConsumerCheckpoint {
     pub fn compute_hash(&self) -> String {
+        // Deterministic: covers the consumer's logical position only. checkpointed_at
+        // (wall-clock) is stored metadata but excluded from the hash.
         let mut m = Map::new();
         m.insert("consumer_id".into(), json!(self.consumer_id));
         m.insert("partition_key".into(), json!(self.partition_key));
         m.insert("last_consumed_offset".into(), json!(self.last_consumed_offset));
         m.insert("last_event_id".into(), json!(self.last_event_id));
-        m.insert("checkpointed_at".into(), json!(self.checkpointed_at));
         sha256_hex(&dumps_canonical(&Value::Object(m)))
     }
     pub fn to_value(&self) -> Value {
@@ -160,7 +161,9 @@ impl EventBusStorage {
         };
 
         let new_offset = current_offset + 1;
-        let event_id = format!("evt_{tenant_id}_{partition_key}_{new_offset}_{}", marker.ordering_key);
+        // Deterministic id: (tenant, partition, offset) is already unique, so the
+        // wall-clock ordering_key suffix is dropped to keep ids reproducible.
+        let event_id = format!("evt_{tenant_id}_{partition_key}_{new_offset}");
 
         let header = EventHeader {
             event_id: event_id.clone(),
@@ -343,11 +346,10 @@ impl EventBusStorage {
         let mut errors = Vec::new();
         for (i, ev) in events.iter().enumerate() {
             let expected = &ev.event_hash;
-            let recomputed = if i > 0 {
-                DomainEvent::compute_hash(&ev.header, &ev.payload)
-            } else {
-                ev.event_hash.clone()
-            };
+            // Recompute every event including the genesis (i == 0); possible now that
+            // the hash is content-addressed (wall-clock-free), closing the prior hole
+            // where a tampered first-event payload still passed verification.
+            let recomputed = DomainEvent::compute_hash(&ev.header, &ev.payload);
             if expected != &recomputed {
                 errors.push(format!(
                     "hash_mismatch at offset {}: expected={expected}, got={recomputed}",
