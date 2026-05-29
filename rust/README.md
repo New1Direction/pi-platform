@@ -109,6 +109,22 @@ actual justification: multi-core parallelism Python structurally cannot deliver.
 - **Always benchmark `--release`** — debug Rust was ~20× slower and inverted every
   result (JWT looked like 0.05×).
 
+## Flag-gated integration into the consensus fabric
+
+`pi_micro_agents/orchestrator/consensus.py` now has an opt-in path: when
+`PI_USE_RUST_AGENTS` is truthy **and** a Rust port exists for the agent, the
+CPU-bound scan runs in `pi_core` (which releases the GIL → the ~5× concurrent
+win); otherwise it uses the Python agent. It's **fail-safe** — flag off, missing
+`pi_core`, an unported agent, or any error all fall back to Python, so it can
+never change results or break execution. The shim reconstructs each agent's real
+Pydantic Output model from the Rust JSON, so downstream code is untouched.
+
+Verified by `parity/consensus_integration_test.py`: 6/6 sampled agents are
+byte-identical via the Rust path when flagged on, and return `None` (Python) when
+off. *(The `consensus.py` edit itself is additive — a helper block + a 3-line
+guard in `run_single_perturbed` — and is left uncommitted on top of pre-existing
+local WIP for the maintainer to review.)*
+
 ## Governance kernel (`pi_agent_chain`) — fail-closed gates
 
 A verified start on the second stateful core. The two deterministic **fail-closed
