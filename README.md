@@ -72,6 +72,46 @@ The architecture is formalized in the [PI Runtime Specification v1.4](docs/PI-RU
 
 ---
 
+## Rust Core (deterministic compute — measured ~5× faster)
+
+The CPU-bound deterministic layer (the micro-agents and the event fabric) is being
+ported to a Rust core exposed to Python via PyO3. This is a **verified proof of
+architecture**, not yet the full migration — see [`rust/README.md`](rust/README.md)
+for the complete writeup. Every claim below is gated by a parity harness.
+
+**Ported & parity-verified (byte-identical to Python, 0 divergences):**
+- **205 micro-agents** — across 955+ curated cases and 80k+ differential-fuzz comparisons.
+- **Event fabric core** (`pi_event_fabric.bus.core`) — SQLite-backed, SHA-256-chained
+  append-only log — identical incl. every event hash and the full chain.
+- **Schema-evolution + governance-compiler cores** and the **`pi_agent_chain`
+  fail-closed gates** — identical incl. all hashes.
+
+**Measured performance** (`rust/parity/*benchmark*.py`, release build):
+- Per agent: **2–12×** faster (compute-heavy regex/entropy/multi-pattern scans).
+- **Full agent fan-out at the consensus fabric's real concurrency: ~5×, scaling with
+  cores** — the Rust agents release the GIL, which Python's `ThreadPoolExecutor` cannot.
+
+**Opt-in & fail-safe.** Set `PI_USE_RUST_AGENTS=1` and the consensus fabric routes to
+the Rust agent where a port exists, falling back to Python on *anything* (flag off,
+`pi_core` unbuilt, unported agent, any error). Output parity is proven, so it cannot
+change results.
+
+```bash
+# Build the Rust core into your venv, then verify
+cd rust/crates/pi-py && maturin develop --release        # builds `pi_core`
+cargo test --manifest-path ../../Cargo.toml -p pi-agents -p pi-event-fabric   # 792 unit tests
+cd ../../parity && python -m pytest -q                   # Rust<->Python agent parity
+```
+
+**Findings the harness surfaced** (documented in `rust/README.md`): the
+"DeterministicEventBus" actually read wall-clock time (its hashes varied per run —
+the Rust port makes the clock injectable); several "deterministic" agents embedded
+`datetime.now()` / `list(set())`; and a real `i64`-overflow bug. Honest scope:
+~2× of agent files are broken Python in the current tree; the Rust port surfaces
+them at compile time.
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -167,6 +207,11 @@ pi-platform/
 │   ├── pi_semantic_validator/    # Schema validation
 │   ├── pi_semantic_radius/       # Blast-radius analysis
 │   └── pi_production/            # Production hardening: auth, storage, telemetry
+├── rust/                          # Rust core (PyO3): agent + event-fabric ports — ~5× faster, parity-verified
+│   ├── crates/pi-agents/         #   205 deterministic agents ported to Rust
+│   ├── crates/pi-event-fabric/   #   SQLite-backed, SHA-256-chained event bus + schema/governance cores
+│   ├── crates/pi-py/             #   PyO3 bindings -> `import pi_core`
+│   └── parity/                   #   Rust<->Python equivalence harnesses + benchmarks
 ├── pi-console-frontend/          # Next.js 15 + React 19 + React Flow dashboard
 ├── tests/                        # 113+ test modules: unit / integration / conformance / console
 ├── docker/                       # Compose, Dockerfiles, K8s manifests, Prometheus config
