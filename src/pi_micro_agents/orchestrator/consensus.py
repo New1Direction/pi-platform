@@ -126,7 +126,14 @@ from pi_semantic_radius.consensus_breaker import PiConsensusBreaker as BaseConse
 
 
 def _rust_enabled() -> bool:
-    return os.getenv("PI_USE_RUST_AGENTS", "").strip().lower() in ("1", "true", "yes", "on")
+    # Default ON: the Rust core is parity-gated in CI (rust-core.yml), and
+    # _try_rust_agent fails safe to the Python agent whenever pi_core is unavailable
+    # or an agent is unported — so an environment without the built cdylib transparently
+    # uses pure Python. Set PI_USE_RUST_AGENTS=0 (or false/no/off, or "") to force Python.
+    val = os.getenv("PI_USE_RUST_AGENTS")
+    if val is None:
+        return True
+    return val.strip().lower() in ("1", "true", "yes", "on")
 
 
 @_functools.lru_cache(maxsize=1)
