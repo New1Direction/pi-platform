@@ -234,35 +234,14 @@ class GovernanceKernel:
                 execution_time_ms=exec_time,
             )
 
-        # --- STEP 6: Entropy evaluation ---
-        if artifact is not None:
-            snapshot = self.entropy_monitor.capture(self._current_state, artifact)
-            entropy_warning = self.entropy_monitor.check_monotonic_decrease()
-            if entropy_warning and self._current_state in {
-                RuntimeState.ASSEMBLING_IR,
-                RuntimeState.GENERATING_SPEC,
-                RuntimeState.COMPLETED,
-            }:
-                entropy_violation = GovernanceViolation(
-                    violation_id=str(uuid.uuid4())[:16],
-                    rule="ENTROPY_INCREASE",
-                    worker_id=worker_id,
-                    root_goal_id=self.root_goal_id,
-                    severity="ERROR",
-                    context={"warning": entropy_warning, "snapshot": snapshot.model_dump()},
-                    action_taken="HALT",
-                )
-                self._violations.append(entropy_violation)
-                return WorkerResponse(
-                    root_goal_id=self.root_goal_id,
-                    worker_id=worker_id,
-                    status=WorkerStatus.VERIFICATION_MISMATCH,
-                    errors=[f"Entropy violation: {entropy_warning}"],
-                    execution_id=exec_id,
-                    input_hash=envelope.input_hash,
-                    output_hash=output_hash,
-                    execution_time_ms=exec_time,
-                )
+        # --- STEP 6: (removed) kernel-mediated entropy evaluation ---
+        # This previously ran only `if artifact is not None`, but every production
+        # caller (PipelineDriver) invokes execute() with artifact=None, so the gate
+        # never fired — dead code masquerading as an enforced guard. Entropy
+        # regression IS enforced in the pipeline by the separate
+        # EntropyAnalysisValidator (pipeline.py), so removing the dead block changes
+        # no behaviour and stops advertising enforcement that didn't happen. The
+        # `artifact` parameter is retained for call-site/API compatibility.
 
         # --- STEP 7: Commit state transition ---
         self._current_state = target_state
