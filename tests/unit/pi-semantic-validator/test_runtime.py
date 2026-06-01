@@ -227,6 +227,17 @@ class TestReportReproducibility:
         assert report.execution_id
         assert report.execution_id.startswith("val_")
 
+    def test_reusing_one_runtime_does_not_accumulate_state(self):
+        # Finding: run() appended to self._violations (init'd only in __init__)
+        # with no reset, so calling run() twice on ONE instance doubled the
+        # violations and changed the content-addressed report_id. Reusing an
+        # instance must be reproducible, like a fresh one.
+        runtime = ValidatorRuntime(policy=_build_policy())
+        r1 = runtime.run([])  # NO_ARTIFACTS_PROVIDED -> 1 violation
+        r2 = runtime.run([])  # must NOT accumulate to 2
+        assert r1.summary["total_violations"] == r2.summary["total_violations"]
+        assert r1.report_id == r2.report_id
+
     def test_report_execution_id_is_unique_per_run(self):
         # The runtime execution id remains a unique per-run handle (metadata),
         # independent of the content-addressed reproducibility proof.

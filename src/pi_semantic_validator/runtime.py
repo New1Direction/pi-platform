@@ -116,6 +116,11 @@ class ValidatorRuntime:
 
     def run(self, artifacts: List[ValidationArtifact]) -> ValidationReport:
         """Execute all validation passes in fixed order with bounded execution."""
+        # Reset per-run accumulators so reusing one instance is reproducible —
+        # otherwise run() appended to state from prior calls, doubling violations
+        # and changing the content-addressed report_id on the second run.
+        self._violations = []
+        self._pass_results = {}
         artifacts_hash = self._compute_artifacts_hash(artifacts)
         policy_hash = self.policy.compute_hash()
         start_ms = int(time.time() * 1000)
