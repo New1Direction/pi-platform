@@ -100,16 +100,20 @@ jobs:
         run: pip install uv
       - name: Install dev tools
         run: uv pip install --system ruff mypy -e ".[dev,all]"
+      - name: Parse-check every committed source (non-skippable)
+        # A syntactically-broken committed .py must fail the build, not be hidden
+        # behind a per-file ruff/mypy exclude. Runs over the whole checked-out tree.
+        run: python -m compileall -q src
       - name: Ruff check
         run: ruff check src tests
       - name: Ruff format check
         run: ruff format --check src tests
       - name: Mypy type check (advisory)
-        # Ruff is the enforced gate. mypy runs advisory: the tree carries a large
-        # --strict backlog and ~56 deliberately-excluded broken-stub files, so making
-        # it blocking today would just keep the job permanently red. Bringing the tree
-        # to strict-clean is tracked as its own effort; this surfaces type findings
-        # without blocking merges. See [tool.mypy] in pyproject.toml for exclusions.
+        # Ruff + the compileall parse-check are the enforced gates. mypy runs
+        # advisory: the tree still carries a large --strict backlog, so making it
+        # blocking today would keep the job permanently red. Bringing the tree to
+        # strict-clean (then flipping continue-on-error to false) is tracked as its
+        # own effort; this surfaces type findings without blocking merges.
         continue-on-error: true
         run: mypy src --ignore-missing-imports
 

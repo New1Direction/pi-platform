@@ -22,6 +22,7 @@ from pi_extension_governor.manifest import (
     TrustZone,
 )
 from pi_extension_governor.policy import ExtensionGovernancePolicy
+from pi_extension_governor.sandbox import SandboxedExtensionRuntime
 from pi_interoperability_layer.capability.graph import (
     ExtensionCompatibilityGraph,
 )
@@ -55,7 +56,6 @@ from pi_interoperability_layer.catalog.pipeline import (
 from pi_interoperability_layer.catalog.policy_gate_worker import (
     PackagePolicyGateWorker,
 )
-from pi_extension_governor.sandbox import SandboxedExtensionRuntime
 from pi_interoperability_layer.catalog.sandbox_worker import (
     SandboxValidationWorker,
 )

@@ -70,9 +70,12 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 120
 target-version = "py39"
-# These files are stored as escaped-string serializations whose recovered source
-# is itself invalid Python — pre-existing broken stubs that need manual repair or
-# removal. Excluded so ruff can lint the rest of the tree; see CLEANUP-TODO.
+# NOTE: these entries reference local-only, UNTRACKED scratch stubs (unparseable
+# escaped-string blobs) that are NOT committed to the repo — a clean checkout / CI
+# never sees them, so they don't ship. They are listed only so a developer who has
+# the stray files locally still gets a green `ruff check`. The committed tree is
+# parse-clean and enforced by `compileall` in CI + tests/conformance/
+# test_no_unparseable_sources.py. Delete the local files and this block can go.
 extend-exclude = [
     "src/pi_micro_agents/orchestrator/chain_cache.py",
     "src/pi_micro_agents/orchestrator/planner.py",
@@ -83,7 +86,6 @@ extend-exclude = [
     "src/pi_micro_agents/pi_agent_swarm_health_monitor.py",
     "src/pi_micro_agents/pi_base64_payload_inspector.py",
     "src/pi_micro_agents/pi_bigquery_trace_emitter.py",
-    "src/pi_micro_agents/pi_binary_file_detector.py",
     "src/pi_micro_agents/pi_changelog_entry_checker.py",
     "src/pi_micro_agents/pi_cloud_asset_iam_query_agent.py",
     "src/pi_micro_agents/pi_cloud_run_job_orchestrator.py",
@@ -160,7 +162,7 @@ namespace_packages = true
 exclude = '''(?x)(
     src/pi_micro_agents/orchestrator/(chain_cache|planner|replay|stream_bus|telemetry)\.py
   | src/pi_micro_agents/pi_(agent_self_reflection_checker|agent_swarm_health_monitor|base64_payload_inspector
-      |bigquery_trace_emitter|binary_file_detector|changelog_entry_checker|cloud_asset_iam_query_agent
+      |bigquery_trace_emitter|changelog_entry_checker|cloud_asset_iam_query_agent
       |cloud_run_job_orchestrator|cloud_trace_span_emitter|cors_header_auditor|dependency_graph_analyzer
       |deterministic_simulator|dot_env_secret_leak_checker|env_var_name_convention_checker
       |error_message_template_checker|ethical_drift_detector|exception_handling_sentry
