@@ -140,6 +140,34 @@ class StateLedger:
             ],
         }
 
+    @staticmethod
+    def _canonical_output(output: Any) -> str:
+        """Strip volatile telemetry from a step's ``output`` JSON before hashing.
+
+        ``raw_output`` embeds perf_counter-derived fields (``_latency_metrics``,
+        ``_cache_hit``, ``*_ms``) that vary every run. Drop them recursively so the
+        state hash reflects logical content only. Non-JSON output is returned as-is.
+        """
+        if not isinstance(output, str):
+            return output
+        try:
+            parsed = json.loads(output)
+        except (ValueError, TypeError):
+            return output
+
+        def _strip(obj: Any) -> Any:
+            if isinstance(obj, dict):
+                return {
+                    k: _strip(v)
+                    for k, v in obj.items()
+                    if k not in ("_latency_metrics", "_cache_hit") and not k.endswith("_ms")
+                }
+            if isinstance(obj, list):
+                return [_strip(v) for v in obj]
+            return obj
+
+        return json.dumps(_strip(parsed), sort_keys=True, separators=(",", ":"))
+
     def compute_state_hash(self, trace_id: str) -> str:
         """Content-addressed deterministic state hash.
 
@@ -150,14 +178,20 @@ class StateLedger:
         hashed input so that the same logical trace reproduces the same state
         hash across runs:
 
-        - per-row wall-clock ``timestamp`` values (volatile clock), and
+        - per-row wall-clock ``timestamp`` values (volatile clock),
         - the ``trace_id`` itself, which is a random ``uuid4`` correlation id
-          (a non-logical identifier; folding it in salts every run).
+          (a non-logical identifier; folding it in salts every run), and
+        - volatile telemetry embedded INSIDE each step's ``output`` JSON
+          (``_latency_metrics``, ``_cache_hit``, any ``*_ms`` field), which is
+          perf_counter-derived and changes every run.
         """
         packet = self.get_state_packet(trace_id)
         canonical_packet = {
             "total_steps": packet["total_steps"],
-            "steps": [{k: v for k, v in step.items() if k != "timestamp"} for step in packet["steps"]],
+            "steps": [
+                {k: (self._canonical_output(v) if k == "output" else v) for k, v in step.items() if k != "timestamp"}
+                for step in packet["steps"]
+            ],
         }
         canonical = json.dumps(canonical_packet, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode()).hexdigest()
