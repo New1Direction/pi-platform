@@ -28,6 +28,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Heuristic static search for illegal surplus sub-key leakage
 def detect_surplus_violations(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -55,6 +56,7 @@ def detect_surplus_violations(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. PiTokenSurplusOrchestrator singleton/engine
 class PiTokenSurplusOrchestrator:
     """Micro-agent parsing real-time LLM token usage headers, minting sub-keys, and managing arbitrage ledger."""
@@ -73,10 +75,12 @@ class PiTokenSurplusOrchestrator:
             "remaining_rate_tokens": 1000000,
             "free_tier_rollover": 50000,
             "under_utilized_keys": ["key_primary_1"],
-            "active_subkeys": {}  # key -> bundle info dict
+            "active_subkeys": {},  # key -> bundle info dict
         }
 
-    def record_usage(self, provider: str, prompt_tokens: int, completion_tokens: int, response_headers: Dict[str, str]) -> None:
+    def record_usage(
+        self, provider: str, prompt_tokens: int, completion_tokens: int, response_headers: Dict[str, str]
+    ) -> None:
         """Parses standard rate limit remaining tokens from response headers to update ledger capacity."""
         total_tokens = prompt_tokens + completion_tokens
 
@@ -109,7 +113,7 @@ class PiTokenSurplusOrchestrator:
             "tokens_used": 0,
             "price": price,
             "expires_at": expires_at,
-            "status": "ACTIVE"
+            "status": "ACTIVE",
         }
 
         self.ledger["active_subkeys"][sub_key] = bundle
@@ -117,19 +121,32 @@ class PiTokenSurplusOrchestrator:
         # Immutable ledger log in WALLedger
         try:
             from pi_agent_interceptor.proxy import ledger
+
             ledger.log_event("SURPLUS_BUNDLE_SALE", bundle, 0.0, "PASSED")
         except Exception:
-            try:
-                from src.pi_agent_interceptor.proxy import ledger
-                ledger.log_event("SURPLUS_BUNDLE_SALE", bundle, 0.0, "PASSED")
-            except Exception:
-                pass  # Fallback if proxy ledger is not fully loaded/stubbed
+            # Previously fell back to `from src.pi_agent_interceptor.proxy import
+            # ledger`, which only resolved when run from the repo root and broke
+            # mypy module resolution ("found twice"). The line above is the correct
+            # installed package path; drop the broken `src.`-prefixed fallback.
+            pass  # proxy ledger not loaded/stubbed
 
         return bundle
 
     def route_traffic(self, sub_key: str, requested_tokens: int) -> Tuple[bool, str]:
-        """Validates sub-key availability, quota caps, and expiration bounds."""
-        bundle = self.ledger["active_subkeys"].get(sub_key)
+        """Validates sub-key availability, quota caps, and expiration bounds.
+
+        Sub-key lookup uses ``hmac.compare_digest`` on every active key so the
+        response time does not leak whether a specific key is valid or where
+        in the dict it landed — closes a timing-oracle side channel.
+        """
+        import hmac
+
+        bundle = None
+        sub_key_b = sub_key.encode("utf-8") if isinstance(sub_key, str) else sub_key
+        for k, v in self.ledger["active_subkeys"].items():
+            k_b = k.encode("utf-8") if isinstance(k, str) else k
+            if len(k_b) == len(sub_key_b) and hmac.compare_digest(k_b, sub_key_b):
+                bundle = v
         if not bundle:
             return False, "INVALID_SUB_KEY"
 

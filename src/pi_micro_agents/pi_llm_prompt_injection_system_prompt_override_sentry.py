@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LLM_SYSTEM_OVERRIDE_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_LLM_SYSTEM_OVERRIDE_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_LLM_SYSTEM_OVERRIDE_STRICT_MODE")
 
 
 class SystemPromptOverrideInput(BaseModel):
@@ -51,11 +36,11 @@ class PiLLMPromptInjectionSystemPromptOverrideSentry:
 
         # Target adversarial system prompt overrides
         override_patterns = [
-            r'ignore\s+(all\s+)?(previous\s+)?(system\s+)?(instructions|commands|rules)',
-            r'system\s+update\s*:\s*(the\s+)?rules\s+have\s+changed',
-            r'you\s+must\s+now\s+act\s+as',
-            r'new\s+rule\s*:\s*ignore\s+previous',
-            r'bypass\s+(all\s+)?system\s+constraints'
+            r"ignore\s+(all\s+)?(previous\s+)?(system\s+)?(instructions|commands|rules)",
+            r"system\s+update\s*:\s*(the\s+)?rules\s+have\s+changed",
+            r"you\s+must\s+now\s+act\s+as",
+            r"new\s+rule\s*:\s*ignore\s+previous",
+            r"bypass\s+(all\s+)?system\s+constraints",
         ]
 
         is_secure = True
@@ -79,8 +64,5 @@ class PiLLMPromptInjectionSystemPromptOverrideSentry:
                 is_secure = True
 
         return SystemPromptOverrideOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

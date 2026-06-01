@@ -33,6 +33,7 @@ from pi_interoperability_layer.snapshot.clock import DeterministicClock, canonic
 #  Shard Sequence
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class ShardSequence:
     """Immutable sequence state for a single shard.
@@ -89,6 +90,7 @@ class SequenceFrozenError(Exception):
 #  Monotonic Checkpoint
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class MonotonicCheckpoint:
     """Cryptographic checkpoint for shard progress.
@@ -107,14 +109,19 @@ class MonotonicCheckpoint:
 
     def __post_init__(self, _: Any = None) -> None:
         if not self.checkpoint_hash:
-            data = json.dumps({
-                "checkpoint_id": self.checkpoint_id,
-                "shard_id": self.shard_id,
-                "sequence": self.sequence,
-                "last_event_hash": self.last_event_hash,
-                "epoch_number": self.epoch_number,
-                "timestamp": self.timestamp,
-            }, sort_keys=True, separators=(",", ":"), default=str)
+            data = json.dumps(
+                {
+                    "checkpoint_id": self.checkpoint_id,
+                    "shard_id": self.shard_id,
+                    "sequence": self.sequence,
+                    "last_event_hash": self.last_event_hash,
+                    "epoch_number": self.epoch_number,
+                    "timestamp": self.timestamp,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+                default=str,
+            )
             object.__setattr__(self, "checkpoint_hash", hashlib.sha256(data.encode()).hexdigest())
 
     def verify(self) -> bool:
@@ -133,6 +140,7 @@ class MonotonicCheckpoint:
 # ──────────────────────────────
 #  Cross-Shard Ordering Rules
 # ──────────────────────────────
+
 
 @dataclass(frozen=True)
 class CrossShardOrderingRule:
@@ -207,6 +215,7 @@ class CrossShardOrderingRule:
 # ──────────────────────────────
 #  Shard Coordinator
 # ──────────────────────────────
+
 
 class ShardCoordinator:
     """Deterministic shard sequencing and checkpoint coordination.
@@ -348,9 +357,12 @@ class ShardCoordinator:
                    (checkpoint_id, shard_id, sequence, last_event_hash, epoch_number, timestamp, checkpoint_hash)
                    VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    checkpoint.checkpoint_id, checkpoint.shard_id,
-                    checkpoint.sequence, checkpoint.last_event_hash,
-                    checkpoint.epoch_number, checkpoint.timestamp,
+                    checkpoint.checkpoint_id,
+                    checkpoint.shard_id,
+                    checkpoint.sequence,
+                    checkpoint.last_event_hash,
+                    checkpoint.epoch_number,
+                    checkpoint.timestamp,
                     checkpoint.checkpoint_hash,
                 ),
             )
@@ -430,16 +442,24 @@ class ShardCoordinator:
                     )
 
                 # Record epoch coordination
-                coord_data = json.dumps({
-                    "epoch_number": epoch_number,
-                    "established_at": canonical_timestamp(marker.wall_time),
-                    "participating_shards": sorted(participating_shards),
-                }, sort_keys=True)
+                coord_data = json.dumps(
+                    {
+                        "epoch_number": epoch_number,
+                        "established_at": canonical_timestamp(marker.wall_time),
+                        "participating_shards": sorted(participating_shards),
+                    },
+                    sort_keys=True,
+                )
                 coord_hash = hashlib.sha256(coord_data.encode()).hexdigest()
 
                 conn.execute(
                     "INSERT OR IGNORE INTO epoch_coordinations (epoch_number, established_at, participating_shards, coordination_hash) VALUES (?, ?, ?, ?)",
-                    (epoch_number, canonical_timestamp(marker.wall_time), json.dumps(sorted(participating_shards)), coord_hash),
+                    (
+                        epoch_number,
+                        canonical_timestamp(marker.wall_time),
+                        json.dumps(sorted(participating_shards)),
+                        coord_hash,
+                    ),
                 )
                 conn.commit()
             except Exception:
@@ -491,7 +511,15 @@ class ShardCoordinator:
                        last_event_id = excluded.last_event_id,
                        last_event_hash = excluded.last_event_hash,
                        updated_at = excluded.updated_at""",
-                (shard_id, new_seq, last_event.header.event_id, last_event.event_hash, 0, 0, canonical_timestamp(datetime.now(timezone.utc))),
+                (
+                    shard_id,
+                    new_seq,
+                    last_event.header.event_id,
+                    last_event.event_hash,
+                    0,
+                    0,
+                    canonical_timestamp(datetime.now(timezone.utc)),
+                ),
             )
             conn.commit()
             conn.close()
@@ -526,9 +554,7 @@ class ShardCoordinator:
             prev = checkpoints[i - 1]
             curr = checkpoints[i]
             if curr.sequence <= prev.sequence:
-                errors.append(
-                    f"non_monotonic at index {i}: {prev.sequence} -> {curr.sequence}"
-                )
+                errors.append(f"non_monotonic at index {i}: {prev.sequence} -> {curr.sequence}")
             if not curr.verify():
                 errors.append(f"checkpoint_hash_invalid at index {i}: {curr.checkpoint_id}")
 

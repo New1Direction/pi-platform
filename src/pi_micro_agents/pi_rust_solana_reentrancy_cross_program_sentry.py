@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_SOLANA_REENTRANCY_CROSS_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_SOLANA_REENTRANCY_CROSS_STRICT_MODE")
 
 
 class SolanaReentrancyCrossInput(BaseModel):
@@ -40,13 +37,13 @@ class PiRustSolanaReentrancyCrossProgramSentry:
         vulnerable_elements = []
         flagged_findings = []
 
-        methods = re.findall(r'fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        methods = re.findall(r"fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in methods:
+        for name, _args, body in methods:
             if "invoke" in body or "invoke_signed" in body:
                 # CPI invocation exists. Let's check if there is state mutation *after* the invoke
                 # Simple check: matches variable mutations or borrows (e.g. `*` or `mut` or `=` or `serialize`) after invoke
-                parts = re.split(r'invoke(_signed)?\s*\(', body)
+                parts = re.split(r"invoke(_signed)?\s*\(", body)
                 if len(parts) > 1:
                     post_cpi_code = parts[-1]
                     if "=" in post_cpi_code or "mut " in post_cpi_code or "serialize" in post_cpi_code:
@@ -73,5 +70,5 @@ class PiRustSolanaReentrancyCrossProgramSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

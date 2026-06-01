@@ -70,11 +70,13 @@ class RadiusRuntime:
                     )
                 )
 
-        # Compute scores for changed nodes
+        # Compute scores for changed nodes.
+        # Sort the changed-node set so score ordering (and therefore the
+        # report hash) is deterministic regardless of set iteration order.
         scores = []
         if changed_nodes is None:
             changed_nodes = self._detect_changed_nodes(baseline, modified)
-        for node_id in changed_nodes:
+        for node_id in sorted(changed_nodes):
             score = self.engine.compute_score(baseline, modified, node_id)
             scores.append(score)
 

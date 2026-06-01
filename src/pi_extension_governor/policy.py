@@ -61,16 +61,68 @@ class ExtensionGovernancePolicy:
 
     def _build_rules(self) -> List[PolicyRule]:
         rules = [
-            PolicyRule("capability_class", "required_capability", {"allowed": [c.value for c in self.approved_capability_classes]}, "ALLOW", "CRITICAL"),
-            PolicyRule("resource_cpu", "max_resource", {"max": self.max_cpu_ms, "field": "resource_cpu_ms_max"}, "DENY", "CRITICAL"),
-            PolicyRule("resource_memory", "max_resource", {"max": self.max_memory_mb, "field": "resource_memory_mb_max"}, "DENY", "CRITICAL"),
-            PolicyRule("replay_safe", "required_capability", {"required": self.require_replay_safe, "field": "replayability_claim"}, "DENY", "HIGH"),
-            PolicyRule("deterministic", "required_capability", {"required": self.require_deterministic, "field": "deterministic_claim"}, "DENY", "HIGH"),
-            PolicyRule("trust_zone", "trust_zone_restriction", {"allowed": [z.value for z in self.allowed_trust_zones]}, "DENY", "CRITICAL"),
-            PolicyRule("network_access", "banned_capability", {"banned": True, "field": "network_access"}, "DENY", "HIGH"),
-            PolicyRule("filesystem_access", "banned_capability", {"banned": True, "field": "filesystem_access"}, "DENY", "HIGH"),
-            PolicyRule("subprocess_access", "banned_capability", {"banned": True, "field": "subprocess_access"}, "DENY", "CRITICAL"),
-            PolicyRule("dynamic_eval", "banned_capability", {"banned": True, "field": "dynamic_eval_access"}, "DENY", "CRITICAL"),
+            PolicyRule(
+                "capability_class",
+                "required_capability",
+                {"allowed": [c.value for c in self.approved_capability_classes]},
+                "ALLOW",
+                "CRITICAL",
+            ),
+            PolicyRule(
+                "resource_cpu",
+                "max_resource",
+                {"max": self.max_cpu_ms, "field": "resource_cpu_ms_max"},
+                "DENY",
+                "CRITICAL",
+            ),
+            PolicyRule(
+                "resource_memory",
+                "max_resource",
+                {"max": self.max_memory_mb, "field": "resource_memory_mb_max"},
+                "DENY",
+                "CRITICAL",
+            ),
+            PolicyRule(
+                "replay_safe",
+                "required_capability",
+                {"required": self.require_replay_safe, "field": "replayability_claim"},
+                "DENY",
+                "HIGH",
+            ),
+            PolicyRule(
+                "deterministic",
+                "required_capability",
+                {"required": self.require_deterministic, "field": "deterministic_claim"},
+                "DENY",
+                "HIGH",
+            ),
+            PolicyRule(
+                "trust_zone",
+                "trust_zone_restriction",
+                {"allowed": [z.value for z in self.allowed_trust_zones]},
+                "DENY",
+                "CRITICAL",
+            ),
+            PolicyRule(
+                "network_access", "banned_capability", {"banned": True, "field": "network_access"}, "DENY", "HIGH"
+            ),
+            PolicyRule(
+                "filesystem_access", "banned_capability", {"banned": True, "field": "filesystem_access"}, "DENY", "HIGH"
+            ),
+            PolicyRule(
+                "subprocess_access",
+                "banned_capability",
+                {"banned": True, "field": "subprocess_access"},
+                "DENY",
+                "CRITICAL",
+            ),
+            PolicyRule(
+                "dynamic_eval",
+                "banned_capability",
+                {"banned": True, "field": "dynamic_eval_access"},
+                "DENY",
+                "CRITICAL",
+            ),
         ]
         return rules
 
@@ -88,6 +140,7 @@ class ExtensionGovernancePolicy:
         # Hash of evaluation for provenance
         import hashlib
         import json
+
         policy_hash = hashlib.sha256(
             json.dumps(evaluations, sort_keys=True, separators=(",", ":")).encode()
         ).hexdigest()

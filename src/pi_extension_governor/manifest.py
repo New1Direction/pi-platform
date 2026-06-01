@@ -82,7 +82,14 @@ class ExtensionManifest(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
-        """Deterministic manifest hash excluding mutable receipt fields."""
+        """Deterministic, content-addressed manifest hash.
+
+        Excludes mutable receipt fields AND wall-clock provenance metadata
+        (provenance_build_timestamp defaults to datetime.now), so the same
+        logical manifest reproduces the same hash across constructions/runs.
+        The timestamp is still stored/returned as metadata; it is only kept
+        out of the hashed input.
+        """
         payload = self.model_dump(
             exclude={
                 "inspection_receipt_hash",
@@ -90,6 +97,7 @@ class ExtensionManifest(BaseModel):
                 "admission_receipt_hash",
                 "rejection_reason",
                 "status",
+                "provenance_build_timestamp",
             }
         )
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
@@ -118,11 +126,16 @@ class ExtensionBundle(BaseModel):
     model_config = {"frozen": True}
 
     def compute_bundle_hash(self) -> str:
+        """Deterministic, content-addressed bundle hash.
+
+        Excludes the wall-clock ``created_at`` metadata (defaults to
+        datetime.now) so the same logical bundle reproduces the same hash.
+        ``created_at`` remains stored/returned as metadata.
+        """
         data = {
             "bundle_id": self.bundle_id,
             "manifest_hash": self.manifest.compute_hash(),
             "payload_hash": self.payload_hash,
-            "created_at": self.created_at.isoformat(),
         }
         canonical = json.dumps(data, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode()).hexdigest()

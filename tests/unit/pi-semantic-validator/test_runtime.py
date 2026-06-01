@@ -153,10 +153,7 @@ def test_runtime_bounded_violation_truncation():
     runtime = ValidatorRuntime(policy=policy, bounds=bounds)
     report = runtime.run(artifacts)
     # Should contain the bounded truncation violation
-    assert any(
-        v.rule == "BOUNDED_EXECUTION_VIOLATION_LIMIT_EXCEEDED"
-        for v in report.violations
-    )
+    assert any(v.rule == "BOUNDED_EXECUTION_VIOLATION_LIMIT_EXCEEDED" for v in report.violations)
 
 
 def test_run_validator_from_files():
@@ -185,3 +182,65 @@ def test_report_hashes_stable():
     report2 = runtime.run(artifacts)
     assert report1.policy_hash == report2.policy_hash
     assert report1.artifacts_hash == report2.artifacts_hash
+
+
+class TestReportReproducibility:
+    """Regression: a validation report's reproducibility proof must be a pure
+    function of the LOGICAL input.
+
+    The same logical (policy, artifacts) reproduces an IDENTICAL
+    ``policy_hash``, ``artifacts_hash`` and content-addressed ``report_id``
+    across two FRESH runtime + policy instances. Wall-clock provenance
+    (``generated_at``) and the random per-run ``execution_id`` are kept as
+    stored metadata but excluded from the reproducibility proof.
+    """
+
+    def test_report_hashes_are_reproducible(self):
+        import time
+
+        # Fresh policy + fresh runtime instances on each run, with a
+        # wall-clock gap so any contamination would surface.
+        report1 = ValidatorRuntime(policy=_build_policy()).run(_build_artifacts())
+        time.sleep(0.01)
+        report2 = ValidatorRuntime(policy=_build_policy()).run(_build_artifacts())
+
+        assert report1.policy_hash == report2.policy_hash
+        assert report1.artifacts_hash == report2.artifacts_hash
+
+    def test_report_id_hash_is_reproducible(self):
+        import time
+
+        report1 = ValidatorRuntime(policy=_build_policy()).run(_build_artifacts())
+        time.sleep(0.01)
+        report2 = ValidatorRuntime(policy=_build_policy()).run(_build_artifacts())
+
+        # report_id is content-addressed (derived from the reproducible hashes
+        # + status + sorted violation rules), not a random uuid.
+        assert report1.report_id == report2.report_id
+        assert report1.report_id.startswith("report_")
+
+    def test_report_timestamp_and_execution_id_still_recorded(self):
+        report = ValidatorRuntime(policy=_build_policy()).run(_build_artifacts())
+        # Timestamp metadata is still recorded on the report.
+        assert report.generated_at is not None
+        # A unique runtime execution id is still recorded as metadata.
+        assert report.execution_id
+        assert report.execution_id.startswith("val_")
+
+    def test_reusing_one_runtime_does_not_accumulate_state(self):
+        # Finding: run() appended to self._violations (init'd only in __init__)
+        # with no reset, so calling run() twice on ONE instance doubled the
+        # violations and changed the content-addressed report_id. Reusing an
+        # instance must be reproducible, like a fresh one.
+        runtime = ValidatorRuntime(policy=_build_policy())
+        r1 = runtime.run([])  # NO_ARTIFACTS_PROVIDED -> 1 violation
+        r2 = runtime.run([])  # must NOT accumulate to 2
+        assert r1.summary["total_violations"] == r2.summary["total_violations"]
+        assert r1.report_id == r2.report_id
+
+    def test_report_execution_id_is_unique_per_run(self):
+        # The runtime execution id remains a unique per-run handle (metadata),
+        # independent of the content-addressed reproducibility proof.
+        report1 = ValidatorRuntime(policy=_build_policy()).run(_build_artifacts())
+        report2 = ValidatorRuntime(policy=_build_policy()).run(_build_artifacts())
+        assert report1.execution_id != report2.execution_id

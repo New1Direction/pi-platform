@@ -192,21 +192,33 @@ Equivalence — not "it compiles" — is the gate.
 ## Build & test
 
 ```bash
-# 1. Rust core (pure, no Python needed)
-cd rust && cargo test -p pi-agents          # 91 unit tests
+# 1. Rust cores (pure Rust, no Python needed)
+cd rust && cargo test -p pi-agents -p pi-event-fabric   # 792 unit tests
 
-# 2. Build the PyO3 extension into the PoC venv
+# 2. Build the PyO3 extension into a venv (use --release for benchmarks)
 cd /path/to/pi-platform
 uv venv .venv-poc --python 3.11
 uv pip install --python .venv-poc pydantic pytest maturin
 source .venv-poc/bin/activate
-cd rust/crates/pi-py && maturin develop      # installs `pi_core`
+cd rust/crates/pi-py && maturin develop --release       # installs `pi_core`
 
-# 3. Parity (Rust output == original Python output)
+# 3. Parity — Rust output == original Python, byte-identical
 cd ../../parity
-python -m pytest -q                          # 223 curated samples
-PYTHONPATH=.:../../src python fuzz_parity.py 1000   # 25k differential comparisons
+python -m pytest -q                                     # curated agent parity
+PYTHONPATH=.:../../src python fuzz_parity.py 1000        # differential fuzz
+PYTHONPATH=.:../../src python event_fabric_parity.py     # event bus (+ event_fabric_fuzz.py)
+PYTHONPATH=.:../../src python schema_governance_parity.py
+PYTHONPATH=.:../../src python governance_gates_parity.py
+PYTHONPATH=.:../../src python consensus_integration_test.py
+
+# 4. Performance (release build required)
+PYTHONPATH=.:../../src python benchmark.py               # per-agent: 2–12×
+PYTHONPATH=.:../../src python concurrency_benchmark.py    # GIL-released fan-out: ~5×
 ```
+
+CI: `.github/workflows/rust-core.yml` runs `cargo build` + `cargo test` on every
+`rust/**` change (independent of the Python platform CI). The whole tree is
+`ruff`-clean (`ruff check` + `ruff format --check` pass).
 
 ## Porting a new agent
 

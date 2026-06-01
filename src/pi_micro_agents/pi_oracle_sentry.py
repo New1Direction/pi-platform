@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ORACLE_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_ORACLE_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_ORACLE_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Static heuristic verification of pricing anomalies
 def detect_pricing_anomalies(price: float, token: str) -> Tuple[float, List[str]]:
@@ -46,20 +32,27 @@ def detect_pricing_anomalies(price: float, token: str) -> Tuple[float, List[str]
 
     return max_risk, violations
 
+
 # 3. Pydantic-Enforced Input/Output Envelopes
 class OracleSentryInput(BaseModel):
     token: str = Field(..., description="Target token ticker or address (e.g. ETH, BTC, USDC)")
     chain_id: int = Field(default=1, description="Target EVM Chain ID")
     current_observed_price: float = Field(..., description="The transaction price candidate under evaluation")
-    max_deviation_percent: float = Field(default=2.0, description="Max deviation threshold allowed between oracle feeds")
+    max_deviation_percent: float = Field(
+        default=2.0, description="Max deviation threshold allowed between oracle feeds"
+    )
+
 
 class OracleSentryOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates whether the observed price is safe and verified")
-    deviation_detected_percent: float = Field(..., description="The calculated percentage divergence from aggregate fair price")
+    deviation_detected_percent: float = Field(
+        ..., description="The calculated percentage divergence from aggregate fair price"
+    )
     aggregate_fair_price: float = Field(..., description="The computed consensus fair price across oracle feeds")
     verified_sources: List[str] = Field(default_factory=list, description="Oracle sources scanned and matched")
     status: str = Field(..., description="Price status classification (PASSED, WARN_PRICE, REJECTED_PRICE)")
     flagged_anomalies: List[str] = Field(default_factory=list, description="List of identified pricing anomalies")
+
 
 # 4. Core Micro-Agent Class
 class PiOracleSentry:
@@ -96,7 +89,9 @@ class PiOracleSentry:
 
         # Check deviation against threshold
         if deviation > max_dev:
-            violations.append(f"Price deviation of {deviation:.2f}% exceeds safe threshold of {max_dev}% (Fair: {fair_price})")
+            violations.append(
+                f"Price deviation of {deviation:.2f}% exceeds safe threshold of {max_dev}% (Fair: {fair_price})"
+            )
             risk = max(risk, 85.0)
 
         # Config strict mode resolution
@@ -119,5 +114,5 @@ class PiOracleSentry:
             aggregate_fair_price=fair_price,
             verified_sources=["Chainlink Aggregator V4", "Pyth Network Push Oracle", "Uniswap V3 TWAP Feed"],
             status=status,
-            flagged_anomalies=violations
+            flagged_anomalies=violations,
         )

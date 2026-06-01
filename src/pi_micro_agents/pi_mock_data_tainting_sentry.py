@@ -1,24 +1,28 @@
 from __future__ import annotations
-import os
+
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
+
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_MOCK_TAINT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_MOCK_TAINT_STRICT_MODE")
+
 
 class MockDataTaintingInput(BaseModel):
     file_path: str = Field(..., description="Path of the mock or fixture file being audited")
     data_content: str = Field(..., description="Content of the file")
+
 
 class MockDataTaintingOutput(BaseModel):
     is_secure: bool = Field(..., description="True if no real-looking credentials or production hosts are found")
     tainted_elements: List[str] = Field(default_factory=list, description="List of tainted/sensitive elements found")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiMockDataTaintingSentry:
     """Deterministic micro-agent that checks mock or fixture files to prevent sensitive data leakage."""
@@ -35,9 +39,12 @@ class PiMockDataTaintingSentry:
             (r"\bAKIA[A-Z0-9]{16}\b", "Potential AWS Access Key found"),
             (r"\b(?:ghp|gho|ghu|ghs|ghr)_[a-zA-Z0-9]{36}\b", "Potential GitHub Token found"),
             (r"\bprod(?:uction)?\.[a-z0-9\-]+\.[a-z]{2,6}\b", "Reference to potential live production environment"),
-            (r"\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b", "Internal private IP found"),
+            (
+                r"\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3})\b",
+                "Internal private IP found",
+            ),
             # Match high-entropy values like API keys
-            (r"\b[a-zA-Z0-9_\-]{32,}\b", "High-entropy API key or secret token found")
+            (r"\b[a-zA-Z0-9_\-]{32,}\b", "High-entropy API key or secret token found"),
         ]
 
         lines = content.splitlines()
@@ -75,8 +82,5 @@ class PiMockDataTaintingSentry:
                 is_secure = True
 
         return MockDataTaintingOutput(
-            is_secure=is_secure,
-            tainted_elements=tainted_elements,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, tainted_elements=tainted_elements, risk_score=risk_score, status=status
         )

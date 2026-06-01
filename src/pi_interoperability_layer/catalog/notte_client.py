@@ -14,9 +14,7 @@ import urllib.request
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
-NOTTE_CATALOG_ENDPOINT = (
-    "https://us-prod.notte.cc/functions/71b6214f-16c4-4702-b0c3-b3c948debf8a/runs/start"
-)
+NOTTE_CATALOG_ENDPOINT = "https://us-prod.notte.cc/functions/71b6214f-16c4-4702-b0c3-b3c948debf8a/runs/start"
 
 
 @dataclass(frozen=True)
@@ -90,8 +88,7 @@ class NotteCatalogClient:
         self._api_key = os.environ.get("NOTTE_API_KEY", "")
         if not self._api_key:
             raise RuntimeError(
-                "NOTTE_API_KEY environment variable is required. "
-                "Set it before initializing NotteCatalogClient."
+                "NOTTE_API_KEY environment variable is required. Set it before initializing NotteCatalogClient."
             )
 
     def search(

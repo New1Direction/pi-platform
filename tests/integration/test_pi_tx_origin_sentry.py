@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_tx_origin_sentry import (
     PiTxOriginSentry,
     TxOriginInput,
-    TxOriginOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -38,11 +35,7 @@ def test_tx_origin_vulnerable():
         }
     }
     """
-    inp = TxOriginInput(
-        file_path="Phishable.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = TxOriginInput(file_path="Phishable.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_tx_origin(inp)
 
@@ -74,11 +67,7 @@ def test_tx_origin_compliant_with_warning():
         }
     }
     """
-    inp = TxOriginInput(
-        file_path="ERC2771Compliant.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = TxOriginInput(file_path="ERC2771Compliant.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_tx_origin(inp)
 
@@ -112,22 +101,22 @@ def test_orchestrator_tx_origin_consensus_passed(monkeypatch):
             "vulnerable_functions": ["withdraw"],
             "flagged_findings": ["Uses tx.origin"],
             "risk_score": 90.0,
-            "status": "REJECTED_TXORIGIN_VULNERABILITY"
+            "status": "REJECTED_TXORIGIN_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["withdraw"],
             "flagged_findings": ["Uses tx.origin"],
             "risk_score": 90.0,
-            "status": "REJECTED_TXORIGIN_VULNERABILITY"
+            "status": "REJECTED_TXORIGIN_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["withdraw"],
             "flagged_findings": ["Uses tx.origin"],
             "risk_score": 90.0,
-            "status": "REJECTED_TXORIGIN_VULNERABILITY"
-        }
+            "status": "REJECTED_TXORIGIN_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -135,8 +124,8 @@ def test_orchestrator_tx_origin_consensus_passed(monkeypatch):
         context={
             "file_path": "Phishable.sol",
             "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

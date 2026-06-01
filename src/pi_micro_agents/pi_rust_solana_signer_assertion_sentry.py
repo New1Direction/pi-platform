@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_SOLANA_SIGNER_ASSERTION_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_SOLANA_SIGNER_ASSERTION_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_SOLANA_SIGNER_ASSERTION_STRICT_MODE")
 
 
 class SolanaSignerAssertionInput(BaseModel):
@@ -35,7 +20,9 @@ class SolanaSignerAssertionInput(BaseModel):
 
 class SolanaSignerAssertionOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if Solana signer assertions passed")
-    vulnerable_instructions: List[str] = Field(default_factory=list, description="Vulnerable instruction or method names")
+    vulnerable_instructions: List[str] = Field(
+        default_factory=list, description="Vulnerable instruction or method names"
+    )
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
@@ -53,16 +40,22 @@ class PiRustSolanaSignerAssertionSentry:
         flagged_findings = []
 
         # Find Solana instruction functions inside pub fn under impl blocks
-        instructions = re.findall(r'pub\s+fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*(?:pub\s+fn|fn)|\Z)', code)
+        instructions = re.findall(
+            r"pub\s+fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*(?:pub\s+fn|fn)|\Z)", code
+        )
 
         for name, args, body in instructions:
             # Look for context loading, e.g. ctx: Context<Stake> or ctx: Context<Claims>
-            ctx_match = re.search(r'ctx\s*:\s*Context\s*<\s*([a-zA-Z0-9_]+)\s*>', args)
+            ctx_match = re.search(r"ctx\s*:\s*Context\s*<\s*([a-zA-Z0-9_]+)\s*>", args)
             if ctx_match:
                 struct_name = ctx_match.group(1)
 
                 # Search the rust file for the corresponding account struct definition, e.g. #[derive(Accounts)] pub struct Stake<'info>
-                struct_pattern = r'#\[derive\([^)]*Accounts[^)]*\)\][\s\S]*?struct\s+' + re.escape(struct_name) + r'[\s\S]*?\{([\s\S]*?)\}'
+                struct_pattern = (
+                    r"#\[derive\([^)]*Accounts[^)]*\)\][\s\S]*?struct\s+"
+                    + re.escape(struct_name)
+                    + r"[\s\S]*?\{([\s\S]*?)\}"
+                )
                 struct_match = re.search(struct_pattern, code)
 
                 if struct_match:
@@ -71,12 +64,15 @@ class PiRustSolanaSignerAssertionSentry:
                     # Look for fields that are of type AccountInfo<'info> or UncheckedAccount<'info>
                     # Check if they have the #[account(signer)] attribute or a signer check constraint
                     # Anchor fields:
-                    fields = re.findall(r'(pub\s+)?([a-zA-Z0-9_]+)\s*:\s*(AccountInfo|UncheckedAccount|Account)', struct_body)
+                    fields = re.findall(
+                        r"(pub\s+)?([a-zA-Z0-9_]+)\s*:\s*(AccountInfo|UncheckedAccount|Account)", struct_body
+                    )
                     for _, field_name, field_type in fields:
                         # Find the attributes above this field
-                        field_pattern = rf'#\[account\([^)]*\)\]\s*(pub\s+)?{field_name}\s*:'
                         has_signer_attribute = False
-                        attribute_match = re.search(rf'#\[account\(([^)]*)\)\]\s*(pub\s+)?{field_name}\s*:', struct_body)
+                        attribute_match = re.search(
+                            rf"#\[account\(([^)]*)\)\]\s*(pub\s+)?{field_name}\s*:", struct_body
+                        )
                         if attribute_match:
                             attr_content = attribute_match.group(1)
                             if "signer" in attr_content:
@@ -115,5 +111,5 @@ class PiRustSolanaSignerAssertionSentry:
             vulnerable_instructions=vulnerable_instructions,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

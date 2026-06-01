@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_SOLANA_CPI_INSTRUCTION_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_SOLANA_CPI_INSTRUCTION_STRICT_MODE")
 
 
 class SolanaCPIInstructionInput(BaseModel):
@@ -40,9 +37,9 @@ class PiRustSolanaCPIInstructionSentry:
         vulnerable_elements = []
         flagged_findings = []
 
-        methods = re.findall(r'fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        methods = re.findall(r"fn\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in methods:
+        for name, _args, body in methods:
             if "invoke" in body or "invoke_signed" in body:
                 # CPI occurs. Check if the target program id is checked or validated
                 # e.g., if there's a check that compares program.key against program_id
@@ -71,5 +68,5 @@ class PiRustSolanaCPIInstructionSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

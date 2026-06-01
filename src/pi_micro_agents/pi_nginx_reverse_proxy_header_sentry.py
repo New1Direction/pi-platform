@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_NGINX_REVERSE_PROXY_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_NGINX_REVERSE_PROXY_STRICT_MODE")
 
 
 class NginxReverseProxyHeaderInput(BaseModel):
@@ -41,7 +38,7 @@ class PiNginxReverseProxyHeaderSentry:
         flagged_findings = []
 
         # Find location blocks
-        location_blocks = re.findall(r'location\s+([a-zA-Z0-9_\-\./]+)\s*\{([\s\S]*?)\}', code)
+        location_blocks = re.findall(r"location\s+([a-zA-Z0-9_\-\./]+)\s*\{([\s\S]*?)\}", code)
 
         for path, body in location_blocks:
             if "proxy_pass" in body:
@@ -72,5 +69,5 @@ class PiNginxReverseProxyHeaderSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

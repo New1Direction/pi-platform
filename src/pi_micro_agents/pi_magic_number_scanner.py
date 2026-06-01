@@ -1,25 +1,29 @@
 from __future__ import annotations
+
 import ast
-import os
 import re
 from typing import List
+
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
+
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_MAGIC_NUMBER_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_MAGIC_NUMBER_STRICT_MODE")
+
 
 class MagicNumberInput(BaseModel):
     file_path: str = Field(..., description="Path of the code file being audited")
     code_content: str = Field(..., description="Source code content")
+
 
 class MagicNumberOutput(BaseModel):
     is_secure: bool = Field(..., description="True if no hardcoded magic numbers are found in computations")
     flagged: List[str] = Field(default_factory=list, description="List of magic numbers flagged")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiMagicNumberScanner:
     """Deterministic micro-agent that scans code files for hardcoded magic numbers (excluding 0, 1, 2) in expressions."""
@@ -72,7 +76,7 @@ class PiMagicNumberScanner:
         # Fallback regex scanner if no python AST was run or found nothing
         if len(flagged) == 0:
             lines = code.splitlines()
-            for idx, line in enumerate(lines, start=1):
+            for _idx, line in enumerate(lines, start=1):
                 # Look for expressions like ' * 86400', ' + 3600', ' / 123.45', ' == 99'
                 # Excluding assignments like 'LIMIT = 5' which is standard definition
                 if re.search(r"=\s*\d+", line) and not (line.strip().isupper() or "const" in line or "final" in line):
@@ -81,7 +85,7 @@ class PiMagicNumberScanner:
                     if match:
                         val_str = match.group(1)
                         try:
-                            val = float(val_str) if '.' in val_str else int(val_str)
+                            val = float(val_str) if "." in val_str else int(val_str)
                             if val not in allowed_numbers:
                                 flagged.append(val_str)
                         except ValueError:
@@ -98,9 +102,4 @@ class PiMagicNumberScanner:
                 status = "WARN_MAGIC_NUMBER"
                 is_secure = True
 
-        return MagicNumberOutput(
-            is_secure=is_secure,
-            flagged=flagged,
-            risk_score=risk_score,
-            status=status
-        )
+        return MagicNumberOutput(is_secure=is_secure, flagged=flagged, risk_score=risk_score, status=status)

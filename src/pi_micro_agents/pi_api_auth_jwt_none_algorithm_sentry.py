@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import json
-import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_API_AUTH_JWT_NONE_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_API_AUTH_JWT_NONE_STRICT_MODE")
 
 
 class ApiAuthJWTNoneAlgorithmInput(BaseModel):
@@ -47,7 +43,12 @@ class PiApiAuthJWTNoneAlgorithmSentry:
             if "jwt.decode" in clean_line or "jwt.verify" in clean_line:
                 # Check if 'none' is explicitly allowed, or algorithm verification is bypassed
                 # e.g., if there's no algorithms list, or algorithms has "none"
-                if "algorithms" not in clean_line or "none" in clean_line.lower() or "verify=False" in clean_line or "verify=false" in clean_line:
+                if (
+                    "algorithms" not in clean_line
+                    or "none" in clean_line.lower()
+                    or "verify=False" in clean_line
+                    or "verify=false" in clean_line
+                ):
                     vulnerable_elements.append(f"Line {idx}")
                     flagged_findings.append(
                         f"Line {idx}: Potential insecure JWT decoding configuration: '{clean_line}'. "
@@ -71,5 +72,5 @@ class PiApiAuthJWTNoneAlgorithmSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -1,9 +1,15 @@
 """Shard-Coordinated Deterministic Execution Fabric.
 
-Compiler-style distributed execution with global barriers.
-No swarm semantics. No autonomous behavior.
-Deterministic partitioning, phase-locked orchestration,
-ephemeral worker leasing, and replay recovery.
+⚠️  SIMULATION / REFERENCE SCAFFOLD — NOT a live execution path.
+
+This models the *shape* of a compiler-style distributed fabric (deterministic
+partitioning, phase-locked orchestration, worker leasing, replay recovery), but
+``execute_phase`` does NOT distribute or run anything: it resolves every step to
+a hash of the input via ``_simulate_execution`` (see the "# simulated" markers).
+It has no production caller — only its own unit/integration tests import it. Do
+not treat it as evidence that real distributed/barrier execution exists. Wire it
+to a real dispatcher, or move it under an examples/ namespace, before relying on
+it as a platform capability.
 """
 
 from __future__ import annotations
@@ -20,6 +26,7 @@ from pi_extension_governor.manifest import ExtensionManifest
 
 # ── Execution Phase ──────────────────────────────────────────────
 
+
 class ExecutionPhase(str, Enum):
     PENDING = "pending"
     SCHEDULING = "scheduling"
@@ -31,6 +38,7 @@ class ExecutionPhase(str, Enum):
 
 
 # ── Worker Lease ─────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class WorkerLease:
@@ -52,14 +60,15 @@ class WorkerLease:
     output_size_max: int = 10 * 1024 * 1024
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash. Excludes the random lease_id/worker_id
+        # (uuid4-derived) and the wall-clock leased_at so the same logical lease
+        # reproduces the same hash across runs. All three remain STORED on the
+        # lease as metadata.
         data = json.dumps(
             {
-                "lease_id": self.lease_id,
-                "worker_id": self.worker_id,
                 "shard_id": self.shard_id,
                 "phase_number": self.phase_number,
                 "manifest_id": self.manifest_id,
-                "leased_at": self.leased_at,
                 "cpu_ms_max": self.cpu_ms_max,
                 "memory_mb_max": self.memory_mb_max,
                 "output_size_max": self.output_size_max,
@@ -71,6 +80,7 @@ class WorkerLease:
 
 
 # ── Phase Barrier ────────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class PhaseBarrier:
@@ -110,6 +120,7 @@ class PhaseBarrier:
 
 
 # ── Execution Receipt ────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class PhaseExecutionReceipt:
@@ -172,6 +183,7 @@ class ExecutionFabricReceipt:
 
 
 # ── Shard-Coordinated Execution Fabric ───────────────────────────
+
 
 class DeterministicExecutionFabric:
     """Distributed deterministic execution with global barriers.
@@ -415,6 +427,7 @@ class DeterministicExecutionFabric:
 
 
 # ── Execution Audit ──────────────────────────────────────────────
+
 
 class ExecutionAuditLog:
     """Append-only audit log for all execution fabric events."""

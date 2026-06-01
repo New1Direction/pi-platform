@@ -72,10 +72,15 @@ pub fn audit_compiler_bugs(input: &Input) -> Output {
         if let Some(vcaps) = VERSION_RE.captures(pragma_val_clean) {
             let version_str = vcaps.get(1).map(|m| m.as_str()).unwrap_or("");
             // parts = [int(p) for p in version_str.split('.')]
-            let parts: Vec<i64> = version_str
-                .split('.')
-                .map(|p| p.parse::<i64>().unwrap())
-                .collect();
+            // Python's int() is arbitrary-precision and never errors. parse::<i64>()
+            // overflows (and panicked) on an oversized component, e.g. a 20-digit
+            // major in `pragma solidity 99999999999999999999.8.13;`. The only uses
+            // below are equality checks against small buggy-release constants
+            // (0/8/13/14/15), so a component that doesn't fit i64 can never match —
+            // map it to a sentinel (-1) that won't, reproducing Python's "not
+            // flagged" outcome without panicking (regex \d+ means parts are never
+            // legitimately negative).
+            let parts: Vec<i64> = version_str.split('.').map(|p| p.parse::<i64>().unwrap_or(-1)).collect();
             if parts.len() >= 3 {
                 let major = parts[0];
                 let minor = parts[1];

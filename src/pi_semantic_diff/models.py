@@ -17,6 +17,7 @@ from pydantic import BaseModel, Field
 #  Epistemic Primitives (mirrored for independence)
 # ──────────────────────────────
 
+
 class EpistemicState(str):
     OBSERVED = "OBSERVED"
     INFERRED = "INFERRED"
@@ -48,6 +49,7 @@ class ReplayClass(str):
 # ──────────────────────────────
 #  Graph Primitives (shared with recon)
 # ──────────────────────────────
+
 
 class SemanticField(BaseModel):
     path: str
@@ -110,6 +112,7 @@ class AuthInvariant(BaseModel):
 # ──────────────────────────────
 #  Delta Primitives
 # ──────────────────────────────
+
 
 class FieldDelta(BaseModel):
     """Immutable record of a single field change between two traces."""
@@ -184,6 +187,7 @@ class ReplaySurfaceDelta(BaseModel):
 #  Diff Report
 # ──────────────────────────────
 
+
 class SemanticDiffReport(BaseModel):
     """Deterministic behavioral delta report between two runtime snapshots."""
 
@@ -222,8 +226,15 @@ class SemanticDiffReport(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
+        # Content-addressed: the report hash is a pure function of the LOGICAL
+        # diff content (metrics + catalogued deltas) and its causal anchors
+        # (baseline/modified execution ids). It must NOT depend on wall-clock
+        # time (generated_at) or the random per-run report_id (uuid4-derived),
+        # which are retained only as stored/returned metadata. Including them
+        # would make the "reproducibility proof" vary across runs for identical
+        # logical input.
         payload = json.dumps(
-            self.model_dump(exclude={"report_hash", "generated_at"}),
+            self.model_dump(exclude={"report_hash", "generated_at", "report_id"}),
             sort_keys=True,
             separators=(",", ":"),
             default=str,

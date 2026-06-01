@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ZERO_TRUST_EXEC_DOMAIN_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_ZERO_TRUST_EXEC_DOMAIN_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_ZERO_TRUST_EXEC_DOMAIN_STRICT_MODE")
 
 
 class ZeroTrustExecDomainInput(BaseModel):
@@ -35,7 +20,9 @@ class ZeroTrustExecDomainInput(BaseModel):
 
 class ZeroTrustExecDomainOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if execution domain checks passed")
-    vulnerable_elements: List[str] = Field(default_factory=list, description="Vulnerable configuration lines or variables")
+    vulnerable_elements: List[str] = Field(
+        default_factory=list, description="Vulnerable configuration lines or variables"
+    )
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
@@ -54,8 +41,11 @@ class PiZeroTrustExecutionDomain:
 
         # Scans for tmux socket leaks or unconstrained execution environment exports
         # E.g. tmux -S /var/run, export sandbox bypass, ssh execution, unconfined profiles
-        unconstrained_tmux = re.search(r'(tmux\s+-S\s+/[a-zA-Z0-9_/]+|tmux\s+run-shell\s+-[b]*\s*"*[a-zA-Z0-9_\-\s]+"*|chmod\s+777|permit-root)', code)
-        
+        unconstrained_tmux = re.search(
+            r'(tmux\s+-S\s+/[a-zA-Z0-9_/]+|tmux\s+run-shell\s+-[b]*\s*"*[a-zA-Z0-9_\-\s]+"*|chmod\s+777|permit-root)',
+            code,
+        )
+
         if unconstrained_tmux:
             vulnerable_elements.append(unconstrained_tmux.group(1))
             flagged_findings.append(
@@ -80,5 +70,5 @@ class PiZeroTrustExecutionDomain:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import json
-import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_KUBERNETES_ROOT_EXECUTION_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_KUBERNETES_ROOT_EXECUTION_STRICT_MODE")
 
 
 class KubernetesRootExecutionInput(BaseModel):
@@ -45,7 +41,7 @@ class PiKubernetesRootExecutionLinter:
         lines = code.splitlines()
         has_security_context = False
         has_run_as_non_root = False
-        
+
         for idx, line in enumerate(lines, 1):
             if "securityContext:" in line:
                 has_security_context = True
@@ -85,5 +81,5 @@ class PiKubernetesRootExecutionLinter:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

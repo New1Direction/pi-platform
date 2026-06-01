@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_shadowed_variable_detector import (
     PiShadowedVariableDetector,
     ShadowedVariableInput,
-    ShadowedVariableOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -37,11 +34,7 @@ def test_shadowed_variable_detected():
         }
     }
     """
-    inp = ShadowedVariableInput(
-        file_path="Shadowed.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ShadowedVariableInput(file_path="Shadowed.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_shadowed(inp)
 
@@ -67,11 +60,7 @@ def test_shadowed_variable_unused_warning():
         }
     }
     """
-    inp = ShadowedVariableInput(
-        file_path="Unused.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = ShadowedVariableInput(file_path="Unused.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_shadowed(inp)
 
@@ -104,22 +93,22 @@ def test_orchestrator_shadowed_variable_consensus_passed(monkeypatch):
             "vulnerable_functions": ["setOwner"],
             "flagged_findings": ["Parameter owner shadows state variable owner"],
             "risk_score": 80.0,
-            "status": "REJECTED_SHADOW_VULNERABILITY"
+            "status": "REJECTED_SHADOW_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["setOwner"],
             "flagged_findings": ["Parameter owner shadows state variable owner"],
             "risk_score": 80.0,
-            "status": "REJECTED_SHADOW_VULNERABILITY"
+            "status": "REJECTED_SHADOW_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["setOwner"],
             "flagged_findings": ["Parameter owner shadows state variable owner"],
             "risk_score": 80.0,
-            "status": "REJECTED_SHADOW_VULNERABILITY"
-        }
+            "status": "REJECTED_SHADOW_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -127,8 +116,8 @@ def test_orchestrator_shadowed_variable_consensus_passed(monkeypatch):
         context={
             "file_path": "Shadowed.sol",
             "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

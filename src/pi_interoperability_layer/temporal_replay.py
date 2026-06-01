@@ -24,6 +24,7 @@ from pi_interoperability_layer.snapshot.registry import SnapshotRegistry
 #  Replay Primitives
 # ──────────────────────────────
 
+
 class ReplayCheckpoint(BaseModel):
     """Immutable checkpoint of state at a specific timestamp.
 
@@ -108,6 +109,7 @@ class ReplayTimeline(BaseModel):
 #  Replay Engine
 # ──────────────────────────────
 
+
 class TemporalReplayEngine:
     """Deterministic temporal replay engine.
 
@@ -149,10 +151,7 @@ class TemporalReplayEngine:
         # The nearest snapshot is the last one before target
         nearest = snapshots[-1]
 
-        cp_id = (
-            f"replay_{tenant_id}_{source_id}_{snapshot_type.value}_"
-            f"{canonical_timestamp(target_timestamp)}"
-        )
+        cp_id = f"replay_{tenant_id}_{source_id}_{snapshot_type.value}_{canonical_timestamp(target_timestamp)}"
 
         return ReplayCheckpoint(
             checkpoint_id=cp_id,

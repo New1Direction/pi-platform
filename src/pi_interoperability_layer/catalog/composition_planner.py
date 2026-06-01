@@ -127,7 +127,7 @@ class CapabilityCompositionPlanner:
         # Validate compatibility across phases
         for phase in phases:
             for i, node_a in enumerate(phase):
-                for node_b in phase[i + 1:]:
+                for node_b in phase[i + 1 :]:
                     check = self.graph.check_compatibility(node_a, node_b)
                     if check.verdict != CompatibilityVerdict.COMPATIBLE:
                         return self._invalid_plan(
@@ -151,9 +151,7 @@ class CapabilityCompositionPlanner:
             plan_hash=plan.compute_hash(),
         )
 
-    def _find_manifest_id(
-        self, dep_string: str, manifests: List[ExtensionManifest]
-    ) -> Optional[str]:
+    def _find_manifest_id(self, dep_string: str, manifests: List[ExtensionManifest]) -> Optional[str]:
         """Find manifest ID matching a dependency string."""
         dep_name = dep_string.split("@")[0] if "@" in dep_string else dep_string
         for m in manifests:

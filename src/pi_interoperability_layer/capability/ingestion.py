@@ -112,7 +112,9 @@ class GovernedIngestionPipeline:
             IngestionStep(
                 phase=IngestionPhase.DETERMINISM,
                 passed=governor_result.determinism_verified,
-                evidence="determinism verified" if governor_result.determinism_verified else "determinism check failed or skipped",
+                evidence="determinism verified"
+                if governor_result.determinism_verified
+                else "determinism check failed or skipped",
             )
         )
         steps.append(
@@ -148,9 +150,9 @@ class GovernedIngestionPipeline:
             determinism_fingerprint=governor_result.determinism_verified
             and hashlib.sha256("deterministic".encode()).hexdigest()
             or hashlib.sha256("non_deterministic".encode()).hexdigest(),
-            policy_hash=governor_result.policy_evaluation and hashlib.sha256(
-                str(governor_result.policy_evaluation).encode()
-            ).hexdigest() or "",
+            policy_hash=governor_result.policy_evaluation
+            and hashlib.sha256(str(governor_result.policy_evaluation).encode()).hexdigest()
+            or "",
             normalization_hash=governor_result.normalization_result
             and hashlib.sha256(str(governor_result.normalization_result).encode()).hexdigest()
             or "",

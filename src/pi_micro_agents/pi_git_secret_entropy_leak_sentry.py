@@ -1,19 +1,16 @@
 from __future__ import annotations
 
-import json
 import math
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_GIT_SECRET_ENTROPY_LEAK_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_GIT_SECRET_ENTROPY_LEAK_STRICT_MODE")
 
 
 class GitSecretEntropyLeakInput(BaseModel):
@@ -43,7 +40,7 @@ class PiGitSecretEntropyLeakSentry:
         for x in range(256):
             p_x = float(data.count(chr(x))) / len(data)
             if p_x > 0:
-                entropy += - p_x * math.log(p_x, 2)
+                entropy += -p_x * math.log(p_x, 2)
         return entropy
 
     def audit_entropy_leaks(self, input_envelope: GitSecretEntropyLeakInput) -> GitSecretEntropyLeakOutput:
@@ -84,5 +81,5 @@ class PiGitSecretEntropyLeakSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

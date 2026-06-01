@@ -1,24 +1,30 @@
 from __future__ import annotations
+
 import ast
-import os
 from typing import List
+
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
+
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_UNCONTROLLED_RECURSION_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_UNCONTROLLED_RECURSION_STRICT_MODE")
+
 
 class RecursionInput(BaseModel):
     file_path: str = Field(..., description="Path of the code file being audited")
     code_content: str = Field(..., description="Source code content")
 
+
 class RecursionOutput(BaseModel):
     is_secure: bool = Field(..., description="True if no uncontrolled recursion loops are detected")
-    recursive_loops: List[str] = Field(default_factory=list, description="List of uncontrolled recursion occurrences found")
+    recursive_loops: List[str] = Field(
+        default_factory=list, description="List of uncontrolled recursion occurrences found"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiUncontrolledRecursionSentry:
     """Deterministic micro-agent that scans for recursive calls lacking base-case exit conditions."""
@@ -83,8 +89,5 @@ class PiUncontrolledRecursionSentry:
                 is_secure = True
 
         return RecursionOutput(
-            is_secure=is_secure,
-            recursive_loops=recursive_loops,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, recursive_loops=recursive_loops, risk_score=risk_score, status=status
         )

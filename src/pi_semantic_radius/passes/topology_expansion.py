@@ -29,9 +29,7 @@ class TopologyExpansionPass:
         # Edge count expansion
         edge_delta = len(modified.edges) - len(baseline.edges)
         if edge_delta > self.engine.max_cross_service:
-            violations.append(
-                f"Edge count expanded by {edge_delta} exceeds limit {self.engine.max_cross_service}"
-            )
+            violations.append(f"Edge count expanded by {edge_delta} exceeds limit {self.engine.max_cross_service}")
 
         # Fanout expansion per node
         for node_id in modified.nodes:
@@ -39,8 +37,7 @@ class TopologyExpansionPass:
             mod_fan = modified.fanout(node_id)
             if mod_fan - base_fan > self.engine.max_fanout:
                 violations.append(
-                    f"Node {node_id} fanout expanded by {mod_fan - base_fan} "
-                    f"exceeds limit {self.engine.max_fanout}"
+                    f"Node {node_id} fanout expanded by {mod_fan - base_fan} exceeds limit {self.engine.max_fanout}"
                 )
 
         # Depth expansion
@@ -49,8 +46,7 @@ class TopologyExpansionPass:
             mod_depth = modified.depth_from(node_id)
             if mod_depth - base_depth > self.engine.max_depth:
                 violations.append(
-                    f"Node {node_id} depth expanded by {mod_depth - base_depth} "
-                    f"exceeds limit {self.engine.max_depth}"
+                    f"Node {node_id} depth expanded by {mod_depth - base_depth} exceeds limit {self.engine.max_depth}"
                 )
 
         return PassResult(

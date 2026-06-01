@@ -153,7 +153,10 @@ class SemanticQuorum:
         rejected_claims: List[SemanticClaim] = []
 
         for path, path_claims in claims_by_path.items():
-            if len(intersections) >= self.bounds.max_quorum_intersections or len(conflict_sets) >= self.bounds.max_quorum_conflict_sets:
+            if (
+                len(intersections) >= self.bounds.max_quorum_intersections
+                or len(conflict_sets) >= self.bounds.max_quorum_conflict_sets
+            ):
                 violations.append(
                     GovernanceViolation(
                         violation_id=self._hash(f"intersection_overflow:{execution_id}"),
@@ -217,7 +220,10 @@ class SemanticQuorum:
             violations=violations,
             quorum_reached=bool(intersections) and not violations,
             max_depth_hit=len(promotions) >= self.MAX_PROMOTION_DEPTH,
-            bounded_truncated=(len(claims) == self.bounds.max_quorum_claims or len(intersections) == self.bounds.max_quorum_intersections),
+            bounded_truncated=(
+                len(claims) == self.bounds.max_quorum_claims
+                or len(intersections) == self.bounds.max_quorum_intersections
+            ),
         )
 
     # ──────────────────────────────
@@ -235,7 +241,11 @@ class SemanticQuorum:
             if artifact.artifact_type != "SemanticIRTrace":
                 continue
             try:
-                payload_data = json.loads(artifact.payload_json) if isinstance(artifact.payload_json, str) else artifact.payload_json
+                payload_data = (
+                    json.loads(artifact.payload_json)
+                    if isinstance(artifact.payload_json, str)
+                    else artifact.payload_json
+                )
                 trace = SemanticIRTrace(**payload_data)
             except (TypeError, json.JSONDecodeError):
                 continue
@@ -381,7 +391,11 @@ class SemanticQuorum:
         for inter in intersections:
             # Try REPLAY_CONFIRMED promotion first (highest authority)
             replay_rule = next(
-                (r for r in self.PROMOTION_RULES if r.from_state == EpistemicState.OBSERVED and r.to_state == EpistemicState.INFERRED),
+                (
+                    r
+                    for r in self.PROMOTION_RULES
+                    if r.from_state == EpistemicState.OBSERVED and r.to_state == EpistemicState.INFERRED
+                ),
                 None,
             )
             if replay_rule and inter.total_authority_sum >= replay_rule.min_authority_weight:

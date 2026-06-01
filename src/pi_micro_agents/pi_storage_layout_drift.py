@@ -18,6 +18,7 @@ from pi_micro_agents.utils import is_strict_mode
 
 # ── Pydantic Envelopes ─────────────────────────────────────────────────────
 
+
 class StorageDriftInput(BaseModel):
     file_path: str = Field(..., description="Primary Solidity source file path")
     solidity_code: str = Field(..., description="Current contract version source")
@@ -89,9 +90,7 @@ def _extract_state_vars(code: str) -> List[Tuple[int, str, str]]:
     for line in lines:
         opens = line.count("{")
         closes = line.count("}")
-        if depth == 1 and (
-            re.search(r"\bfunction\b|\bconstructor\b|\bmodifier\b|\breceive\b|\bfallback\b", line)
-        ):
+        if depth == 1 and (re.search(r"\bfunction\b|\bconstructor\b|\bmodifier\b|\breceive\b|\bfallback\b", line)):
             in_function = True
             fn_depth = 0
 
@@ -121,6 +120,7 @@ def _extract_state_vars(code: str) -> List[Tuple[int, str, str]]:
 
 
 # ── Core Agent ─────────────────────────────────────────────────────────────
+
 
 class PiStorageLayoutDrift:
     """Detects upgradeable contract storage slot drift and gap compliance violations."""
@@ -173,9 +173,7 @@ class PiStorageLayoutDrift:
 
         # Check for __gap
         gap_match = _GAP_RE.search(cleaned)
-        is_upgradeable = bool(
-            re.search(r"\bUpgradeable\b|\bInitializable\b|\bUUPS\b|\bTransparentUpgradeable\b", code)
-        )
+        is_upgradeable = bool(re.search(r"\bUpgradeable\b|\bInitializable\b|\bUUPS\b|\bTransparentUpgradeable\b", code))
 
         if is_upgradeable and not gap_match:
             compliance.append(

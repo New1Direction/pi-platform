@@ -1,16 +1,13 @@
 """Integration tests for PiDeFiSlippageGuard — dual-use DeFi slippage and swap routing auditor."""
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_defi_slippage_guard import (
-    PiDeFiSlippageGuard,
     DeFiSlippageInput,
     DeFiSlippageOutput,
+    PiDeFiSlippageGuard,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
-
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 # ── Fixtures & Mock Contracts ───────────────────────────────────────────────
 
@@ -70,14 +67,16 @@ def clean_env(monkeypatch):
 
 # ── Tests: DeFiSlippageGuard Heuristics ──────────────────────────────────────
 
-class TestDeFiSlippageGuard:
 
+class TestDeFiSlippageGuard:
     def test_vulnerable_zero_slippage_detected(self) -> None:
         agent = PiDeFiSlippageGuard()
-        result = agent.audit_slippage(DeFiSlippageInput(
-            file_path="VulnerableSlippage.sol",
-            solidity_code=VULNERABLE_ZERO_SLIPPAGE,
-        ))
+        result = agent.audit_slippage(
+            DeFiSlippageInput(
+                file_path="VulnerableSlippage.sol",
+                solidity_code=VULNERABLE_ZERO_SLIPPAGE,
+            )
+        )
         assert isinstance(result, DeFiSlippageOutput)
         assert result.is_secure is False
         assert "executeSwap" in result.vulnerable_functions
@@ -87,10 +86,12 @@ class TestDeFiSlippageGuard:
 
     def test_vulnerable_slippage_setting_warning(self) -> None:
         agent = PiDeFiSlippageGuard()
-        result = agent.audit_slippage(DeFiSlippageInput(
-            file_path="VulnerableSlippageSettings.sol",
-            solidity_code=VULNERABLE_NO_SLIPPAGE_SETTING,
-        ))
+        result = agent.audit_slippage(
+            DeFiSlippageInput(
+                file_path="VulnerableSlippageSettings.sol",
+                solidity_code=VULNERABLE_NO_SLIPPAGE_SETTING,
+            )
+        )
         assert isinstance(result, DeFiSlippageOutput)
         # Without dynamic parameter it triggers a finding but is_secure remains True (since no hardcoded 0)
         assert result.is_secure is True
@@ -98,10 +99,12 @@ class TestDeFiSlippageGuard:
 
     def test_safe_slippage_passes(self) -> None:
         agent = PiDeFiSlippageGuard()
-        result = agent.audit_slippage(DeFiSlippageInput(
-            file_path="SafeSlippage.sol",
-            solidity_code=SAFE_SLIPPAGE,
-        ))
+        result = agent.audit_slippage(
+            DeFiSlippageInput(
+                file_path="SafeSlippage.sol",
+                solidity_code=SAFE_SLIPPAGE,
+            )
+        )
         assert isinstance(result, DeFiSlippageOutput)
         assert result.is_secure is True
         assert len(result.vulnerable_functions) == 0
@@ -110,20 +113,24 @@ class TestDeFiSlippageGuard:
     def test_warn_only_mode(self, monkeypatch) -> None:
         monkeypatch.setenv("PI_SLIPPAGE_STRICT_MODE", "false")
         agent = PiDeFiSlippageGuard()
-        result = agent.audit_slippage(DeFiSlippageInput(
-            file_path="VulnerableSlippage.sol",
-            solidity_code=VULNERABLE_ZERO_SLIPPAGE,
-        ))
+        result = agent.audit_slippage(
+            DeFiSlippageInput(
+                file_path="VulnerableSlippage.sol",
+                solidity_code=VULNERABLE_ZERO_SLIPPAGE,
+            )
+        )
         assert isinstance(result, DeFiSlippageOutput)
         assert result.is_secure is True
         assert result.status == "WARN_SLIPPAGE_RISK"
 
     def test_model_dump_and_serialization(self) -> None:
         agent = PiDeFiSlippageGuard()
-        result = agent.audit_slippage(DeFiSlippageInput(
-            file_path="SafeSlippage.sol",
-            solidity_code=SAFE_SLIPPAGE,
-        ))
+        result = agent.audit_slippage(
+            DeFiSlippageInput(
+                file_path="SafeSlippage.sol",
+                solidity_code=SAFE_SLIPPAGE,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -132,16 +139,19 @@ class TestDeFiSlippageGuard:
 
 # ── Tests: Orchestration NLP & Consensus Integration ────────────────────────
 
+
 def test_orchestrator_nlp_routing_to_defi_slippage_guard() -> None:
     orchestrator = PiOrchestrator()
-    result = orchestrator.execute_goal(OrchestratorInput(
-        goal="Perform a slippage guard check to avoid front-running sandwich attacks.",
-        context={
-            "file_path": "VulnerableSlippage.sol",
-            "solidity_code": VULNERABLE_ZERO_SLIPPAGE,
-            "check_level": "STRICT"
-        }
-    ))
+    result = orchestrator.execute_goal(
+        OrchestratorInput(
+            goal="Perform a slippage guard check to avoid front-running sandwich attacks.",
+            context={
+                "file_path": "VulnerableSlippage.sol",
+                "solidity_code": VULNERABLE_ZERO_SLIPPAGE,
+                "check_level": "STRICT",
+            },
+        )
+    )
     assert result.success is False
     assert "PiDeFiSlippageGuard" in result.routed_agent
     assert result.risk_score == 90.0

@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_INITIALIZABLE_GAP_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_INITIALIZABLE_GAP_STRICT_MODE")
 
 
 class InitializableGapInput(BaseModel):
@@ -41,7 +38,7 @@ class PiSolidityInitializableGapSentry:
         flagged_findings = []
 
         # Find all contracts
-        contracts = re.findall(r'contract\s+([a-zA-Z0-9_]+)(?:\s+is\s+([a-zA-Z0-9_,\s]+))?\s*\{([\s\S]*?)\}', code)
+        contracts = re.findall(r"contract\s+([a-zA-Z0-9_]+)(?:\s+is\s+([a-zA-Z0-9_,\s]+))?\s*\{([\s\S]*?)\}", code)
 
         for name, inheritance, body in contracts:
             # Check if this is an upgradeable or base parent contract
@@ -50,7 +47,7 @@ class PiSolidityInitializableGapSentry:
 
             if is_upgradeable:
                 # Check for standard storage gap variable: e.g. uint256[50] __gap or similar
-                has_gap = re.search(r'uint256\s*\[\s*\d+\s*\]\s*(?:private|internal)?\s*__gap\s*;', body)
+                has_gap = re.search(r"uint256\s*\[\s*\d+\s*\]\s*(?:private|internal)?\s*__gap\s*;", body)
                 if not has_gap:
                     vulnerable_contracts.append(name)
                     flagged_findings.append(
@@ -75,5 +72,5 @@ class PiSolidityInitializableGapSentry:
             vulnerable_contracts=vulnerable_contracts,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

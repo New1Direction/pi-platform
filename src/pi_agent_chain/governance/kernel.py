@@ -122,7 +122,9 @@ class GovernanceKernel:
             branch_count=self._branch_count,
             provenance=provenance or [],
             execution_id=exec_id,
-            parent_execution_id=exec_id if self._execution_counter == 1 else f"exec_{self.root_goal_id}_{self._execution_counter - 1:04d}",
+            parent_execution_id=exec_id
+            if self._execution_counter == 1
+            else f"exec_{self.root_goal_id}_{self._execution_counter - 1:04d}",
             trace_hash="",
             prompt_hash=self._compute_hash(input_payload),
             input_hash=self._compute_hash(input_payload),
@@ -232,35 +234,14 @@ class GovernanceKernel:
                 execution_time_ms=exec_time,
             )
 
-        # --- STEP 6: Entropy evaluation ---
-        if artifact is not None:
-            snapshot = self.entropy_monitor.capture(self._current_state, artifact)
-            entropy_warning = self.entropy_monitor.check_monotonic_decrease()
-            if entropy_warning and self._current_state in {
-                RuntimeState.ASSEMBLING_IR,
-                RuntimeState.GENERATING_SPEC,
-                RuntimeState.COMPLETED,
-            }:
-                entropy_violation = GovernanceViolation(
-                    violation_id=str(uuid.uuid4())[:16],
-                    rule="ENTROPY_INCREASE",
-                    worker_id=worker_id,
-                    root_goal_id=self.root_goal_id,
-                    severity="ERROR",
-                    context={"warning": entropy_warning, "snapshot": snapshot.model_dump()},
-                    action_taken="HALT",
-                )
-                self._violations.append(entropy_violation)
-                return WorkerResponse(
-                    root_goal_id=self.root_goal_id,
-                    worker_id=worker_id,
-                    status=WorkerStatus.VERIFICATION_MISMATCH,
-                    errors=[f"Entropy violation: {entropy_warning}"],
-                    execution_id=exec_id,
-                    input_hash=envelope.input_hash,
-                    output_hash=output_hash,
-                    execution_time_ms=exec_time,
-                )
+        # --- STEP 6: (removed) kernel-mediated entropy evaluation ---
+        # This previously ran only `if artifact is not None`, but every production
+        # caller (PipelineDriver) invokes execute() with artifact=None, so the gate
+        # never fired — dead code masquerading as an enforced guard. Entropy
+        # regression IS enforced in the pipeline by the separate
+        # EntropyAnalysisValidator (pipeline.py), so removing the dead block changes
+        # no behaviour and stops advertising enforcement that didn't happen. The
+        # `artifact` parameter is retained for call-site/API compatibility.
 
         # --- STEP 7: Commit state transition ---
         self._current_state = target_state
@@ -272,11 +253,7 @@ class GovernanceKernel:
 
     def _allowed_transitions_from(self, state_id: str) -> List[str]:
         """List allowed next states from the current state."""
-        return [
-            rule.to_state
-            for rule in self.transition_gate.rules
-            if rule.from_state == state_id
-        ]
+        return [rule.to_state for rule in self.transition_gate.rules if rule.from_state == state_id]
 
     def terminal_report(self) -> Dict[str, Any]:
         """Emit a final governance summary."""

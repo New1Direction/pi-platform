@@ -18,8 +18,11 @@ services:
       - PI_ENV=production
       - PI_STORAGE_PATH=/data/pi_production.db
       - PI_LOG_LEVEL=INFO
-      - PI_SECRET_JWT=${PI_SECRET_JWT:-dev-jwt-secret-please-rotate}
-      - PI_SECRET_REQUEST_SIGNING=${PI_SECRET_REQUEST_SIGNING:-dev-signing-secret-please-rotate}
+      # REQUIRED: set PI_SECRET_JWT and PI_SECRET_REQUEST_SIGNING in a .env file or
+      # your deployment secrets manager before running in production.
+      # Generate with: openssl rand -hex 32
+      - PI_SECRET_JWT=${PI_SECRET_JWT:?PI_SECRET_JWT must be set — never use a default in production}
+      - PI_SECRET_REQUEST_SIGNING=${PI_SECRET_REQUEST_SIGNING:?PI_SECRET_REQUEST_SIGNING must be set}
     volumes:
       - pi-data:/data
     healthcheck:
@@ -28,6 +31,15 @@ services:
       timeout: 3s
       retries: 3
       start_period: 10s
+    # Bounded JSON log rotation — without this, container logs grow forever
+    # and can fill the host disk.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    security_opt:
+      - no-new-privileges:true
     deploy:
       resources:
         limits:
@@ -37,13 +49,20 @@ services:
           cpus: '0.5'
           memory: 256M
 
-  # Optional: lightweight Prometheus metrics scraper
+  # Optional: lightweight Prometheus metrics scraper.
+  # Bind to loopback by default — flip to 0.0.0.0:9090 explicitly in your
+  # deployment if you need it reachable from outside the host.
   pi-metrics:
     image: prom/prometheus:v2.53.0
     container_name: pi-metrics
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
     command:
@@ -58,7 +77,46 @@ services:
     profiles:
       - metrics
 
+  # FreeLLMAPI OpenAI-compatible unified proxy sidecar.
+  #
+  # Builds a pinned, production-mode image instead of `npm install`-ing at
+  # container start (which would let the lockfile drift on every restart and
+  # leave dev-only tooling inside the container). To use:
+  #   1. Place the freellmapi source at docker/freellmapi/ (with its own
+  #      Dockerfile that does COPY package*.json . && npm ci --omit=dev).
+  #   2. docker compose --profile sandbox up llm-proxy
+  llm-proxy:
+    build:
+      context: ./freellmapi
+    container_name: pi-llm-proxy
+    ports:
+      - "127.0.0.1:3000:3000"   # bound to loopback only
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    profiles:
+      - sandbox
+
 volumes:
+  # Local volume for SQLite WAL data. In production:
+  #   1. Mount a host path or network volume you can snapshot, e.g.
+  #      `volumes: ["/var/lib/pi/data:/data"]`.
+  #   2. Schedule `sqlite3 /data/pi_production.db ".backup '/backup/<ts>.db'"`
+  #      via cron / systemd timer so backups capture a WAL-consistent snapshot.
   pi-data:
     driver: local
 

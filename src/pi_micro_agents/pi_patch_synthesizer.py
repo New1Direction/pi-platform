@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_PATCH_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_PATCH_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_PATCH_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Static vulnerability inspection of target source code
 def detect_unpatched_vulnerabilities(text: str) -> Tuple[float, List[str]]:
@@ -63,6 +49,7 @@ def detect_unpatched_vulnerabilities(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. Pydantic-Enforced Input/Output Envelopes
 class PatchInput(BaseModel):
     vulnerability_id: str
@@ -70,11 +57,13 @@ class PatchInput(BaseModel):
     source_code: str
     severity: str = "High"
 
+
 class PatchOutput(BaseModel):
     patched_code: str
     diff: str
     remediation_steps: List[str] = Field(default_factory=list)
     success: bool
+
 
 # 4. Core Micro-Agent Class
 class PiPatchSynthesizer:
@@ -104,9 +93,9 @@ class PiPatchSynthesizer:
         for line in patched.splitlines():
             if ".call" in line and ";" in line:
                 if "=" not in line and "require" not in line and "assert" not in line:
-                    indent = line[:len(line) - len(line.lstrip())]
+                    indent = line[: len(line) - len(line.lstrip())]
                     stmt = line.strip().rstrip(";")
-                    patched_line = f"{indent}(bool success, ) = {stmt};\n{indent}require(success, \"Transfer failed\");"
+                    patched_line = f'{indent}(bool success, ) = {stmt};\n{indent}require(success, "Transfer failed");'
                     patched_lines.append(patched_line)
                     applied_call_patch = True
                     continue
@@ -135,9 +124,4 @@ class PiPatchSynthesizer:
             success = False
             remedy_steps.append("Failed safety compilation due to remaining unpatched vulnerabilities.")
 
-        return PatchOutput(
-            patched_code=patched,
-            diff=diff,
-            remediation_steps=remedy_steps,
-            success=success
-        )
+        return PatchOutput(patched_code=patched, diff=diff, remediation_steps=remedy_steps, success=success)

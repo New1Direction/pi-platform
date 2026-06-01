@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_API_AUTH_HARDCODED_TOKEN_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_API_AUTH_HARDCODED_TOKEN_STRICT_MODE")
 
 
 class ApiAuthHardcodedTokenInput(BaseModel):
@@ -48,13 +45,19 @@ class PiApiAuthHardcodedTokenSentry:
 
             # Look for tokens, keys, bearer credentials, passwords
             # e.g., token = "...", api_key = "...", bearer = "..."
-            match = re.search(r'\b(token|api_key|bearer|client_secret|api_token)\s*[:=]\s*["\']([a-zA-Z0-9_\-\.]{16,})["\']', clean_line, re.IGNORECASE)
+            match = re.search(
+                r'\b(token|api_key|bearer|client_secret|api_token)\s*[:=]\s*["\']([a-zA-Z0-9_\-\.]{16,})["\']',
+                clean_line,
+                re.IGNORECASE,
+            )
             if match:
                 var_name = match.group(1)
                 val = match.group(2)
-                
+
                 # Exclude environment variable default placeholders or configs
-                if not any(excluded in val.lower() for excluded in ["env.", "process.env", "os.getenv", "config", "default"]):
+                if not any(
+                    excluded in val.lower() for excluded in ["env.", "process.env", "os.getenv", "config", "default"]
+                ):
                     vulnerable_elements.append(f"Line {idx}")
                     flagged_findings.append(
                         f"Line {idx}: Static hardcoded key/token '{var_name}' detected. "
@@ -78,5 +81,5 @@ class PiApiAuthHardcodedTokenSentry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -91,9 +91,7 @@ class DiffRuntime:
         # Pass 3: Auth deltas
         auth_deltas: List[Any] = []
         if baseline_auth is not None and modified_auth is not None:
-            auth_deltas = compute_auth_deltas(
-                baseline_auth, modified_auth, max_deltas=self.bounds.max_auth_deltas
-            )
+            auth_deltas = compute_auth_deltas(baseline_auth, modified_auth, max_deltas=self.bounds.max_auth_deltas)
 
         # Pass 4: Replay surface deltas
         replay_deltas = compute_replay_surface_deltas(
@@ -109,18 +107,22 @@ class DiffRuntime:
         destructive_exp = 0
         idemp_regression = 0
         for d in endpoint_deltas:
-            if d.mutation_class_transition or (d.presence == "ADDED" and d.modified_mutation_class in ("STATEFUL_MUTATION", "DESTRUCTIVE_MUTATION")):
+            if d.mutation_class_transition or (
+                d.presence == "ADDED" and d.modified_mutation_class in ("STATEFUL_MUTATION", "DESTRUCTIVE_MUTATION")
+            ):
                 state_mutation_exp += 1
-            if d.mutation_class_transition or (d.presence == "ADDED" and d.modified_mutation_class == "DESTRUCTIVE_MUTATION"):
+            if d.mutation_class_transition or (
+                d.presence == "ADDED" and d.modified_mutation_class == "DESTRUCTIVE_MUTATION"
+            ):
                 destructive_exp += 1
-            if d.mutation_class_transition or (d.presence == "REMOVED" and d.baseline_mutation_class == "IDEMPOTENT_READ"):
+            if d.mutation_class_transition or (
+                d.presence == "REMOVED" and d.baseline_mutation_class == "IDEMPOTENT_READ"
+            ):
                 idemp_regression += 1
 
         # Replay surface counts
         replay_surface_exp = len(replay_deltas)
-        replay_unsafe_exp = sum(
-            1 for d in replay_deltas if d.replayable_delta
-        )
+        replay_unsafe_exp = sum(1 for d in replay_deltas if d.replayable_delta)
 
         # Drift score
         drift = compute_drift_score(structural_score, semantic_score, state_mutation_exp, replay_surface_exp)
@@ -130,8 +132,10 @@ class DiffRuntime:
             baseline_execution_id=baseline_execution_id,
             modified_execution_id=modified_execution_id,
             endpoint_count_delta=len(modified_traces) - len(baseline_traces),
-            edge_count_delta=(len(modified_graph.edges) if modified_graph else 0) - (len(baseline_graph.edges) if baseline_graph else 0),
-            node_count_delta=(len(modified_graph.nodes) if modified_graph else 0) - (len(baseline_graph.nodes) if baseline_graph else 0),
+            edge_count_delta=(len(modified_graph.edges) if modified_graph else 0)
+            - (len(baseline_graph.edges) if baseline_graph else 0),
+            node_count_delta=(len(modified_graph.nodes) if modified_graph else 0)
+            - (len(baseline_graph.nodes) if baseline_graph else 0),
             field_count_delta=sum(len(t.fields) for t in modified_traces) - sum(len(t.fields) for t in baseline_traces),
             structural_delta_score=round(structural_score, 6),
             semantic_delta_score=round(semantic_score, 6),

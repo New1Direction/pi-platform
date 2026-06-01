@@ -172,7 +172,9 @@ class ExtensionCompatibilityGraph:
                 )
 
         # 5. Capability requirement satisfaction
-        requires = [e for e in self._edges.get(extension_id, []) if e.edge_type == CompatibilityType.REQUIRES_CAPABILITY]
+        requires = [
+            e for e in self._edges.get(extension_id, []) if e.edge_type == CompatibilityType.REQUIRES_CAPABILITY
+        ]
         for req in requires:
             cap_class = self._parse_capability_from_reason(req.reason)
             providers = self._capability_providers.get(cap_class, set())

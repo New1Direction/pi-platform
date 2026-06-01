@@ -2,17 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
-from pydantic import ValidationError
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_self_healing_patch_agent import (
     PiSelfHealingPatchAgent,
     SelfHealingInput,
-    SelfHealingOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -29,17 +25,9 @@ def test_self_healing_requirements_pinning():
     """Verify that unpinned packages in requirements.txt are correctly pinned to stable safe versions."""
     agent = PiSelfHealingPatchAgent()
 
-    source = (
-        "flask\n"
-        "requests>=2.0.0\n"
-        "pytest\n"
-        "numpy\n"
-    )
+    source = "flask\nrequests>=2.0.0\npytest\nnumpy\n"
     inp = SelfHealingInput(
-        file_path="requirements.txt",
-        source_code=source,
-        vulnerability_type="UNPINNED_DEP",
-        vulnerable_lines=[1, 2, 3]
+        file_path="requirements.txt", source_code=source, vulnerability_type="UNPINNED_DEP", vulnerable_lines=[1, 2, 3]
     )
 
     out = agent.heal_vulnerabilities(inp)
@@ -47,13 +35,13 @@ def test_self_healing_requirements_pinning():
     assert out.patch_synthesized is True
     assert out.status == "PASSED"
     assert out.patch_safety_score == 100.0
-    
+
     lines = out.patched_code.splitlines()
     assert lines[0] == "flask==3.0.0"
     assert lines[1] == "requests==2.31.0"
     assert lines[2] == "pytest==7.4.3"
     assert lines[3] == "numpy"  # Not in vulnerable_lines, must remain unpatched
-    
+
     assert any("Pinned package 'flask'" in r for r in out.remediations)
     assert any("Pinned package 'requests'" in r for r in out.remediations)
     assert any("Pinned package 'pytest'" in r for r in out.remediations)
@@ -66,33 +54,22 @@ def test_self_healing_package_json_pinning():
     """Verify that unpinned dependency keys in package.json are correctly pinned."""
     agent = PiSelfHealingPatchAgent()
 
-    source = (
-        '{\n'
-        '  "dependencies": {\n'
-        '    "react": "^18.2.0",\n'
-        '    "lodash": "*",\n'
-        '    "other": "1.0.0"\n'
-        '  }\n'
-        '}\n'
-    )
+    source = '{\n  "dependencies": {\n    "react": "^18.2.0",\n    "lodash": "*",\n    "other": "1.0.0"\n  }\n}\n'
     # Target "react" and "lodash" on lines 3 and 4
     inp = SelfHealingInput(
-        file_path="package.json",
-        source_code=source,
-        vulnerability_type="UNPINNED_DEP",
-        vulnerable_lines=[3, 4]
+        file_path="package.json", source_code=source, vulnerability_type="UNPINNED_DEP", vulnerable_lines=[3, 4]
     )
 
     out = agent.heal_vulnerabilities(inp)
 
     assert out.patch_synthesized is True
     assert out.status == "PASSED"
-    
+
     lines = out.patched_code.splitlines()
     assert '"react": "18.2.0",' in lines[2]
     assert '"lodash": "4.17.21",' in lines[3]
     assert '"other": "1.0.0"' in lines[4]  # Unmodified line
-    
+
     assert any("Pinned JSON package 'react'" in r for r in out.remediations)
     assert any("Pinned JSON package 'lodash'" in r for r in out.remediations)
 
@@ -104,17 +81,9 @@ def test_self_healing_eval_blocking():
     """Verify that dangerous eval calls are safely commented out and replaced."""
     agent = PiSelfHealingPatchAgent()
 
-    source = (
-        "def compute_dynamic(expr):\n"
-        "    return eval(expr)\n"
-        "def safe_func():\n"
-        "    return 42\n"
-    )
+    source = "def compute_dynamic(expr):\n    return eval(expr)\ndef safe_func():\n    return 42\n"
     inp = SelfHealingInput(
-        file_path="math_utils.py",
-        source_code=source,
-        vulnerability_type="DANGEROUS_EVAL",
-        vulnerable_lines=[2]
+        file_path="math_utils.py", source_code=source, vulnerability_type="DANGEROUS_EVAL", vulnerable_lines=[2]
     )
 
     out = agent.heal_vulnerabilities(inp)
@@ -145,10 +114,7 @@ def test_self_healing_strict_mode_toggle(monkeypatch):
     # Source code with no actual matches for pinning or eval on vulnerable lines
     source = "some_random_code_without_vulns = 1\n"
     inp = SelfHealingInput(
-        file_path="main.py",
-        source_code=source,
-        vulnerability_type="DANGEROUS_EVAL",
-        vulnerable_lines=[1]
+        file_path="main.py", source_code=source, vulnerability_type="DANGEROUS_EVAL", vulnerable_lines=[1]
     )
 
     # 1. Default/Strict Mode: Safety score of 50.0 (unapplied) triggers REJECTED_PATCH status
@@ -182,8 +148,8 @@ def test_orchestrator_routing_to_self_healing(monkeypatch):
             "file_path": "requirements.txt",
             "source_code": source,
             "vulnerability_type": "UNPINNED_DEP",
-            "vulnerable_lines": [1, 2]
-        }
+            "vulnerable_lines": [1, 2],
+        },
     )
     res = orchestrator.execute_goal(inp)
 
@@ -206,7 +172,8 @@ def test_orchestrator_consensus_divergence_alarm(monkeypatch):
     monkeypatch.setenv("PI_ORCHESTRATOR_STRICT_MODE", "true")
 
     # Mock evaluate_consensus to return a broken report
-    from pi_semantic_radius.consensus_breaker import PiConsensusBreaker, DivergenceReport
+    from pi_semantic_radius.consensus_breaker import DivergenceReport, PiConsensusBreaker
+
     def mock_evaluate_consensus(self, prompt, responses):
         return DivergenceReport(
             prompt=prompt,
@@ -214,13 +181,14 @@ def test_orchestrator_consensus_divergence_alarm(monkeypatch):
             semantic_divergence=85.0,
             structural_divergence=0.0,
             consensus_divergence_score=85.0,
-            is_broken=True
+            is_broken=True,
         )
+
     monkeypatch.setattr(PiConsensusBreaker, "evaluate_consensus", mock_evaluate_consensus)
 
     orchestrator = PiOrchestrator()
     goal = "Perform safe patch on math_utils.py code repair"
-    
+
     # 3 mock runs with split verdicts or high content divergence
     # Run 1 & 2 agree on patch_synthesized=True and patched_code, but Run 3 disagrees or has different schema keys/values
     mock_runs = [
@@ -230,7 +198,7 @@ def test_orchestrator_consensus_divergence_alarm(monkeypatch):
             "patch_diff": "- eval\n+ # TODO\n+ pass",
             "patch_safety_score": 100.0,
             "remediations": ["Replaced eval"],
-            "status": "PASSED"
+            "status": "PASSED",
         },
         {
             "patch_synthesized": True,
@@ -238,7 +206,7 @@ def test_orchestrator_consensus_divergence_alarm(monkeypatch):
             "patch_diff": "- eval\n+ # TODO\n+ pass",
             "patch_safety_score": 100.0,
             "remediations": ["Replaced eval"],
-            "status": "PASSED"
+            "status": "PASSED",
         },
         {
             "patch_synthesized": False,
@@ -246,8 +214,8 @@ def test_orchestrator_consensus_divergence_alarm(monkeypatch):
             "patch_diff": "",
             "patch_safety_score": 50.0,
             "remediations": [],
-            "status": "REJECTED_PATCH"
-        }
+            "status": "REJECTED_PATCH",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -257,8 +225,8 @@ def test_orchestrator_consensus_divergence_alarm(monkeypatch):
             "source_code": "eval()",
             "vulnerability_type": "DANGEROUS_EVAL",
             "vulnerable_lines": [1],
-            "mock_consensus_runs": mock_runs
-        }
+            "mock_consensus_runs": mock_runs,
+        },
     )
 
     res = orchestrator.execute_goal(inp)

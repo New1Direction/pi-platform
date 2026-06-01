@@ -26,13 +26,9 @@ class AuthBoundaryPass:
             base_auth = len(base_node.auth_fields) if base_node else 0
             mod_auth = len(mod_node.auth_fields)
             if mod_auth - base_auth > 0:
-                violations.append(
-                    f"Node {node_id} auth fields expanded by {mod_auth - base_auth}"
-                )
+                violations.append(f"Node {node_id} auth fields expanded by {mod_auth - base_auth}")
             if mod_auth > self.engine.max_auth_fields:
-                violations.append(
-                    f"Node {node_id} auth fields {mod_auth} exceed limit {self.engine.max_auth_fields}"
-                )
+                violations.append(f"Node {node_id} auth fields {mod_auth} exceed limit {self.engine.max_auth_fields}")
 
         return PassResult(
             pass_name="auth_boundary",

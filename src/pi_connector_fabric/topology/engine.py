@@ -20,6 +20,7 @@ from pi_connector_fabric.sdk.core import NormalizedArtifact
 #  Topology Primitives
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class TopologyNode:
     """A node in the unified topology graph."""
@@ -50,6 +51,7 @@ class TopologyEdge:
 # ──────────────────────────────
 #  Unified Topology Graph
 # ──────────────────────────────
+
 
 class UnifiedTopologyGraph:
     """Deterministic cross-system topology graph.
@@ -189,23 +191,22 @@ class UnifiedTopologyGraph:
     def graph_hash(self) -> str:
         """Deterministic hash of the entire graph state."""
         canonical = {
-            "nodes": sorted([
-                {"id": n.node_id, "type": n.node_type, "system": n.system}
-                for n in self._nodes.values()
-            ], key=lambda x: x["id"]),
-            "edges": sorted([
-                {"from": e.from_node, "to": e.to_node, "relation": e.relation}
-                for e in self._edges.values()
-            ], key=lambda x: (x["from"], x["to"], x["relation"])),
+            "nodes": sorted(
+                [{"id": n.node_id, "type": n.node_type, "system": n.system} for n in self._nodes.values()],
+                key=lambda x: x["id"],
+            ),
+            "edges": sorted(
+                [{"from": e.from_node, "to": e.to_node, "relation": e.relation} for e in self._edges.values()],
+                key=lambda x: (x["from"], x["to"], x["relation"]),
+            ),
         }
-        return hashlib.sha256(
-            json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        return hashlib.sha256(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 # ──────────────────────────────
 #  Cross-System Dependency Graph
 # ──────────────────────────────
+
 
 class CrossSystemDependencyGraph:
     """Explicit cross-system dependency mapping engine.
@@ -278,19 +279,22 @@ class CrossSystemDependencyGraph:
         edges = []
         for key, links in self._links.items():
             for from_id, to_id, relation in links:
-                edges.append(TopologyEdge(
-                    edge_id=f"xsys_{from_id}_{to_id}_{relation}",
-                    from_node=from_id,
-                    to_node=to_id,
-                    relation=relation,
-                    system=key,
-                ))
+                edges.append(
+                    TopologyEdge(
+                        edge_id=f"xsys_{from_id}_{to_id}_{relation}",
+                        from_node=from_id,
+                        to_node=to_id,
+                        relation=relation,
+                        system=key,
+                    )
+                )
         return edges
 
 
 # ──────────────────────────────
 #  Risk Propagation Topology
 # ──────────────────────────────
+
 
 class RiskPropagationTopology:
     """Deterministic risk propagation analysis over topology graph.

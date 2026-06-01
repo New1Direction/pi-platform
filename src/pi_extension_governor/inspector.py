@@ -129,6 +129,42 @@ class StaticCapabilityInspector:
         "beacon",
     }
 
+    # Indirect-access / sandbox-escape patterns. A restricted-exec sandbox is
+    # escapable by reaching the real, unrestricted builtins through the object
+    # graph WITHOUT naming `import os`/eval/subprocess — e.g.
+    #   type("").__mro__[-1].__subclasses__() ... ._module.__builtins__["__import__"]
+    #   json.dumps.__globals__["__builtins__"]["__import__"]
+    # A name/attribute blocklist that only looks for the obvious calls misses
+    # these. Treat any of these dunder pivots / reflective primitives as REJECTED.
+    SANDBOX_ESCAPE_ATTRS: Set[str] = {
+        "__subclasses__",
+        "__mro__",
+        "__bases__",
+        "__base__",
+        "__globals__",
+        "__builtins__",
+        "__import__",
+        "__getattribute__",
+        "__subclasshook__",
+        "__code__",
+        "__closure__",
+        "func_globals",
+        "f_globals",
+        "f_builtins",
+        "gi_frame",
+        "cr_frame",
+        "_module",
+    }
+    SANDBOX_ESCAPE_NAMES: Set[str] = {
+        "__import__",
+        "__builtins__",
+        "globals",
+        "vars",
+        "eval",
+        "exec",
+        "compile",
+    }
+
     def __init__(self, policy_banned_imports: Optional[Set[str]] = None) -> None:
         self.policy_banned_imports = policy_banned_imports or set()
         self.findings: List[InspectionFinding] = []
@@ -141,7 +177,9 @@ class StaticCapabilityInspector:
 
         py_files = list(package_path.rglob("*.py"))
         if not py_files:
-            self._add_finding("no_python_files", "HIGH", "Package contains no Python files for inspection", str(package_path), 0)
+            self._add_finding(
+                "no_python_files", "HIGH", "Package contains no Python files for inspection", str(package_path), 0
+            )
             self.classifications.add(CapabilityClassification.REJECTED)
 
         for py_file in py_files:
@@ -189,7 +227,9 @@ class StaticCapabilityInspector:
             source = file_path.read_text(encoding="utf-8")
             tree = ast.parse(source)
         except SyntaxError as e:
-            self._add_finding("syntax_error", "CRITICAL", f"Syntax error in {file_path}: {e}", str(file_path), e.lineno or 0)
+            self._add_finding(
+                "syntax_error", "CRITICAL", f"Syntax error in {file_path}: {e}", str(file_path), e.lineno or 0
+            )
             self.classifications.add(CapabilityClassification.REJECTED)
             return
         except Exception as e:
@@ -203,20 +243,54 @@ class StaticCapabilityInspector:
             self._check_eval_exec(node, file_path)
             self._check_file_operations(node, file_path)
             self._check_threading(node, file_path)
+            self._check_indirect_access(node, file_path)
+
+    def _check_indirect_access(self, node: ast.AST, file_path: Path) -> None:
+        """Reject reflective/dunder pivots used to escape a restricted sandbox."""
+        if isinstance(node, ast.Attribute) and node.attr in self.SANDBOX_ESCAPE_ATTRS:
+            self._add_finding(
+                "sandbox_escape_attribute",
+                "CRITICAL",
+                f"Indirect-access escape attribute: {node.attr}",
+                str(file_path),
+                getattr(node, "lineno", 0),
+            )
+            self.classifications.add(CapabilityClassification.REJECTED)
+        elif isinstance(node, ast.Name) and node.id in self.SANDBOX_ESCAPE_NAMES:
+            self._add_finding(
+                "sandbox_escape_name",
+                "CRITICAL",
+                f"Indirect-access escape primitive: {node.id}",
+                str(file_path),
+                getattr(node, "lineno", 0),
+            )
+            self.classifications.add(CapabilityClassification.REJECTED)
 
     def _check_imports(self, node: ast.AST, file_path: Path) -> None:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 name = alias.name
                 if name in self.DANGEROUS_IMPORTS or name in self.policy_banned_imports:
-                    self._add_finding("dangerous_import", "CRITICAL", f"Banned import: {name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "dangerous_import",
+                        "CRITICAL",
+                        f"Banned import: {name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.POLICY_VIOLATION)
         elif isinstance(node, ast.ImportFrom):
             module = node.module or ""
             full_names = [f"{module}.{alias.name}" for alias in node.names]
             for name in full_names:
                 if name in self.DANGEROUS_IMPORTS or name in self.policy_banned_imports:
-                    self._add_finding("dangerous_import_from", "CRITICAL", f"Banned import: {name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "dangerous_import_from",
+                        "CRITICAL",
+                        f"Banned import: {name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.POLICY_VIOLATION)
 
     def _check_calls(self, node: ast.AST, file_path: Path, source: str) -> None:
@@ -225,30 +299,66 @@ class StaticCapabilityInspector:
             if func_name:
                 # Check obfuscation
                 if any(func_name.endswith(p) or func_name == p for p in self.OBFUSCATION_PATTERNS):
-                    self._add_finding("obfuscation_indicator", "HIGH", f"Obfuscation pattern: {func_name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "obfuscation_indicator",
+                        "HIGH",
+                        f"Obfuscation pattern: {func_name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.TELEMETRY_RISK)
                 # Check telemetry
                 if any(t in func_name.lower() for t in self.TELEMETRY_PATTERNS):
-                    self._add_finding("telemetry_indicator", "HIGH", f"Telemetry pattern: {func_name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "telemetry_indicator",
+                        "HIGH",
+                        f"Telemetry pattern: {func_name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.TELEMETRY_RISK)
                 # Check network
                 if any(n in func_name for n in ["socket", "connect", "urlopen", "get", "post", "send"]):
-                    self._add_finding("network_access", "CRITICAL", f"Network call: {func_name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "network_access",
+                        "CRITICAL",
+                        f"Network call: {func_name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.REPLAY_UNSAFE)
                 # Check subprocess
                 if "subprocess" in func_name or "Popen" in func_name or "system" in func_name:
-                    self._add_finding("subprocess_spawn", "CRITICAL", f"Subprocess call: {func_name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "subprocess_spawn",
+                        "CRITICAL",
+                        f"Subprocess call: {func_name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.REJECTED)
                 # Check reflection
                 if func_name in ["eval", "exec", "compile"]:
-                    self._add_finding("dynamic_execution", "CRITICAL", f"Dynamic execution: {func_name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "dynamic_execution",
+                        "CRITICAL",
+                        f"Dynamic execution: {func_name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.REJECTED)
 
     def _check_eval_exec(self, node: ast.AST, file_path: Path) -> None:
         if isinstance(node, ast.Call):
             func_name = self._get_call_name(node.func)
             if func_name in ["eval", "exec", "compile"]:
-                self._add_finding("dynamic_execution_direct", "CRITICAL", f"Direct {func_name}() call detected", str(file_path), getattr(node, "lineno", 0))
+                self._add_finding(
+                    "dynamic_execution_direct",
+                    "CRITICAL",
+                    f"Direct {func_name}() call detected",
+                    str(file_path),
+                    getattr(node, "lineno", 0),
+                )
                 self.classifications.add(CapabilityClassification.REJECTED)
 
     def _check_file_operations(self, node: ast.AST, file_path: Path) -> None:
@@ -261,17 +371,37 @@ class StaticCapabilityInspector:
                     mode_arg = node.args[1]
                     if isinstance(mode_arg, ast.Constant) and isinstance(mode_arg.value, str):
                         if any(c in mode_arg.value for c in "wax+"):
-                            self._add_finding("filesystem_mutation", "CRITICAL", f"File write mode: {mode_arg.value}", str(file_path), getattr(node, "lineno", 0))
+                            self._add_finding(
+                                "filesystem_mutation",
+                                "CRITICAL",
+                                f"File write mode: {mode_arg.value}",
+                                str(file_path),
+                                getattr(node, "lineno", 0),
+                            )
                             self.classifications.add(CapabilityClassification.REPLAY_UNSAFE)
                 elif func_name != "open":
-                    self._add_finding("filesystem_mutation", "CRITICAL", f"Filesystem mutation: {func_name}", str(file_path), getattr(node, "lineno", 0))
+                    self._add_finding(
+                        "filesystem_mutation",
+                        "CRITICAL",
+                        f"Filesystem mutation: {func_name}",
+                        str(file_path),
+                        getattr(node, "lineno", 0),
+                    )
                     self.classifications.add(CapabilityClassification.REPLAY_UNSAFE)
 
     def _check_threading(self, node: ast.AST, file_path: Path) -> None:
         if isinstance(node, ast.Call):
             func_name = self._get_call_name(node.func)
-            if func_name and ("Thread" in func_name or "Process" in func_name or "Pool" in func_name or "Executor" in func_name):
-                self._add_finding("thread_spawn", "HIGH", f"Thread/process spawn: {func_name}", str(file_path), getattr(node, "lineno", 0))
+            if func_name and (
+                "Thread" in func_name or "Process" in func_name or "Pool" in func_name or "Executor" in func_name
+            ):
+                self._add_finding(
+                    "thread_spawn",
+                    "HIGH",
+                    f"Thread/process spawn: {func_name}",
+                    str(file_path),
+                    getattr(node, "lineno", 0),
+                )
                 self.classifications.add(CapabilityClassification.NON_DETERMINISTIC)
 
     def _get_call_name(self, func: ast.AST) -> Optional[str]:
@@ -289,13 +419,15 @@ class StaticCapabilityInspector:
         return None
 
     def _add_finding(self, rule: str, severity: str, detail: str, file_path: str, line_number: int) -> None:
-        self.findings.append(InspectionFinding(
-            rule=rule,
-            severity=severity,
-            detail=detail,
-            file_path=file_path,
-            line_number=line_number,
-        ))
+        self.findings.append(
+            InspectionFinding(
+                rule=rule,
+                severity=severity,
+                detail=detail,
+                file_path=file_path,
+                line_number=line_number,
+            )
+        )
 
     def _compute_determinism_score(self) -> int:
         score = 100

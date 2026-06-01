@@ -30,11 +30,12 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 #  Compatibility Semantics
 # ──────────────────────────────
 
+
 class CompatibilityLevel(str, Enum):
     NONE = "none"
     BACKWARD = "backward"  # New readers can read old data
-    FORWARD = "forward"    # Old readers can read new data
-    FULL = "full"          # Both directions
+    FORWARD = "forward"  # Old readers can read new data
+    FULL = "full"  # Both directions
 
 
 class SchemaChangeType(str, Enum):
@@ -52,6 +53,7 @@ class SchemaChangeType(str, Enum):
 # ──────────────────────────────
 #  Schema Model
 # ──────────────────────────────
+
 
 @dataclass(frozen=True)
 class SchemaFingerprint:
@@ -145,6 +147,7 @@ class ArtifactSchema:
 #  Compatibility Validator
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class CompatibilityReport:
     old_fingerprint: str
@@ -196,9 +199,7 @@ class CompatibilityValidator:
 
         for change in changes:
             if change["type"] not in allowed:
-                violations.append(
-                    f"{change['type']} not allowed under {new.compatibility.value} compatibility"
-                )
+                violations.append(f"{change['type']} not allowed under {new.compatibility.value} compatibility")
 
         return CompatibilityReport(
             old_fingerprint=old.fingerprint.value,
@@ -218,19 +219,25 @@ class CompatibilityValidator:
         # Added fields
         for name, f in new_fields.items():
             if name not in old_fields:
-                changes.append({
-                    "type": SchemaChangeType.FIELD_ADDED_REQUIRED if f.required else SchemaChangeType.FIELD_ADDED_OPTIONAL,
-                    "field": name,
-                    "required": f.required,
-                })
+                changes.append(
+                    {
+                        "type": SchemaChangeType.FIELD_ADDED_REQUIRED
+                        if f.required
+                        else SchemaChangeType.FIELD_ADDED_OPTIONAL,
+                        "field": name,
+                        "required": f.required,
+                    }
+                )
 
         # Removed fields
         for name in old_fields:
             if name not in new_fields:
-                changes.append({
-                    "type": SchemaChangeType.FIELD_REMOVED,
-                    "field": name,
-                })
+                changes.append(
+                    {
+                        "type": SchemaChangeType.FIELD_REMOVED,
+                        "field": name,
+                    }
+                )
 
         # Modified fields
         for name in old_fields:
@@ -250,6 +257,7 @@ class CompatibilityValidator:
 # ──────────────────────────────
 #  Migration Model
 # ──────────────────────────────
+
 
 @dataclass(frozen=True)
 class MigrationStep:
@@ -332,6 +340,7 @@ class MigrationDAG:
 #  Schema Registry
 # ──────────────────────────────
 
+
 class SchemaRegistry:
     """Append-only registry for schemas, compatibility reports, and migrations.
 
@@ -412,8 +421,11 @@ class SchemaRegistry:
                    (schema_name, version, fingerprint, canonical_json, compatibility, previous_fingerprint, registered_at, registered_by)
                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'), ?)""",
                 (
-                    schema.schema_name, schema.version, schema.fingerprint.value,
-                    schema.fingerprint.schema_json, schema.compatibility.value,
+                    schema.schema_name,
+                    schema.version,
+                    schema.fingerprint.value,
+                    schema.fingerprint.schema_json,
+                    schema.compatibility.value,
                     schema.previous_fingerprint.value if schema.previous_fingerprint else None,
                     registered_by,
                 ),
@@ -444,9 +456,7 @@ class SchemaRegistry:
 
     # ── Compatibility Validation ──────────────────────────────
 
-    def validate_compatibility(
-        self, old: ArtifactSchema, new: ArtifactSchema
-    ) -> CompatibilityReport:
+    def validate_compatibility(self, old: ArtifactSchema, new: ArtifactSchema) -> CompatibilityReport:
         report = CompatibilityValidator.validate(old, new)
 
         with self._lock:
@@ -456,8 +466,10 @@ class SchemaRegistry:
                    (old_fingerprint, new_fingerprint, compatible, level, changes_json, violations_json, validated_at)
                    VALUES (?, ?, ?, ?, ?, ?, datetime('now'))""",
                 (
-                    report.old_fingerprint, report.new_fingerprint,
-                    1 if report.compatible else 0, report.level.value,
+                    report.old_fingerprint,
+                    report.new_fingerprint,
+                    1 if report.compatible else 0,
+                    report.level.value,
                     json.dumps(report.changes, sort_keys=True, default=str),
                     json.dumps(report.violations, sort_keys=True),
                 ),
@@ -488,10 +500,16 @@ class SchemaRegistry:
                     field_name, parameters_json, description, deterministic, reversible, registered_at, registered_by)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), ?)""",
                 (
-                    step.migration_id, step.from_fingerprint, step.to_fingerprint,
-                    step.direction, step.transformation_type, step.field_name,
-                    json.dumps(step.parameters, sort_keys=True), step.description,
-                    1 if step.deterministic else 0, 1 if step.reversible else 0,
+                    step.migration_id,
+                    step.from_fingerprint,
+                    step.to_fingerprint,
+                    step.direction,
+                    step.transformation_type,
+                    step.field_name,
+                    json.dumps(step.parameters, sort_keys=True),
+                    step.description,
+                    1 if step.deterministic else 0,
+                    1 if step.reversible else 0,
                     registered_by,
                 ),
             )

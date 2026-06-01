@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_bytecode_decompiler import (
-    PiBytecodeDecompiler,
     BytecodeDecompilerInput,
-    BytecodeDecompilerOutput,
-    is_strict_mode,
+    PiBytecodeDecompiler,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -30,11 +27,7 @@ def test_bytecode_decompiler_vulnerable_bytecode():
 
     # 0xff is selfdestruct in raw hex bytecode representation
     raw_bytecode = "608060405234801561001057600080fd5b50ff"
-    inp = BytecodeDecompilerInput(
-        file_path="VulnerableBytecode.hex",
-        solidity_code=raw_bytecode,
-        check_level="STRICT"
-    )
+    inp = BytecodeDecompilerInput(file_path="VulnerableBytecode.hex", solidity_code=raw_bytecode, check_level="STRICT")
 
     out = agent.audit_bytecode(inp)
 
@@ -62,11 +55,7 @@ def test_bytecode_decompiler_vulnerable_assembly():
         }
     }
     """
-    inp = BytecodeDecompilerInput(
-        file_path="VulnAssembly.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = BytecodeDecompilerInput(file_path="VulnAssembly.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_bytecode(inp)
 
@@ -96,11 +85,7 @@ def test_bytecode_decompiler_compliant_assembly():
         }
     }
     """
-    inp = BytecodeDecompilerInput(
-        file_path="CompliantAssembly.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = BytecodeDecompilerInput(file_path="CompliantAssembly.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_bytecode(inp)
 
@@ -128,22 +113,22 @@ def test_orchestrator_bytecode_decompiler_consensus_passed(monkeypatch):
             "vulnerable_functions": ["raw_bytecode"],
             "flagged_findings": ["EVM bytecode contains SELFDESTRUCT"],
             "risk_score": 90.0,
-            "status": "REJECTED_BYTECODE_VULNERABILITY"
+            "status": "REJECTED_BYTECODE_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["raw_bytecode"],
             "flagged_findings": ["EVM bytecode contains SELFDESTRUCT"],
             "risk_score": 90.0,
-            "status": "REJECTED_BYTECODE_VULNERABILITY"
+            "status": "REJECTED_BYTECODE_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["raw_bytecode"],
             "flagged_findings": ["EVM bytecode contains SELFDESTRUCT"],
             "risk_score": 90.0,
-            "status": "REJECTED_BYTECODE_VULNERABILITY"
-        }
+            "status": "REJECTED_BYTECODE_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -151,8 +136,8 @@ def test_orchestrator_bytecode_decompiler_consensus_passed(monkeypatch):
         context={
             "file_path": "bytecode.hex",
             "solidity_code": raw_bytecode,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

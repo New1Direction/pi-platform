@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_block_timestamp_sentry import (
-    PiBlockTimestampSentry,
     BlockTimestampInput,
-    BlockTimestampOutput,
-    is_strict_mode,
+    PiBlockTimestampSentry,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -36,11 +33,7 @@ def test_block_timestamp_vulnerable():
         }
     }
     """
-    inp = BlockTimestampInput(
-        file_path="RandomGame.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = BlockTimestampInput(file_path="RandomGame.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_timestamp(inp)
 
@@ -68,11 +61,7 @@ def test_block_timestamp_compliant_with_warning():
         }
     }
     """
-    inp = BlockTimestampInput(
-        file_path="Timelock.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = BlockTimestampInput(file_path="Timelock.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_timestamp(inp)
 
@@ -106,22 +95,22 @@ def test_orchestrator_block_timestamp_consensus_passed(monkeypatch):
             "vulnerable_functions": ["pickWinner"],
             "flagged_findings": ["pseudo-randomness from block.timestamp"],
             "risk_score": 85.0,
-            "status": "REJECTED_TIMESTAMP_VULNERABILITY"
+            "status": "REJECTED_TIMESTAMP_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["pickWinner"],
             "flagged_findings": ["pseudo-randomness from block.timestamp"],
             "risk_score": 85.0,
-            "status": "REJECTED_TIMESTAMP_VULNERABILITY"
+            "status": "REJECTED_TIMESTAMP_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["pickWinner"],
             "flagged_findings": ["pseudo-randomness from block.timestamp"],
             "risk_score": 85.0,
-            "status": "REJECTED_TIMESTAMP_VULNERABILITY"
-        }
+            "status": "REJECTED_TIMESTAMP_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -129,8 +118,8 @@ def test_orchestrator_block_timestamp_consensus_passed(monkeypatch):
         context={
             "file_path": "RandomGame.sol",
             "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

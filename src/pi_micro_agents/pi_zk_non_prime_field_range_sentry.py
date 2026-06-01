@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ZK_NON_PRIME_FIELD_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_ZK_NON_PRIME_FIELD_STRICT_MODE")
 
 
 class ZKNonPrimeFieldRangeInput(BaseModel):
@@ -24,7 +21,9 @@ class ZKNonPrimeFieldRangeInput(BaseModel):
 class ZKNonPrimeFieldRangeOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if signal ranges do not exceed prime field boundaries")
     vulnerable_signals: List[str] = Field(default_factory=list, description="Vulnerable signal or parameter names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on prime field range errors")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on prime field range errors"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -45,7 +44,7 @@ class PiZKNonPrimeFieldRangeSentry:
         bn254_prime = 21888242871839275222246405745257275088548364400416034343698204186575808495617
 
         # Look for literal numbers in code
-        literals = re.findall(r'\b([0-9]{10,})\b', code)
+        literals = re.findall(r"\b([0-9]{10,})\b", code)
         for lit in literals:
             val = int(lit)
             if val >= bn254_prime:
@@ -72,5 +71,5 @@ class PiZKNonPrimeFieldRangeSentry:
             vulnerable_signals=vulnerable_signals,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

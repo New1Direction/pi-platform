@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ARBITRAGE_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_ARBITRAGE_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_ARBITRAGE_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Static heuristic verification of arbitrage pool structures
 def detect_arbitrage_anomalies(text: str) -> Tuple[float, List[str]]:
@@ -47,6 +33,7 @@ def detect_arbitrage_anomalies(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. Pydantic-Enforced Input/Output Envelopes
 class ArbitrageInput(BaseModel):
     token_in: str
@@ -56,12 +43,14 @@ class ArbitrageInput(BaseModel):
     pool_price_b: float
     min_spread_percent: float = Field(default=0.5, description="Minimum price gap to execute")
 
+
 class ArbitrageOutput(BaseModel):
     should_execute: bool
     spread_detected_percent: float
     expected_profit: float
     target_wallet_type: str = "ERC-4337"
     route_details: str
+
 
 # 4. Core Micro-Agent Class
 class PiArbitrageGuard:
@@ -80,10 +69,10 @@ class PiArbitrageGuard:
         route = "NO_PROFITABLE_ROUTE"
 
         if spread >= input_envelope.min_spread_percent:
-            expected_profit = (input_envelope.amount_in * (spread / 100.0))
+            expected_profit = input_envelope.amount_in * (spread / 100.0)
 
             # Simple slippage/gas deduction: assume 0.1% transaction cost
-            expected_profit -= (input_envelope.amount_in * 0.001)
+            expected_profit -= input_envelope.amount_in * 0.001
 
             if expected_profit > 0.0:
                 should_execute = True
@@ -102,5 +91,5 @@ class PiArbitrageGuard:
             should_execute=should_execute,
             spread_detected_percent=spread,
             expected_profit=expected_profit,
-            route_details=route
+            route_details=route,
         )

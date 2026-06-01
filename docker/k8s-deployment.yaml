@@ -21,13 +21,25 @@ spec:
         app: pi-core
         version: "1.2.0-prod"
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 999
+        runAsGroup: 999
         fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: pi-core
           image: pi-platform:1.2.0-prod
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 999
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8000
               name: http
@@ -51,6 +63,11 @@ spec:
           volumeMounts:
             - name: pi-data
               mountPath: /data
+            # readOnlyRootFilesystem requires writable tmpfs scratch areas.
+            - name: tmp
+              mountPath: /tmp
+            - name: cache
+              mountPath: /home/piuser/.cache
           livenessProbe:
             httpGet:
               path: /v1/health/ready
@@ -78,6 +95,13 @@ spec:
         - name: pi-data
           persistentVolumeClaim:
             claimName: pi-data-pvc
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Mi
+        - name: cache
+          emptyDir:
+            sizeLimit: 128Mi
 ---
 apiVersion: v1
 kind: Service
@@ -105,11 +129,56 @@ spec:
     requests:
       storage: 10Gi
 ---
+# Secret values are NOT stored in this file.
+# Populate before deploying with:
+#
+#   kubectl create secret generic pi-secrets \
+#     --from-literal=jwt-secret="$(openssl rand -hex 32)" \
+#     --from-literal=request-signing-secret="$(openssl rand -hex 32)"
+#
+# For production, use Sealed Secrets or External Secrets Operator
+# so values are never stored in plaintext in version control.
 apiVersion: v1
 kind: Secret
 metadata:
   name: pi-secrets
 type: Opaque
-stringData:
-  jwt-secret: "REPLACE_WITH_PRODUCTION_JWT_SECRET"
-  request-signing-secret: "REPLACE_WITH_PRODUCTION_SIGNING_SECRET"
+# data: populated out-of-band via kubectl or secrets manager — see comment above
+---
+# Default-deny NetworkPolicy: pi-core only accepts ingress on :8000 from
+# pods labelled pi-client=true and only egresses to DNS + Kubernetes API.
+# Adjust the egress block to match your downstream services (LLM gateway,
+# Slack webhook, etc.) — never broaden ingress without justification.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: pi-core-default-deny
+spec:
+  podSelector:
+    matchLabels:
+      app: pi-core
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              pi-client: "true"
+      ports:
+        - protocol: TCP
+          port: 8000
+  egress:
+    # CoreDNS lookup
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53

@@ -15,6 +15,7 @@ from pydantic import BaseModel, Field, field_validator
 #  Epistemic Primitives (mirrored from pi-semantic-recon for independence)
 # ──────────────────────────────
 
+
 class EpistemicState(str):
     OBSERVED = "OBSERVED"
     INFERRED = "INFERRED"
@@ -59,6 +60,7 @@ class WorkerStatus(str):
 # ──────────────────────────────
 #  Artifact Envelopes (consumed from pi-semantic-recon)
 # ──────────────────────────────
+
 
 class SemanticField(BaseModel):
     """Typed primitive inside a SemanticIRTrace."""
@@ -183,6 +185,7 @@ class ProtocolStateMachine(BaseModel):
 #  Governance Primitives
 # ──────────────────────────────
 
+
 class GovernanceViolation(BaseModel):
     """Immutable record of a governance breach."""
 
@@ -257,6 +260,7 @@ class WorkerResponse(BaseModel):
 # ──────────────────────────────
 #  Validator Runtime Models
 # ──────────────────────────────
+
 
 class ValidationArtifact(BaseModel):
     """A single artifact loaded for validation with its runtime envelope."""

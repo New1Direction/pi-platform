@@ -30,6 +30,7 @@ def is_strict_mode() -> bool:
             pass
     return True
 
+
 # 2. Heuristic Detection Core
 def detect_prompt_injection(text: str) -> Tuple[float, List[str]]:
     violations = []
@@ -51,8 +52,12 @@ def detect_prompt_injection(text: str) -> Tuple[float, List[str]]:
 
     # C. Stealth Boundary Switches and Jailbreaks
     boundary_triggers = [
-        r"<\|im_start\|>\s*(?:system|assistant|user)", r"\[SYSTEM\]", r"###\s*Instruction",
-        r"\bignore\b.*\bprevious\b.*\binstructions\b", r"\bdan\s+mode\b", r"\bdeveloper\b.*\bmode\b.*\boverride\b"
+        r"<\|im_start\|>\s*(?:system|assistant|user)",
+        r"\[SYSTEM\]",
+        r"###\s*Instruction",
+        r"\bignore\b.*\bprevious\b.*\binstructions\b",
+        r"\bdan\s+mode\b",
+        r"\bdeveloper\b.*\bmode\b.*\boverride\b",
     ]
     for pattern in boundary_triggers:
         if re.search(pattern, text, re.IGNORECASE):
@@ -61,16 +66,21 @@ def detect_prompt_injection(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. FastAPI Transparent Middleware
 class PiPromptShieldMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.method == "POST" and request.headers.get("content-type", "").startswith("application/json"):
             print("[*] PiPromptShield ⚡ scanning prompt...")
             body = await request.body()
-            async def receive(): return {"type": "http.request", "body": body, "more_body": False}
+
+            async def receive():
+                return {"type": "http.request", "body": body, "more_body": False}
+
             request._receive = receive
             try:
                 payload = json.loads(body)
+
                 def deep_scan(obj: Any) -> Tuple[float, List[str]]:
                     m_r, viols = 0.0, []
                     if isinstance(obj, str):
@@ -100,7 +110,7 @@ class PiPromptShieldMiddleware(BaseHTTPMiddleware):
                         print(f"{log_msg} → 403 Forbidden")
                         return JSONResponse(
                             status_code=status.HTTP_403_FORBIDDEN,
-                            content={"detail": f"MUTATION_BLOCKED: {', '.join(violations)} (PiPromptShield v2)"}
+                            content={"detail": f"MUTATION_BLOCKED: {', '.join(violations)} (PiPromptShield v2)"},
                         )
                     else:
                         print(f"{log_msg} → WARNING ONLY (Strict Mode Disabled)")

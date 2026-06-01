@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ZK_SIGNAL_UNCONSTRAINED_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_ZK_SIGNAL_UNCONSTRAINED_STRICT_MODE")
 
 
 class ZKSignalUnconstrainedInput(BaseModel):
@@ -24,7 +21,9 @@ class ZKSignalUnconstrainedInput(BaseModel):
 class ZKSignalUnconstrainedOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if all assigned signals have constraints")
     vulnerable_signals: List[str] = Field(default_factory=list, description="Vulnerable signal names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on unconstrained assignments")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on unconstrained assignments"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -40,14 +39,14 @@ class PiZKSignalUnconstrainedConstraint:
         vulnerable_signals = []
         flagged_findings = []
 
-        templates = re.findall(r'template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        templates = re.findall(r"template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for tname, params, body in templates:
+        for tname, _params, body in templates:
             # Find signals assigned via <-- or -->
-            assignments = re.findall(r'([a-zA-Z0-9_]+)\s*(?:<--|-->)', body)
+            assignments = re.findall(r"([a-zA-Z0-9_]+)\s*(?:<--|-->)", body)
             for signal in assignments:
                 # Check if there is a corresponding constraint (signal === or === signal)
-                if not re.search(rf'{signal}\s*===', body) and not re.search(rf'===\s*{signal}', body):
+                if not re.search(rf"{signal}\s*===", body) and not re.search(rf"===\s*{signal}", body):
                     vulnerable_signals.append(signal)
                     flagged_findings.append(
                         f"Template '{tname}': Signal '{signal}' is assigned values using non-constraining operators (<-- or -->) "
@@ -71,5 +70,5 @@ class PiZKSignalUnconstrainedConstraint:
             vulnerable_signals=vulnerable_signals,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

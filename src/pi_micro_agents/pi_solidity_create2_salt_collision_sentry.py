@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_CREATE2_SALT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_CREATE2_SALT_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_CREATE2_SALT_STRICT_MODE")
 
 
 class Create2SaltCollisionInput(BaseModel):
@@ -53,21 +38,21 @@ class PiSolidityCreate2SaltCollisionSentry:
         flagged_findings = []
 
         # Find all functions containing CREATE2 deployments
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check for new Contract{salt: salt_var}(...) or create2(v, o, s, salt_var)
             has_create2 = False
             salt_var = ""
 
             # Check new Contract{salt: ...}
-            new_salt_match = re.search(r'new\s+[a-zA-Z0-9_]+\s*\{\s*salt\s*:\s*([^}]+)\s*\}', body)
+            new_salt_match = re.search(r"new\s+[a-zA-Z0-9_]+\s*\{\s*salt\s*:\s*([^}]+)\s*\}", body)
             if new_salt_match:
                 has_create2 = True
                 salt_var = new_salt_match.group(1).strip()
 
             # Check Yul create2
-            yul_create2_match = re.search(r'create2\s*\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*([^)]+)\)', body)
+            yul_create2_match = re.search(r"create2\s*\(\s*[^,]+,\s*[^,]+,\s*[^,]+,\s*([^)]+)\)", body)
             if yul_create2_match:
                 has_create2 = True
                 salt_var = yul_create2_match.group(1).strip()
@@ -100,5 +85,5 @@ class PiSolidityCreate2SaltCollisionSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

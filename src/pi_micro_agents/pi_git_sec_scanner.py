@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_GIT_SEC_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_GIT_SEC_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_GIT_SEC_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Heuristics scanner for dependencies and security patches
 def detect_git_sec_anomalies(content: str, filename: str) -> Tuple[float, List[str]]:
@@ -48,14 +34,16 @@ def detect_git_sec_anomalies(content: str, filename: str) -> Tuple[float, List[s
             # Clean requirements.txt pin is usually: package==1.2.3 or package===1.2.3
             # If it uses >=, <=, >, <, ~=, or no pin at all, flag it.
             if "==" not in line and "===" not in line:
-                violations.append(f"unpinned or range dependency in requirements.txt (line {idx+1}): '{line}'")
+                violations.append(f"unpinned or range dependency in requirements.txt (line {idx + 1}): '{line}'")
                 max_risk = max(max_risk, 75.0)
 
             # Typosquatting / Suspicious Packages
             suspicious_packages = ["discord-py-self", "urllib5", "colorama-plus", "reqs", "pip-install-all"]
             package_name = line.split("=")[0].split(">")[0].split("<")[0].split("~")[0].strip().lower()
             if package_name in suspicious_packages:
-                violations.append(f"high-risk typosquatted / suspicious package detected (line {idx+1}): '{package_name}'")
+                violations.append(
+                    f"high-risk typosquatted / suspicious package detected (line {idx + 1}): '{package_name}'"
+                )
                 max_risk = max(max_risk, 85.0)
 
     elif "package.json" in fn_lower:
@@ -84,8 +72,14 @@ def detect_git_sec_anomalies(content: str, filename: str) -> Tuple[float, List[s
     # C. Hardcoded Credentials & Sensitive Data Secrets
     secret_patterns = [
         (r"(?:api_key|apikey|api-key)\s*[:=]\s*['\"][a-zA-Z0-9_-]{20,}['\"]", "hardcoded API key"),
-        (r"(?:private_key|privatekey)\s*[:=]\s*['\"](?:0x)?[a-fA-F0-9]{64,}['\"]", "hardcoded private key hex signature"),
-        (r"(?:secret|client_secret|client-secret)\s*[:=]\s*['\"][a-zA-Z0-9_\-+=/]{30,}['\"]", "hardcoded client secret token"),
+        (
+            r"(?:private_key|privatekey)\s*[:=]\s*['\"](?:0x)?[a-fA-F0-9]{64,}['\"]",
+            "hardcoded private key hex signature",
+        ),
+        (
+            r"(?:secret|client_secret|client-secret)\s*[:=]\s*['\"][a-zA-Z0-9_\-+=/]{30,}['\"]",
+            "hardcoded client secret token",
+        ),
     ]
     for pat, desc in secret_patterns:
         if re.search(pat, content, re.IGNORECASE):
@@ -94,16 +88,21 @@ def detect_git_sec_anomalies(content: str, filename: str) -> Tuple[float, List[s
 
     return max_risk, violations
 
+
 # 3. Pydantic Input and Output envelopes
 class GitSecInput(BaseModel):
     filename: str = Field(..., description="The name of the file being scanned")
     content: str = Field(..., description="The string content of the file or patch to scan")
 
+
 class GitSecOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates whether the file is safe to proceed under strict-mode")
     risk_score: float = Field(..., description="The calculated security risk level (0-100)")
-    status: str = Field(..., description="Scanner status classification (PASSED, WARN_VULNERABILITY, REJECTED_VULNERABILITY)")
+    status: str = Field(
+        ..., description="Scanner status classification (PASSED, WARN_VULNERABILITY, REJECTED_VULNERABILITY)"
+    )
     flagged_vulnerabilities: List[str] = Field(default_factory=list, description="List of identified issues")
+
 
 # 4. Core Micro-Agent Class
 class PiGitSecScanner:
@@ -130,9 +129,4 @@ class PiGitSecScanner:
             # Under 80.0, we warn but do not strictly block unless configured otherwise
             status = "WARN_VULNERABILITY"
 
-        return GitSecOutput(
-            is_secure=is_secure,
-            risk_score=risk,
-            status=status,
-            flagged_vulnerabilities=violations
-        )
+        return GitSecOutput(is_secure=is_secure, risk_score=risk, status=status, flagged_vulnerabilities=violations)

@@ -17,7 +17,6 @@ from __future__ import annotations
 import hashlib
 import math
 from collections import defaultdict
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from pi_agent_chain.models import (
@@ -49,6 +48,7 @@ class EntropyAnalysisValidator:
 
     def __init__(self, bounds: Optional[Any] = None):
         self.bounds = bounds or ValidationBoundsConfig()
+
     COMPOSITE_WEIGHTS: Dict[str, float] = {
         "structural": 0.20,
         "semantic": 0.25,
@@ -99,9 +99,7 @@ class EntropyAnalysisValidator:
         temporal = self._measure_temporal_entropy(quorum_report, prior_snapshot)
         topological = self._measure_topological_entropy(fsm)
 
-        composite = self._compute_composite(
-            structural, semantic, replay, temporal, topological
-        )
+        composite = self._compute_composite(structural, semantic, replay, temporal, topological)
 
         snapshot = EntropySnapshot(
             snapshot_id=self._hash(f"snap:{execution_id}:{input_hash}"),
@@ -127,9 +125,7 @@ class EntropyAnalysisValidator:
         topo_entropy = self._decompose_topological(fsm)
 
         # Step 5: Convergence scoring
-        convergence = self._compute_convergence(
-            snapshot, semantic_variance, replay_stability, topo_entropy
-        )
+        convergence = self._compute_convergence(snapshot, semantic_variance, replay_stability, topo_entropy)
 
         # Step 6: Update stability window (bounded)
         window = self._update_window(snapshot)
@@ -141,7 +137,10 @@ class EntropyAnalysisValidator:
         violations = self._build_violations(snapshot, delta, drift_signatures, execution_id)
 
         return EntropyAnalysisReport(
-            report_id=self._hash(f"entropy:{execution_id}:{datetime.utcnow().isoformat()}"),
+            # Content-addressed report id: derived from the deterministic input
+            # fingerprint, NOT wall-clock time, so identical inputs reproduce
+            # the same id across runs. (generated_at still records wall-clock.)
+            report_id=self._hash(f"entropy:{execution_id}:{input_hash}"),
             execution_id=execution_id,
             snapshot=snapshot,
             delta=delta,
@@ -217,11 +216,7 @@ class EntropyAnalysisValidator:
         uncovered_ratio = (len(all_paths) - len(covered_paths)) / max(len(all_paths), 1)
 
         # Weighted composite
-        semantic_entropy = (
-            0.45 * disagreement_ratio +
-            0.30 * rejection_ratio +
-            0.25 * uncovered_ratio
-        )
+        semantic_entropy = 0.45 * disagreement_ratio + 0.30 * rejection_ratio + 0.25 * uncovered_ratio
         return min(semantic_entropy, 1.0)
 
     # ──────────────────────────────
@@ -334,11 +329,11 @@ class EntropyAnalysisValidator:
     ) -> float:
         w = self.COMPOSITE_WEIGHTS
         composite = (
-            w["structural"] * structural +
-            w["semantic"] * semantic +
-            w["replay"] * replay +
-            w["temporal"] * temporal +
-            w["topological"] * topological
+            w["structural"] * structural
+            + w["semantic"] * semantic
+            + w["replay"] * replay
+            + w["temporal"] * temporal
+            + w["topological"] * topological
         )
         return min(composite, 1.0)
 
@@ -409,9 +404,7 @@ class EntropyAnalysisValidator:
         fragmentation = 1.0 - (max_authority / max(total_authority, 0.001))
 
         # Contested expansion
-        contested_count = sum(
-            1 for c in quorum.claims if c.source_epistemic_state == EpistemicState.CONTESTED
-        )
+        contested_count = sum(1 for c in quorum.claims if c.source_epistemic_state == EpistemicState.CONTESTED)
         contested_rate = contested_count / total_claims
 
         # Rejected ratio
@@ -566,9 +559,7 @@ class EntropyAnalysisValidator:
             window.average_composite_entropy = round(sum(composites) / len(composites), 6)
             if len(composites) > 1:
                 mean = window.average_composite_entropy
-                window.entropy_variance = round(
-                    sum((c - mean) ** 2 for c in composites) / len(composites), 6
-                )
+                window.entropy_variance = round(sum((c - mean) ** 2 for c in composites) / len(composites), 6)
             else:
                 window.entropy_variance = 0.0
 
@@ -642,7 +633,9 @@ class EntropyAnalysisValidator:
                     signature_id=self._hash("drift:replay"),
                     pattern_type="REPLAY_INSTABILITY",
                     affected_dimensions=["replay"],
-                    severity_score=round(min(replay_stability.contested_rate + 0.2 * replay_stability.auth_mutation_count, 1.0), 4),
+                    severity_score=round(
+                        min(replay_stability.contested_rate + 0.2 * replay_stability.auth_mutation_count, 1.0), 4
+                    ),
                     description="Replay equivalence contested or auth mutations present. Behavioral consistency degraded.",
                 )
             )
@@ -673,12 +666,14 @@ class EntropyAnalysisValidator:
 
         # 6. Cross-dimension correlation (multiple dimensions elevated)
         elevated = [
-            dim for dim, val in {
+            dim
+            for dim, val in {
                 "structural": snapshot.structural_entropy,
                 "semantic": snapshot.semantic_entropy,
                 "replay": snapshot.replay_entropy,
                 "topological": snapshot.topological_entropy,
-            }.items() if val > 0.4
+            }.items()
+            if val > 0.4
         ]
         if len(elevated) >= 3:
             signatures.append(

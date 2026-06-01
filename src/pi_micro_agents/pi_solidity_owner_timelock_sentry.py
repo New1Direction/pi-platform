@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_OWNER_TIMELOCK_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_OWNER_TIMELOCK_STRICT_MODE")
 
 
 class OwnerTimelockInput(BaseModel):
@@ -41,15 +38,19 @@ class PiSolidityOwnerTimelockSentry:
         flagged_findings = []
 
         # Check if contract mentions timelock or delay in any variable/function/comment
-        has_timelock_mechanism = any(kw in code.lower() for kw in ["timelock", "delay", "min_delay", "queuedtransactions"])
+        has_timelock_mechanism = any(
+            kw in code.lower() for kw in ["timelock", "delay", "min_delay", "queuedtransactions"]
+        )
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, _body in func_blocks:
             # Check if this function is onlyOwner or restricted
-            is_admin_action = "onlyOwner" in code and re.search(r'\bfunction\s+' + name + r'\s*\(.*?\)[^{]*?\bonlyOwner\b', code)
-            
+            is_admin_action = "onlyOwner" in code and re.search(
+                r"\bfunction\s+" + name + r"\s*\(.*?\)[^{]*?\bonlyOwner\b", code
+            )
+
             if is_admin_action and not has_timelock_mechanism:
                 # Extra check: excludes standard view or configuration functions that are low risk
                 is_low_risk = any(kw in name.lower() for kw in ["get", "view", "is", "renounce"])
@@ -77,5 +78,5 @@ class PiSolidityOwnerTimelockSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

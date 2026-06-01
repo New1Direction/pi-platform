@@ -31,9 +31,7 @@ class SemanticTyperNode:
         r"^[0-9a-f]{8}-[0-9a-f]{4}-1[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
         re.IGNORECASE,
     )
-    ISO8601_PATTERN = re.compile(
-        r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$"
-    )
+    ISO8601_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?$")
     JWT_PATTERN = re.compile(r"^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*$")
     BASE64_PATTERN = re.compile(r"^[A-Za-z0-9+/]+={0,2}$")
     EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -68,9 +66,7 @@ class SemanticTyperNode:
         # Classify known auth headers
         for hk, hv in packet.raw_headers:
             if hk.lower() == "authorization":
-                fields.append(
-                    self._classify_header_field(hk, hv, "header")
-                )
+                fields.append(self._classify_header_field(hk, hv, "header"))
 
         # Freeze check: every field must meet threshold
         all_frozen = all(f.confidence >= self.confidence_threshold for f in fields)
@@ -83,9 +79,7 @@ class SemanticTyperNode:
             frozen_at=datetime.utcnow() if all_frozen else None,
         )
 
-    def _analyze_body(
-        self, body: Optional[str], location: str
-    ) -> List[SemanticField]:
+    def _analyze_body(self, body: Optional[str], location: str) -> List[SemanticField]:
         if not body or not body.strip():
             return []
         try:
@@ -104,9 +98,7 @@ class SemanticTyperNode:
                 )
             ]
 
-    def _walk_json(
-        self, obj: object, path: str, acc: List[SemanticField]
-    ) -> None:
+    def _walk_json(self, obj: object, path: str, acc: List[SemanticField]) -> None:
         if isinstance(obj, dict):
             for k, v in obj.items():
                 child = f"{path}.{k}"
@@ -127,13 +119,11 @@ class SemanticTyperNode:
                 )
             )
 
-    def _classify_header_field(
-        self, key: str, value: str, location: str
-    ) -> SemanticField:
+    def _classify_header_field(self, key: str, value: str, location: str) -> SemanticField:
         clean = value
         for prefix in ("Bearer ", "Basic ", "Token ", "ApiKey "):
             if clean.startswith(prefix):
-                clean = clean[len(prefix):]
+                clean = clean[len(prefix) :]
                 break
         primitive, semantic, confidence, entropy, example = self._classify_primitive(clean)
         return SemanticField(

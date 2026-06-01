@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LLM_RECURSIVE_REFINEMENT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_LLM_RECURSIVE_REFINEMENT_STRICT_MODE")
 
 
 class LLMRecursiveRefinementInput(BaseModel):
@@ -38,11 +35,11 @@ class PiLLMRecursiveRefinementJailbreak:
         flagged_findings = []
 
         refinement_patterns = [
-            r'let\'s\s+refine\s+that',
-            r'now\s+add\s+details\s+about',
-            r'combine\s+the\s+previous\s+steps',
-            r'gradually\s+build',
-            r'step-by-step\s+refinement'
+            r"let\'s\s+refine\s+that",
+            r"now\s+add\s+details\s+about",
+            r"combine\s+the\s+previous\s+steps",
+            r"gradually\s+build",
+            r"step-by-step\s+refinement",
         ]
 
         is_secure = True
@@ -65,8 +62,5 @@ class PiLLMRecursiveRefinementJailbreak:
                 is_secure = True
 
         return LLMRecursiveRefinementOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

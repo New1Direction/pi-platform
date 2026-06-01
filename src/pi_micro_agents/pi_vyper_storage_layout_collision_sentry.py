@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_VYPER_STORAGE_COLLISION_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_VYPER_STORAGE_COLLISION_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_VYPER_STORAGE_COLLISION_STRICT_MODE")
 
 
 class VyperStorageCollisionInput(BaseModel):
@@ -78,7 +63,7 @@ class PiVyperStorageLayoutCollisionSentry:
                     in_fn = False
 
             if not in_fn:
-                match = re.match(r'^([a-zA-Z0-9_]+)\s*:\s*([^#\n]+)', clean_line)
+                match = re.match(r"^([a-zA-Z0-9_]+)\s*:\s*([^#\n]+)", clean_line)
                 if match:
                     var_name = match.group(1)
                     var_type = match.group(2).strip()
@@ -91,7 +76,7 @@ class PiVyperStorageLayoutCollisionSentry:
         # Check if any new variable is prefixed or placed in an unsafe layout pattern.
         # A common vulnerability pattern is appending variables in-between older declarations.
         # Here we look for state variables defined with names ending in '_upgrade' or '_v2' but not defined at the end of the state variables list.
-        for idx, (var_name, var_type, line_num) in enumerate(state_vars):
+        for idx, (var_name, _var_type, line_num) in enumerate(state_vars):
             if "_v2" in var_name or "_upgrade" in var_name or "new_" in var_name:
                 # If this upgraded variable is NOT at the end of the state variable declarations list, it causes slot collisions
                 if idx < len(state_vars) - 1:
@@ -128,5 +113,5 @@ class PiVyperStorageLayoutCollisionSentry:
             vulnerable_variables=vulnerable_vars,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

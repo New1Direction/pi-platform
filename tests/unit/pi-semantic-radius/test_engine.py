@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from pi_semantic_radius.models import TopologyGraph, TopologyNode, TopologyEdge
 from pi_semantic_radius.engine import BlastRadiusEngine
-from pi_semantic_radius.runtime import RadiusRuntime
-from pi_semantic_radius.passes.propagation_risk import PropagationRiskPass
-from pi_semantic_radius.passes.topology_expansion import TopologyExpansionPass
+from pi_semantic_radius.models import TopologyEdge, TopologyGraph, TopologyNode
 from pi_semantic_radius.passes.auth_boundary import AuthBoundaryPass
-from pi_semantic_radius.passes.replay_hazard import ReplayHazardPass
 from pi_semantic_radius.passes.mutation_impact import MutationImpactPass
+from pi_semantic_radius.passes.propagation_risk import PropagationRiskPass
+from pi_semantic_radius.passes.replay_hazard import ReplayHazardPass
+from pi_semantic_radius.passes.topology_expansion import TopologyExpansionPass
+from pi_semantic_radius.runtime import RadiusRuntime
 
 
 def test_topology_graph_fanout() -> None:
@@ -92,7 +92,8 @@ def test_engine_compute_score() -> None:
 
 
 def test_engine_evaluate_report_limits() -> None:
-    from pi_semantic_radius.models import RiskScore, RiskReport
+    from pi_semantic_radius.models import RiskReport, RiskScore
+
     engine = BlastRadiusEngine(max_dependencies_per_endpoint=2)
     report = RiskReport(
         report_id="r1",
@@ -222,3 +223,107 @@ def test_mutation_impact_pass_detects_escalation() -> None:
     result = pass_worker.execute(baseline, modified)
     assert result.status == "FAIL"
     assert any("mutation class changed" in v for v in result.violations)
+
+
+class TestReportHashReproducibility:
+    """Determinism regression: the RiskReport content hash must be a pure
+    function of the logical risk content, independent of wall-clock time
+    (generated_at) and the random uuid-derived execution id (report_id).
+
+    Mirrors the pi_event_fabric reference fix: the same logical input must
+    reproduce the same hash across two fresh runtime instances, while the
+    timestamp and unique id are still recorded as metadata.
+    """
+
+    @staticmethod
+    def _graphs() -> tuple[TopologyGraph, TopologyGraph]:
+        baseline = TopologyGraph(
+            graph_id="base",
+            nodes={"n1": TopologyNode(node_id="n1")},
+            edges=[],
+        )
+        modified = TopologyGraph(
+            graph_id="mod",
+            nodes={
+                "n1": TopologyNode(node_id="n1"),
+                "n2": TopologyNode(node_id="n2", mutation_class="SIDE_EFFECT_BOUND"),
+                "n3": TopologyNode(node_id="n3", auth_fields=["token"]),
+            },
+            edges=[
+                TopologyEdge(edge_id="e1", upstream="n1", downstream="n2"),
+                TopologyEdge(edge_id="e2", upstream="n1", downstream="n3"),
+            ],
+        )
+        return baseline, modified
+
+    def test_report_hash_is_reproducible(self) -> None:
+        baseline, modified = self._graphs()
+
+        # Two FRESH runtime instances -> different report_id (uuid) and
+        # different generated_at (wall-clock), but identical logical content.
+        report_a = RadiusRuntime().run(baseline, modified)
+        report_b = RadiusRuntime().run(baseline, modified)
+
+        # Metadata that MUST differ across instances (proves they are distinct
+        # objects with their own random id) -- yet must NOT affect the hash.
+        assert report_a.report_id != report_b.report_id
+
+        # The content-addressed hash must be identical.
+        assert report_a.report_hash != ""
+        assert report_a.report_hash == report_b.report_hash
+
+    def test_report_hash_ignores_report_id_and_generated_at(self) -> None:
+        from datetime import datetime, timezone
+
+        from pi_semantic_radius.models import RiskReport, RiskScore
+
+        score = RiskScore(score_id="s1", target_node="n1", dependency_expansion=3)
+
+        report_one = RiskReport(
+            report_id="radius_aaaaaaaaaaaa",
+            baseline_graph_id="base",
+            modified_graph_id="mod",
+            scores=[score],
+            generated_at=datetime(2021, 1, 1, tzinfo=timezone.utc),
+        )
+        report_two = RiskReport(
+            report_id="radius_bbbbbbbbbbbb",
+            baseline_graph_id="base",
+            modified_graph_id="mod",
+            scores=[score],
+            generated_at=datetime(2099, 12, 31, tzinfo=timezone.utc),
+        )
+
+        # Differing report_id and generated_at must not change the hash.
+        assert report_one.compute_hash() == report_two.compute_hash()
+
+    def test_report_records_timestamp_and_unique_id(self) -> None:
+        from datetime import datetime
+
+        baseline, modified = self._graphs()
+        report = RadiusRuntime().run(baseline, modified)
+
+        # The wall-clock timestamp is still stored as metadata...
+        assert isinstance(report.generated_at, datetime)
+        # ...and a unique id is still recorded.
+        assert report.report_id.startswith("radius_")
+
+    def test_report_hash_changes_with_logical_content(self) -> None:
+        baseline, modified = self._graphs()
+        report_base = RadiusRuntime().run(baseline, modified)
+
+        # A genuinely different logical input must yield a different hash.
+        modified_more = TopologyGraph(
+            graph_id="mod",
+            nodes={
+                "n1": TopologyNode(node_id="n1"),
+                "n2": TopologyNode(node_id="n2", mutation_class="SIDE_EFFECT_BOUND"),
+                "n3": TopologyNode(node_id="n3", auth_fields=["token", "otp"]),
+            },
+            edges=[
+                TopologyEdge(edge_id="e1", upstream="n1", downstream="n2"),
+                TopologyEdge(edge_id="e2", upstream="n1", downstream="n3"),
+            ],
+        )
+        report_changed = RadiusRuntime().run(baseline, modified_more)
+        assert report_base.report_hash != report_changed.report_hash

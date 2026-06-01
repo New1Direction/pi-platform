@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_L2_GAS_FEE_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_L2_GAS_FEE_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_L2_GAS_FEE_STRICT_MODE")
 
 
 class L2GasFeeInput(BaseModel):
@@ -53,16 +38,19 @@ class PiSolidityL2GasFeeSentry:
         flagged_findings = []
 
         # Find all public/external function definitions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*(external|public)[\s\S]*?\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(
+            r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*(external|public)[\s\S]*?\{([\s\S]*?)(?=\n\s*function|\Z)",
+            code,
+        )
 
-        for name, args, visibility, body in func_blocks:
+        for name, args, _visibility, body in func_blocks:
             # Check for dynamic array or bytes parameters in arguments
             if "[]" in args or "bytes" in args:
                 # Look for length limit validation in the body
                 # E.g. require(arg.length <= MAX) or if (arg.length > MAX) revert
                 has_length_check = False
                 # Simple heuristic: find if .length is checked against a number or variable
-                if re.search(r'\.length\s*(<=|<|>|>=|==|!=)', body):
+                if re.search(r"\.length\s*(<=|<|>|>=|==|!=)", body):
                     has_length_check = True
 
                 if not has_length_check:
@@ -90,5 +78,5 @@ class PiSolidityL2GasFeeSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

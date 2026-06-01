@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ORACLE_DIV_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_ORACLE_DIV_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_ORACLE_DIV_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Pydantic-Enforced Input/Output Envelopes
 class OracleDivergenceInput(BaseModel):
@@ -35,12 +21,16 @@ class OracleDivergenceInput(BaseModel):
     max_deviation_percent: float = Field(default=2.0, description="Maximum permitted deviation percent")
     solidity_code: str = Field(default="", description="Solidity code of pricing aggregator (optional)")
 
+
 class OracleDivergenceOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if price deviation is within safe limits and math is correct")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names or assets")
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed deviation and formulation findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_ORACLE_DIVERGENCE, REJECTED_ORACLE_DIVERGENCE)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_ORACLE_DIVERGENCE, REJECTED_ORACLE_DIVERGENCE)"
+    )
+
 
 # 3. Core Micro-Agent Class
 class PiOracleDivergenceAudit:
@@ -78,8 +68,8 @@ class PiOracleDivergenceAudit:
         if code:
             code_lower = code.lower()
             # Clean comments
-            code_clean = re.sub(r'//.*', '', code_lower)
-            code_clean = re.sub(r'/\*.*?\*/', '', code_clean, flags=re.DOTALL)
+            code_clean = re.sub(r"//.*", "", code_lower)
+            code_clean = re.sub(r"/\*.*?\*/", "", code_clean, flags=re.DOTALL)
 
             # Look for simple average patterns (addition divided by count) which can be manipulated in illiquid pools
             if "sum" in code_clean and "/" in code_clean and "length" in code_clean:
@@ -108,5 +98,5 @@ class PiOracleDivergenceAudit:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

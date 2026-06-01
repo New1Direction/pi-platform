@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
 from pi_micro_agents.pi_oracle_divergence_audit import (
-    PiOracleDivergenceAudit,
     OracleDivergenceInput,
-    OracleDivergenceOutput,
-    is_strict_mode,
+    PiOracleDivergenceAudit,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 
 @pytest.fixture(autouse=True)
@@ -30,11 +27,7 @@ def test_oracle_divergence_vulnerable():
 
     # Price deviates by 5% (105.0 vs benchmark 100.0) which is > limit of 2%
     inp = OracleDivergenceInput(
-        file_path="aggregator.sol",
-        prices=[105.0],
-        benchmarks=[100.0],
-        max_deviation_percent=2.0,
-        solidity_code=""
+        file_path="aggregator.sol", prices=[105.0], benchmarks=[100.0], max_deviation_percent=2.0, solidity_code=""
     )
 
     out = agent.audit_divergence(inp)
@@ -70,7 +63,7 @@ def test_oracle_divergence_compliant_and_warning():
         prices=[101.0],
         benchmarks=[100.0],
         max_deviation_percent=2.0,
-        solidity_code=solidity_code
+        solidity_code=solidity_code,
     )
 
     out = agent.audit_divergence(inp)
@@ -98,22 +91,22 @@ def test_orchestrator_oracle_divergence_consensus_passed(monkeypatch):
             "vulnerable_functions": ["asset_feed_0"],
             "flagged_findings": ["Oracle price deviation is 5.00%"],
             "risk_score": 90.0,
-            "status": "REJECTED_ORACLE_DIVERGENCE"
+            "status": "REJECTED_ORACLE_DIVERGENCE",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["asset_feed_0"],
             "flagged_findings": ["Oracle price deviation is 5.00%"],
             "risk_score": 90.0,
-            "status": "REJECTED_ORACLE_DIVERGENCE"
+            "status": "REJECTED_ORACLE_DIVERGENCE",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["asset_feed_0"],
             "flagged_findings": ["Oracle price deviation is 5.00%"],
             "risk_score": 90.0,
-            "status": "REJECTED_ORACLE_DIVERGENCE"
-        }
+            "status": "REJECTED_ORACLE_DIVERGENCE",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -123,8 +116,8 @@ def test_orchestrator_oracle_divergence_consensus_passed(monkeypatch):
             "prices": [105.0],
             "benchmarks": [100.0],
             "max_deviation_percent": 2.0,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

@@ -1,19 +1,16 @@
 from __future__ import annotations
 
 import base64
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LLM_BASE64_DEOBFUSCATOR_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_LLM_BASE64_DEOBFUSCATOR_STRICT_MODE")
 
 
 class LLMBase64DeobfuscatorInput(BaseModel):
@@ -40,7 +37,7 @@ class PiLLMBase64EncodingDeobfuscator:
         is_secure = True
 
         # Find Base64-like substrings (lengths > 12, matching b64 chars)
-        b64_matches = re.findall(r'\b([a-zA-Z0-9+/]{12,}={0,2})\b', prompt)
+        b64_matches = re.findall(r"\b([a-zA-Z0-9+/]{12,}={0,2})\b", prompt)
 
         for match in b64_matches:
             try:
@@ -68,8 +65,5 @@ class PiLLMBase64EncodingDeobfuscator:
                 is_secure = True
 
         return LLMBase64DeobfuscatorOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

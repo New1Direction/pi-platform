@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pi_interoperability_layer.contracts import (
     ArtifactContract,
     ContractRegistry,
@@ -156,6 +154,7 @@ def test_schema_validator_migration_path_unsafe() -> None:
 
 def test_schema_identity_hash_determinism() -> None:
     from datetime import datetime, timezone
+
     frozen = datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
     c1 = ArtifactContract(
         contract_id="c1",

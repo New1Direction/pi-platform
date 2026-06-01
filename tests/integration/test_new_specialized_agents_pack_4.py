@@ -2,28 +2,35 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
-from pi_micro_agents.pi_solidity_delegate_call_to_self_sentry import (
-    PiSolidityDelegateCallToSelfSentry,
-    DelegateCallSelfInput,
+from pi_micro_agents.pi_docker_compose_security_sentry import (
+    DockerComposeSecurityInput,
+    PiDockerComposeSecuritySentry,
 )
-from pi_micro_agents.pi_solidity_block_timestamp_interval_sentry import (
-    PiSolidityBlockTimestampIntervalSentry,
-    TimestampIntervalInput,
+from pi_micro_agents.pi_git_secret_leak_sentry import (
+    GitSecretLeakInput,
+    PiGitSecretLeakSentry,
 )
-from pi_micro_agents.pi_solidity_assembly_memory_safe_sentry import (
-    PiSolidityAssemblyMemorySafeSentry,
-    AssemblyMemorySafeInput,
+from pi_micro_agents.pi_llm_prompt_injection_system_prompt_override_sentry import (
+    PiLLMPromptInjectionSystemPromptOverrideSentry,
+    SystemPromptOverrideInput,
 )
 from pi_micro_agents.pi_rust_solana_signer_assertion_sentry import (
     PiRustSolanaSignerAssertionSentry,
     SolanaSignerAssertionInput,
 )
-from pi_micro_agents.pi_zk_circom_shadow_signal_sentry import (
-    PiZKCircomShadowSignalSentry,
-    CircomShadowSignalInput,
+from pi_micro_agents.pi_solidity_assembly_memory_safe_sentry import (
+    AssemblyMemorySafeInput,
+    PiSolidityAssemblyMemorySafeSentry,
+)
+from pi_micro_agents.pi_solidity_block_timestamp_interval_sentry import (
+    PiSolidityBlockTimestampIntervalSentry,
+    TimestampIntervalInput,
+)
+from pi_micro_agents.pi_solidity_delegate_call_to_self_sentry import (
+    DelegateCallSelfInput,
+    PiSolidityDelegateCallToSelfSentry,
 )
 from pi_micro_agents.pi_solidity_price_feed_fallback_sentry import (
     PiSolidityPriceFeedFallbackSentry,
@@ -33,17 +40,9 @@ from pi_micro_agents.pi_vyper_storage_layout_collision_sentry import (
     PiVyperStorageLayoutCollisionSentry,
     VyperStorageCollisionInput,
 )
-from pi_micro_agents.pi_llm_prompt_injection_system_prompt_override_sentry import (
-    PiLLMPromptInjectionSystemPromptOverrideSentry,
-    SystemPromptOverrideInput,
-)
-from pi_micro_agents.pi_docker_compose_security_sentry import (
-    PiDockerComposeSecuritySentry,
-    DockerComposeSecurityInput,
-)
-from pi_micro_agents.pi_git_secret_leak_sentry import (
-    PiGitSecretLeakSentry,
-    GitSecretLeakInput,
+from pi_micro_agents.pi_zk_circom_shadow_signal_sentry import (
+    CircomShadowSignalInput,
+    PiZKCircomShadowSignalSentry,
 )
 
 
@@ -147,7 +146,9 @@ def test_assembly_memory_safe_sentry():
         }
     }
     """
-    res_vuln = agent.audit_assembly_memory_safe(AssemblyMemorySafeInput(file_path="unsafe.sol", solidity_code=code_vuln))
+    res_vuln = agent.audit_assembly_memory_safe(
+        AssemblyMemorySafeInput(file_path="unsafe.sol", solidity_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "corrupt" in res_vuln.vulnerable_functions
     assert res_vuln.status == "REJECTED_ASSEMBLY_MEMORY_SAFE"
@@ -284,7 +285,9 @@ def test_vyper_storage_layout_collision_sentry():
     new_var_upgrade: public(uint256)
     some_older_var: public(address)
     """
-    res_vuln = agent.audit_vyper_storage_collision(VyperStorageCollisionInput(file_path="contract.vy", vyper_code=code_vuln))
+    res_vuln = agent.audit_vyper_storage_collision(
+        VyperStorageCollisionInput(file_path="contract.vy", vyper_code=code_vuln)
+    )
     assert not res_vuln.is_secure
     assert "new_var_upgrade" in res_vuln.vulnerable_variables
     assert res_vuln.status == "REJECTED_VYPER_STORAGE_COLLISION"
@@ -295,7 +298,9 @@ def test_vyper_storage_layout_collision_sentry():
     some_older_var: public(address)
     new_var_upgrade: public(uint256)
     """
-    res_safe = agent.audit_vyper_storage_collision(VyperStorageCollisionInput(file_path="contract.vy", vyper_code=code_safe))
+    res_safe = agent.audit_vyper_storage_collision(
+        VyperStorageCollisionInput(file_path="contract.vy", vyper_code=code_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -334,7 +339,9 @@ def test_docker_compose_security_sentry():
         volumes:
           - /var/run/docker.sock:/var/run/docker.sock
     """
-    res_vuln = agent.audit_docker_compose(DockerComposeSecurityInput(file_path="docker-compose.yml", compose_code=compose_vuln))
+    res_vuln = agent.audit_docker_compose(
+        DockerComposeSecurityInput(file_path="docker-compose.yml", compose_code=compose_vuln)
+    )
     assert not res_vuln.is_secure
     assert "web" in res_vuln.vulnerable_services
     assert "database" in res_vuln.vulnerable_services
@@ -350,7 +357,9 @@ def test_docker_compose_security_sentry():
         volumes:
           - db-data:/var/lib/postgresql/data
     """
-    res_safe = agent.audit_docker_compose(DockerComposeSecurityInput(file_path="docker-compose.yml", compose_code=compose_safe))
+    res_safe = agent.audit_docker_compose(
+        DockerComposeSecurityInput(file_path="docker-compose.yml", compose_code=compose_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -361,9 +370,13 @@ def test_docker_compose_security_sentry():
 def test_git_secret_leak_sentry():
     agent = PiGitSecretLeakSentry()
 
-    code_vuln = """
+    # Synthetic secret built at runtime: matches the detector's sk_live_[a-zA-Z0-9]{24}
+    # pattern but is NOT a real credential, and no scannable literal lands in this file
+    # (avoids re-tripping GitHub secret scanning, which is why the original was scrubbed).
+    fake_secret = "sk_live_" + "x" * 24
+    code_vuln = f"""
     # Unsafe Stripe key hardcoded
-    api_key = "STRIPE_LIVE_KEY_SCRUBBED"
+    api_key = "{fake_secret}"
     """
     res_vuln = agent.audit_secrets(GitSecretLeakInput(file_path="config.py", file_content=code_vuln))
     assert not res_vuln.is_secure
@@ -397,21 +410,27 @@ def test_strict_mode_warn_fallbacks(monkeypatch):
     # Delegatecall-to-self Warn Fallback
     agent_delegate = PiSolidityDelegateCallToSelfSentry()
     code_vuln_del = "contract C { function f() external { address(this).delegatecall(''); } }"
-    res_del = agent_delegate.audit_delegatecall_self(DelegateCallSelfInput(file_path="c.sol", solidity_code=code_vuln_del))
+    res_del = agent_delegate.audit_delegatecall_self(
+        DelegateCallSelfInput(file_path="c.sol", solidity_code=code_vuln_del)
+    )
     assert res_del.is_secure  # passes due to override fallback
     assert res_del.status == "WARN_DELEGATECALL_SELF"
 
     # Block Timestamp Interval Warn Fallback
     agent_timestamp = PiSolidityBlockTimestampIntervalSentry()
     code_vuln_time = "contract C { function claimReward() external { lastClaim = block.timestamp; } }"
-    res_time = agent_timestamp.audit_timestamp_interval(TimestampIntervalInput(file_path="c.sol", solidity_code=code_vuln_time))
+    res_time = agent_timestamp.audit_timestamp_interval(
+        TimestampIntervalInput(file_path="c.sol", solidity_code=code_vuln_time)
+    )
     assert res_time.is_secure
     assert res_time.status == "WARN_TIMESTAMP_INTERVAL"
 
     # Assembly Memory Safe Warn Fallback
     agent_assembly = PiSolidityAssemblyMemorySafeSentry()
     code_vuln_asm = "contract C { function f() external { assembly ('memory-safe') { mstore(0x0, 1) } } }"
-    res_asm = agent_assembly.audit_assembly_memory_safe(AssemblyMemorySafeInput(file_path="c.sol", solidity_code=code_vuln_asm))
+    res_asm = agent_assembly.audit_assembly_memory_safe(
+        AssemblyMemorySafeInput(file_path="c.sol", solidity_code=code_vuln_asm)
+    )
     assert res_asm.is_secure
     assert res_asm.status == "WARN_ASSEMBLY_MEMORY_SAFE"
 
@@ -425,21 +444,27 @@ def test_strict_mode_warn_fallbacks(monkeypatch):
     # Circom Shadow Signal Warn Fallback
     agent_circom = PiZKCircomShadowSignalSentry()
     code_vuln_circ = "template T(in) { signal input in; var in = 10; }"
-    res_circ = agent_circom.audit_shadow_signals(CircomShadowSignalInput(file_path="c.circom", circom_code=code_vuln_circ))
+    res_circ = agent_circom.audit_shadow_signals(
+        CircomShadowSignalInput(file_path="c.circom", circom_code=code_vuln_circ)
+    )
     assert res_circ.is_secure
     assert res_circ.status == "WARN_CIRCOM_SHADOW_SIGNAL"
 
     # Price Feed Fallback Warn Fallback
     agent_oracle = PiSolidityPriceFeedFallbackSentry()
     code_vuln_ora = "contract C { function f() external { chainlinkFeed.latestRoundData(); } }"
-    res_ora = agent_oracle.audit_price_feed_fallback(PriceFeedFallbackInput(file_path="c.sol", solidity_code=code_vuln_ora))
+    res_ora = agent_oracle.audit_price_feed_fallback(
+        PriceFeedFallbackInput(file_path="c.sol", solidity_code=code_vuln_ora)
+    )
     assert res_ora.is_secure
     assert res_ora.status == "WARN_ORACLE_FALLBACK"
 
     # Vyper Storage Collision Warn Fallback
     agent_vyper = PiVyperStorageLayoutCollisionSentry()
     code_vuln_vy = "old_var: uint256\nnew_var_upgrade: uint256\nsome_older_var: address"
-    res_vy = agent_vyper.audit_vyper_storage_collision(VyperStorageCollisionInput(file_path="c.vy", vyper_code=code_vuln_vy))
+    res_vy = agent_vyper.audit_vyper_storage_collision(
+        VyperStorageCollisionInput(file_path="c.vy", vyper_code=code_vuln_vy)
+    )
     assert res_vy.is_secure
     assert res_vy.status == "WARN_VYPER_STORAGE_COLLISION"
 
@@ -452,13 +477,15 @@ def test_strict_mode_warn_fallbacks(monkeypatch):
     # Docker Compose Warn Fallback
     agent_docker = PiDockerComposeSecuritySentry()
     compose_vuln = "services:\n  web:\n    privileged: true"
-    res_doc = agent_docker.audit_docker_compose(DockerComposeSecurityInput(file_path="docker-compose.yml", compose_code=compose_vuln))
+    res_doc = agent_docker.audit_docker_compose(
+        DockerComposeSecurityInput(file_path="docker-compose.yml", compose_code=compose_vuln)
+    )
     assert res_doc.is_secure
     assert res_doc.status == "WARN_DOCKER_COMPOSE"
 
     # Git Secret Warn Fallback
     agent_secret = PiGitSecretLeakSentry()
-    code_vuln_sec = 'key = "STRIPE_LIVE_KEY_SCRUBBED"'
+    code_vuln_sec = 'key = "sk_live_' + "x" * 24 + '"'  # synthetic; matches detector, no scannable literal
     res_sec = agent_secret.audit_secrets(GitSecretLeakInput(file_path="c.py", file_content=code_vuln_sec))
     assert res_sec.is_secure
     assert res_sec.status == "WARN_GIT_SECRET"

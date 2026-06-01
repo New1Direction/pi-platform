@@ -5,6 +5,24 @@ Nothing is trusted. Everything is validated.
 """
 
 from pi_agent_chain.governance.entropy_monitor import EntropyMonitor
+from pi_agent_chain.governance.hooks import (
+    AgentHook,
+    AsyncRewakePayload,
+    BashCommandHook,
+    HookEventType,
+    HookRegistry,
+    HookResult,
+    HttpHook,
+    McpToolHook,
+    NotificationPayload,
+    PostToolUsePayload,
+    PreCompactPayload,
+    PreToolUsePayload,
+    PromptHook,
+    StopPayload,
+    SubagentStopPayload,
+    UserPromptSubmitPayload,
+)
 from pi_agent_chain.governance.kernel import GovernanceKernel
 from pi_agent_chain.governance.objective_tracker import ObjectiveTracker
 from pi_agent_chain.governance.schema_gate import SchemaGate
@@ -16,4 +34,20 @@ __all__ = [
     "SchemaGate",
     "ObjectiveTracker",
     "EntropyMonitor",
+    "HookRegistry",
+    "HookEventType",
+    "HookResult",
+    "BashCommandHook",
+    "HttpHook",
+    "AgentHook",
+    "PromptHook",
+    "McpToolHook",
+    "PreToolUsePayload",
+    "PostToolUsePayload",
+    "UserPromptSubmitPayload",
+    "SubagentStopPayload",
+    "NotificationPayload",
+    "StopPayload",
+    "PreCompactPayload",
+    "AsyncRewakePayload",
 ]

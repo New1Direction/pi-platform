@@ -25,13 +25,9 @@ class MutationImpactPass:
         base_se = sum(1 for n in baseline.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND")
         mod_se = sum(1 for n in modified.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND")
         if mod_se - base_se > 0:
-            violations.append(
-                f"Side-effect-bound endpoints expanded by {mod_se - base_se}"
-            )
+            violations.append(f"Side-effect-bound endpoints expanded by {mod_se - base_se}")
         if mod_se > self.engine.max_side_effect:
-            violations.append(
-                f"Side-effect-bound endpoints {mod_se} exceed limit {self.engine.max_side_effect}"
-            )
+            violations.append(f"Side-effect-bound endpoints {mod_se} exceed limit {self.engine.max_side_effect}")
 
         # Downstream mutation escalation
         for node_id, mod_node in modified.nodes.items():

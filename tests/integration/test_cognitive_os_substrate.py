@@ -2,46 +2,54 @@ from __future__ import annotations
 
 import os
 import time
+from typing import TYPE_CHECKING
+
 import pytest
 from fastapi.testclient import TestClient
 
-from pi_micro_agents.orchestrator.scheduler import (
-    PiCognitiveExecutionScheduler,
-    SchedulerTask,
-    AgentExecutionClass,
-)
+from pi_console.main import app
 from pi_event_fabric.bus.core import EventBusStorage, EventType, PartitionKey
 from pi_event_fabric.bus.semantic_fabric import (
-    PiSemanticEventFabric,
     CausalChainBreakError,
+    PiSemanticEventFabric,
     TrustEnforcementError,
 )
 from pi_event_fabric.replay.engine import PiExecutionReplayEngine
 from pi_micro_agents.orchestrator.governance_kernel import (
-    PiRuntimeGovernanceKernel,
     GovernanceViolationError,
+    PiRuntimeGovernanceKernel,
 )
-from pi_console.main import app
+from pi_micro_agents.orchestrator.scheduler import (
+    AgentExecutionClass,
+    PiCognitiveExecutionScheduler,
+    SchedulerTask,
+)
 
+if TYPE_CHECKING:
+    from pi_event_fabric.bus.core import DomainEvent
 
 # ────────────────────────────────────────────────────────
 #  1. Scheduler Tests
 # ────────────────────────────────────────────────────────
+
 
 def test_scheduler_priority_and_backpressure() -> None:
     # 0 disables degradation, but let's test lower boundary degradation
     scheduler = PiCognitiveExecutionScheduler(max_workers=2, backpressure_threshold=2)
 
     run_order = []
+
     def dummy_task(task: SchedulerTask) -> dict:
         time.sleep(0.05)
         run_order.append(task.priority)
         return {"success": True, "priority": task.priority}
 
     # Submit 2 tasks to fill workers/queue
-    f1 = scheduler.schedule("Task 1", AgentExecutionClass.SOFT_REAL_TIME, priority=10, payload={}, execute_fn=dummy_task)
+    f1 = scheduler.schedule(
+        "Task 1", AgentExecutionClass.SOFT_REAL_TIME, priority=10, payload={}, execute_fn=dummy_task
+    )
     f2 = scheduler.schedule("Task 2", AgentExecutionClass.SOFT_REAL_TIME, priority=5, payload={}, execute_fn=dummy_task)
-    
+
     # 3rd task will breach backpressure threshold and trigger degradation immediately
     f3 = scheduler.schedule("Task 3", AgentExecutionClass.SOFT_REAL_TIME, priority=1, payload={}, execute_fn=dummy_task)
 
@@ -82,6 +90,7 @@ def test_scheduler_speculative_execution() -> None:
 #  2. Semantic Event Bus Tests
 # ────────────────────────────────────────────────────────
 
+
 def test_semantic_event_fabric_trust_and_causality(tmp_path) -> None:
     db_file = str(tmp_path / "events.db")
     storage = EventBusStorage(db_file)
@@ -102,7 +111,7 @@ def test_semantic_event_fabric_trust_and_causality(tmp_path) -> None:
             tenant_id="tenant_A",
             actor_id="actor_1",
             correlation_id="corr_1",
-            bypass_causal_check=True
+            bypass_causal_check=True,
         )
 
     # 2. Append valid parent event
@@ -119,7 +128,7 @@ def test_semantic_event_fabric_trust_and_causality(tmp_path) -> None:
         tenant_id="tenant_A",
         actor_id="actor_1",
         correlation_id="corr_1",
-        bypass_causal_check=True
+        bypass_causal_check=True,
     )
     parent_hash = parent_event.event_hash
     assert fabric.check_event_hash_exists(parent_hash) is True
@@ -137,7 +146,7 @@ def test_semantic_event_fabric_trust_and_causality(tmp_path) -> None:
         policy_classification="standard",
         tenant_id="tenant_A",
         actor_id="actor_1",
-        correlation_id="corr_1"
+        correlation_id="corr_1",
     )
     assert child_event.payload["_semantic"]["causality_chain"] == [parent_hash]
 
@@ -155,7 +164,7 @@ def test_semantic_event_fabric_trust_and_causality(tmp_path) -> None:
             policy_classification="standard",
             tenant_id="tenant_A",
             actor_id="actor_1",
-            correlation_id="corr_1"
+            correlation_id="corr_1",
         )
 
 
@@ -178,7 +187,7 @@ def test_semantic_event_fabric_dag_and_snapshot(tmp_path) -> None:
         tenant_id="tenant_A",
         actor_id="actor_1",
         correlation_id="c_1",
-        bypass_causal_check=True
+        bypass_causal_check=True,
     )
     e2 = fabric.append_semantic(
         event_type=EventType.WORKER_COMPLETED,
@@ -192,7 +201,7 @@ def test_semantic_event_fabric_dag_and_snapshot(tmp_path) -> None:
         policy_classification="standard",
         tenant_id="tenant_A",
         actor_id="actor_1",
-        correlation_id="c_1"
+        correlation_id="c_1",
     )
     e3 = fabric.append_semantic(
         event_type=EventType.WORKER_COMPLETED,
@@ -206,7 +215,7 @@ def test_semantic_event_fabric_dag_and_snapshot(tmp_path) -> None:
         policy_classification="standard",
         tenant_id="tenant_A",
         actor_id="actor_1",
-        correlation_id="c_1"
+        correlation_id="c_1",
     )
 
     dag = fabric.get_causality_dag(e3.event_hash)
@@ -215,9 +224,7 @@ def test_semantic_event_fabric_dag_and_snapshot(tmp_path) -> None:
 
     # Verify agent state checkpoint snapshotting
     snapshot_event = fabric.write_agent_snapshot(
-        agent_id="my_agent",
-        state={"counter": 42, "status": "idle"},
-        correlation_id="c_1"
+        agent_id="my_agent", state={"counter": 42, "status": "idle"}, correlation_id="c_1"
     )
     assert snapshot_event.header.event_type == EventType.SNAPSHOT_STORED
     assert "state_signature" in snapshot_event.payload
@@ -226,6 +233,7 @@ def test_semantic_event_fabric_dag_and_snapshot(tmp_path) -> None:
 # ────────────────────────────────────────────────────────
 #  3. Replay and Time-Travel Engine Tests
 # ────────────────────────────────────────────────────────
+
 
 def test_replay_engine_bisection_and_mocks(tmp_path) -> None:
     db_file = str(tmp_path / "replay.db")
@@ -252,7 +260,7 @@ def test_replay_engine_bisection_and_mocks(tmp_path) -> None:
         tenant_id="tenant_A",
         actor_id="actor_1",
         correlation_id="replay_1",
-        bypass_causal_check=True
+        bypass_causal_check=True,
     )
     e2 = fabric.append_semantic(
         event_type=EventType.WORKER_COMPLETED,
@@ -266,9 +274,9 @@ def test_replay_engine_bisection_and_mocks(tmp_path) -> None:
         policy_classification="standard",
         tenant_id="tenant_A",
         actor_id="actor_1",
-        correlation_id="replay_1"
+        correlation_id="replay_1",
     )
-    e3 = fabric.append_semantic(
+    fabric.append_semantic(
         event_type=EventType.WORKER_COMPLETED,
         partition_key=PartitionKey.WORKERS,
         payload={"risk_score": 0.8},
@@ -280,7 +288,7 @@ def test_replay_engine_bisection_and_mocks(tmp_path) -> None:
         policy_classification="standard",
         tenant_id="tenant_A",
         actor_id="actor_1",
-        correlation_id="replay_1"
+        correlation_id="replay_1",
     )
 
     # Perform binary-search failure isolation
@@ -297,10 +305,7 @@ def test_replay_engine_bisection_and_mocks(tmp_path) -> None:
         return state.get("risk", 0.0) <= 1.0
 
     bisect_result = engine.bisect_failure(
-        events=events,
-        initial_state={"risk": 0.0},
-        state_builder=test_state_builder,
-        validator_fn=test_validator
+        events=events, initial_state={"risk": 0.0}, state_builder=test_state_builder, validator_fn=test_validator
     )
 
     # e1 (0.5 <= 1.0) -> PASS
@@ -313,6 +318,7 @@ def test_replay_engine_bisection_and_mocks(tmp_path) -> None:
 # ────────────────────────────────────────────────────────
 #  4. Governance Kernel Tests
 # ────────────────────────────────────────────────────────
+
 
 def test_governance_kernel_boundaries() -> None:
     kernel = PiRuntimeGovernanceKernel(max_time_ms=100.0, max_tokens=1000, min_trust_rating=0.8)
@@ -343,16 +349,23 @@ def test_governance_kernel_boundaries() -> None:
 #  5. Transparency FastAPI Endpoints Tests
 # ────────────────────────────────────────────────────────
 
-def test_transparency_api_endpoints(tmp_path) -> None:
+
+def test_transparency_api_endpoints(tmp_path, monkeypatch) -> None:
+    # The transparency router is now fail-closed (requires an authenticated
+    # principal). This test exercises transparency *functionality*, not auth, so
+    # it uses the explicit local-dev bypass. monkeypatch auto-restores it so the
+    # opt-out can't leak into the auth-gate tests.
+    monkeypatch.setenv("PI_CONSOLE_ALLOW_UNAUTHENTICATED", "1")
+
     # Use standard FastAPI TestClient on mounted router app
     client = TestClient(app)
 
     # Set up environmental DB path so transparency router writes/reads to the same SQLite path
     db_file = str(tmp_path / "console_integration.db")
     os.environ["PI_EVENT_BUS_DB_PATH"] = db_file
-    
+
     # Reload transparency routers models (or instantiate a separate fabric)
-    from pi_console.routers.transparency_router import storage, semantic_fabric
+    from pi_console.routers.transparency_router import semantic_fabric, storage
 
     # Clean storage pointer setup to point to new DB
     storage.__init__(db_file)
@@ -379,12 +392,12 @@ def test_transparency_api_endpoints(tmp_path) -> None:
         tenant_id="tenant_A",
         actor_id="actor_1",
         correlation_id="console_c_1",
-        bypass_causal_check=True
+        bypass_causal_check=True,
     )
     e2 = semantic_fabric.append_semantic(
         event_type=EventType.WORKER_COMPLETED,
         partition_key=PartitionKey.WORKERS,
-        payload={"status": "done", "risk_score": 1.6}, # breach 1.5 risk
+        payload={"status": "done", "risk_score": 1.6},  # breach 1.5 risk
         semantic_intent="finish",
         execution_lineage=["agent1"],
         trust_level=1.0,
@@ -393,7 +406,7 @@ def test_transparency_api_endpoints(tmp_path) -> None:
         policy_classification="standard",
         tenant_id="tenant_A",
         actor_id="actor_1",
-        correlation_id="console_c_1"
+        correlation_id="console_c_1",
     )
 
     response = client.get(f"/api/v1/transparency/lineage/{e2.event_hash}")

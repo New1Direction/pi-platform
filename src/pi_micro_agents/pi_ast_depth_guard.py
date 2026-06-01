@@ -1,26 +1,32 @@
 from __future__ import annotations
+
 import ast
-import os
 from typing import List
+
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
+
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_AST_DEPTH_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_AST_DEPTH_STRICT_MODE")
+
 
 class AstDepthInput(BaseModel):
     file_path: str = Field(..., description="Path of the code file being audited")
     code_content: str = Field(..., description="Source code content")
     max_depth: int = Field(4, description="Maximum allowed block nesting depth")
 
+
 class AstDepthOutput(BaseModel):
     is_secure: bool = Field(..., description="True if nesting depth does not exceed threshold")
-    complex_functions: List[str] = Field(default_factory=list, description="List of functions or blocks exceeding max depth")
+    complex_functions: List[str] = Field(
+        default_factory=list, description="List of functions or blocks exceeding max depth"
+    )
     max_depth_observed: int = Field(..., description="Deepest control flow nesting level observed in the code")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status of the audit")
+
 
 class PiAstDepthGuard:
     """Deterministic micro-agent that checks block nesting depth in code (AST nesting/indentation levels)."""
@@ -32,7 +38,7 @@ class PiAstDepthGuard:
         file_path = input_envelope.file_path
         code = input_envelope.code_content
         max_allowed_depth = input_envelope.max_depth
-        
+
         complex_functions = []
         max_depth_observed = 0
 
@@ -40,7 +46,7 @@ class PiAstDepthGuard:
         if file_path.endswith(".py"):
             try:
                 tree = ast.parse(code)
-                
+
                 class DepthVisitor(ast.NodeVisitor):
                     def __init__(self) -> None:
                         self.current_depth = 0
@@ -51,20 +57,20 @@ class PiAstDepthGuard:
                         old_func = self.current_func
                         old_max = self.max_depth_in_func
                         old_depth = self.current_depth
-                        
+
                         self.current_func = node.name
                         self.max_depth_in_func = 0
                         self.current_depth = 0
-                        
+
                         self.generic_visit(node)
-                        
+
                         nonlocal max_depth_observed
                         if self.max_depth_in_func > max_depth_observed:
                             max_depth_observed = self.max_depth_in_func
-                            
+
                         if self.max_depth_in_func > max_allowed_depth:
                             complex_functions.append(node.name)
-                            
+
                         self.current_func = old_func
                         self.max_depth_in_func = old_max
                         self.current_depth = old_depth
@@ -97,7 +103,7 @@ class PiAstDepthGuard:
 
                 visitor = DepthVisitor()
                 visitor.visit(tree)
-                
+
             except SyntaxError:
                 # Fallback to indentation analysis
                 pass
@@ -109,20 +115,24 @@ class PiAstDepthGuard:
             lines = code.splitlines()
             current_func = "global"
             max_depth_in_func = 0
-            
-            for idx, line in enumerate(lines, start=1):
+
+            for _idx, line in enumerate(lines, start=1):
                 stripped = line.strip()
                 if not stripped or stripped.startswith("#") or stripped.startswith("//"):
                     continue
-                
+
                 # Check function definitions
-                if line.lstrip().startswith("def ") or line.lstrip().startswith("function ") or line.lstrip().startswith("async "):
+                if (
+                    line.lstrip().startswith("def ")
+                    or line.lstrip().startswith("function ")
+                    or line.lstrip().startswith("async ")
+                ):
                     if max_depth_in_func > max_allowed_depth:
                         complex_functions.append(current_func)
                     # Reset for new block
-                    current_func = stripped.split('(')[0]
+                    current_func = stripped.split("(")[0]
                     max_depth_in_func = 0
-                
+
                 # Compute indentation
                 leading_spaces = len(line) - len(line.lstrip())
                 # Assume 4 spaces = 1 level
@@ -131,7 +141,7 @@ class PiAstDepthGuard:
                     max_depth_in_func = indent_level
                 if indent_level > max_depth_observed:
                     max_depth_observed = indent_level
-            
+
             # Check final function
             if max_depth_in_func > max_allowed_depth:
                 complex_functions.append(current_func)
@@ -152,5 +162,5 @@ class PiAstDepthGuard:
             complex_functions=complex_functions,
             max_depth_observed=max_depth_observed,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

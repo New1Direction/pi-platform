@@ -167,7 +167,9 @@ class ArchitecturePolicy(BaseModel):
     policy_id: str
     policy_version: str = "1.0.0"
     description: str = ""
-    generated_at: str = Field(default_factory=lambda: __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat())
+    generated_at: str = Field(
+        default_factory=lambda: __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat()
+    )
 
     # Trust boundaries
     trust_zones: List[TrustZone] = Field(default_factory=list)
@@ -210,7 +212,7 @@ class ArchitecturePolicy(BaseModel):
     @field_validator("layers")
     @classmethod
     def _unique_layer_ids(cls, v: List[LayerDefinition]) -> List[LayerDefinition]:
-        ids = [l.layer_id for l in v]
+        ids = [layer.layer_id for layer in v]
         if len(ids) != len(set(ids)):
             raise ValueError("Duplicate layer IDs")
         return v
@@ -221,10 +223,20 @@ class ArchitecturePolicy(BaseModel):
 
     @property
     def layer_ids(self) -> Set[str]:
-        return {l.layer_id for l in self.layers}
+        return {layer.layer_id for layer in self.layers}
 
     def compute_hash(self) -> str:
-        payload = json.dumps(self.model_dump(), sort_keys=True, default=str)
+        """Content-addressed policy hash.
+
+        Pure function of the policy's logical content. Wall-clock provenance
+        (``generated_at``) is intentionally excluded so that the same logical
+        policy reproduces the same ``policy_hash`` across runs. The
+        ``generated_at`` field is still stored/returned on the model as
+        metadata; it is only dropped from the hashed input.
+        """
+        content = self.model_dump()
+        content.pop("generated_at", None)
+        payload = json.dumps(content, sort_keys=True, default=str)
         return hashlib.sha256(payload.encode()).hexdigest()
 
     def get_zone_for_endpoint(self, endpoint: str) -> Optional[TrustZone]:

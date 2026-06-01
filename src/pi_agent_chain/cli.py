@@ -109,9 +109,7 @@ def run(
     with open(output, "w") as f:
         json.dump(spec_data, f, indent=2)
 
-    console.print(
-        Panel.fit(f"[bold green]Synthesized OpenAPI[/bold green] written to {output}")
-    )
+    console.print(Panel.fit(f"[bold green]Synthesized OpenAPI[/bold green] written to {output}"))
     console.print(Syntax(result["spec"]["spec_json"], "json", theme="monokai"))
 
     # Verification summary
@@ -180,10 +178,7 @@ def traces(ledger_db: Path) -> None:
     console.print(Panel.fit("[bold cyan]Recent Execution Traces[/bold cyan]"))
     for row in rows:
         color = "green" if row.is_valid_type else "red"
-        console.print(
-            f"  [{color}]{row.trace_id}[/{color}] | "
-            f"{row.node_name} | {row.timestamp.isoformat()}"
-        )
+        console.print(f"  [{color}]{row.trace_id}[/{color}] | {row.node_name} | {row.timestamp.isoformat()}")
 
 
 if __name__ == "__main__":

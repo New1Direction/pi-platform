@@ -1,31 +1,16 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_VYPER_EXTERNAL_CALL_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_VYPER_EXTERNAL_CALL_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_VYPER_EXTERNAL_CALL_STRICT_MODE")
 
 
 # 2. Pydantic-Enforced Input/Output Envelopes
@@ -38,9 +23,13 @@ class VyperExternalCallInput(BaseModel):
 class VyperExternalCallOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if Vyper external call checks passed")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed Vyper Checks-Effects-Interactions findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed Vyper Checks-Effects-Interactions findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_VYPER_CALL_RISK, REJECTED_VYPER_CALL_RISK)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_VYPER_CALL_RISK, REJECTED_VYPER_CALL_RISK)"
+    )
 
 
 # 3. Core Micro-Agent Class
@@ -57,9 +46,12 @@ class PiVyperExternalCallSentry:
         flagged_findings = []
 
         # Find all function definitions in Vyper
-        func_blocks = re.findall(r'((?:@[a-zA-Z0-9_]+(?:\([^)]*\))?\s*)*)def\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^:]*:\s*([\s\S]*?)(?=\n\S|\Z)', code)
+        func_blocks = re.findall(
+            r"((?:@[a-zA-Z0-9_]+(?:\([^)]*\))?\s*)*)def\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^:]*:\s*([\s\S]*?)(?=\n\S|\Z)",
+            code,
+        )
 
-        for decorators, name, args, body in func_blocks:
+        for _decorators, name, _args, body in func_blocks:
             lines = body.splitlines()
             external_call_seen = False
             first_ext_call_line = -1
@@ -78,12 +70,12 @@ class PiVyperExternalCallSentry:
 
                 # Check if state change happens after external call is seen
                 if external_call_seen:
-                    state_mod_patterns = [r'self\.[a-zA-Z0-9_]+\s*=', r'self\.[a-zA-Z0-9_]+\s*(\+=|-=)']
+                    state_mod_patterns = [r"self\.[a-zA-Z0-9_]+\s*=", r"self\.[a-zA-Z0-9_]+\s*(\+=|-=)"]
                     if any(re.search(pat, line_stripped) for pat in state_mod_patterns):
                         vulnerable_funcs.append(name)
                         flagged_findings.append(
-                            f"Function '{name}' modifies local state in line {idx+1} ('{line_stripped}') "
-                            f"after an external call was executed in line {first_ext_call_line+1}. "
+                            f"Function '{name}' modifies local state in line {idx + 1} ('{line_stripped}') "
+                            f"after an external call was executed in line {first_ext_call_line + 1}. "
                             "This violates the Checks-Effects-Interactions pattern and introduces a potential reentrancy vulnerability."
                         )
                         break
@@ -105,5 +97,5 @@ class PiVyperExternalCallSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ASSEMBLY_MEMORY_SAFE_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_ASSEMBLY_MEMORY_SAFE_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_ASSEMBLY_MEMORY_SAFE_STRICT_MODE")
 
 
 class AssemblyMemorySafeInput(BaseModel):
@@ -53,9 +38,9 @@ class PiSolidityAssemblyMemorySafeSentry:
         flagged_findings = []
 
         # Find all functions containing assembly blocks
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)(?=\n\s*function|\Z)", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check if there is an assembly "memory-safe" marker
             assembly_safe_match = re.search(r'assembly\s*\(\s*["\']memory-safe["\']\s*\)\s*\{([\s\S]*?)\}', body)
             if assembly_safe_match:
@@ -65,7 +50,7 @@ class PiSolidityAssemblyMemorySafeSentry:
                 # E.g. mstore(0x0, ...), mstore(0x20, ...), mstore(0x40, ...)
                 # (Note that 0x00-0x3f is scratch space, 0x40-0x5f is free memory pointer, 0x60-0x7f is zero slot)
                 # If they write below 0x80 (128 bytes) using mstore or mstore8:
-                mstore_match = re.search(r'mstore(8)?\s*\(\s*(0x[0-7][0-9a-fA-F]?|[0-9]+)\s*,', assembly_body)
+                mstore_match = re.search(r"mstore(8)?\s*\(\s*(0x[0-7][0-9a-fA-F]?|[0-9]+)\s*,", assembly_body)
                 if mstore_match:
                     offset_str = mstore_match.group(2)
                     try:
@@ -99,5 +84,5 @@ class PiSolidityAssemblyMemorySafeSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

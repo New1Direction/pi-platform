@@ -2,15 +2,11 @@
 
 from __future__ import annotations
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_git_sec_scanner import (
-    PiGitSecScanner,
     GitSecInput,
-    GitSecOutput,
-    detect_git_sec_anomalies,
+    PiGitSecScanner,
     is_strict_mode,
 )
 
@@ -32,7 +28,7 @@ def test_clean_files():
     clean_reqs = "requests==2.31.0\npytest===7.4.3\npydantic==2.5.2"
     inp_reqs = GitSecInput(filename="requirements.txt", content=clean_reqs)
     out_reqs = scanner.scan_file(inp_reqs)
-    
+
     assert out_reqs.is_secure is True
     assert out_reqs.risk_score == 0.0
     assert out_reqs.status == "PASSED"
@@ -45,7 +41,7 @@ def hello_world():
 """
     inp_py = GitSecInput(filename="main.py", content=clean_py)
     out_py = scanner.scan_file(inp_py)
-    
+
     assert out_py.is_secure is True
     assert out_py.risk_score == 0.0
     assert out_py.status == "PASSED"

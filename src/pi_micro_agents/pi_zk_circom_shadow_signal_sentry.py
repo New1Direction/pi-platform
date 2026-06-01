@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_CIRCOM_SHADOW_SIGNAL_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_CIRCOM_SHADOW_SIGNAL_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_CIRCOM_SHADOW_SIGNAL_STRICT_MODE")
 
 
 class CircomShadowSignalInput(BaseModel):
@@ -53,18 +38,18 @@ class PiZKCircomShadowSignalSentry:
         flagged_findings = []
 
         # Find all templates in Circom
-        templates = re.findall(r'template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{([\s\S]*?)(?=\ntemplate|\Z)', code)
+        templates = re.findall(r"template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*\{([\s\S]*?)(?=\ntemplate|\Z)", code)
 
         for name, args, body in templates:
             # Parse template parameters
             params = [p.strip() for p in args.split(",") if p.strip()]
 
             # Find input and output signal declarations in the template body
-            signals = re.findall(r'signal\s+(input|output)?\s*([a-zA-Z0-9_]+)', body)
+            signals = re.findall(r"signal\s+(input|output)?\s*([a-zA-Z0-9_]+)", body)
             defined_signals = [sig[1] for sig in signals]
 
             # Look for local variable declarations: var var_name; or var var_name = ...;
-            var_declarations = re.findall(r'var\s+([a-zA-Z0-9_]+)', body)
+            var_declarations = re.findall(r"var\s+([a-zA-Z0-9_]+)", body)
 
             # Look for duplicate definitions / shadowing
             for var_name in var_declarations:
@@ -103,5 +88,5 @@ class PiZKCircomShadowSignalSentry:
             vulnerable_signals=vulnerable_sigs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -136,7 +136,11 @@ fn run_agent(py: Python<'_>, name: &str, input_json: &str) -> PyResult<String> {
     // parallelize across cores (Python ThreadPoolExecutor can't — the GIL
     // serializes CPU-bound work; this is the consensus fabric's hot path).
     let (name, input) = (name.to_string(), input_json.to_string());
-    py.allow_threads(move || pi_agents::run_agent(&name, &input))
+    // run_agent_safe catches an escaped Rust panic and returns Err instead of
+    // unwinding into PanicException (a BaseException the Python fail-safe can't
+    // catch). The Err becomes a normal PyValueError, so the orchestrator's
+    // `except Exception` fallback to the Python agent works as documented.
+    py.allow_threads(move || pi_agents::run_agent_safe(&name, &input))
         .map_err(pyo3::exceptions::PyValueError::new_err)
 }
 
@@ -161,7 +165,8 @@ fn run_agents(py: Python<'_>, names_json: &str, input_json: &str) -> PyResult<St
     let json = py.allow_threads(move || {
         let mut out = serde_json::Map::with_capacity(names.len());
         for name in names {
-            let v = match pi_agents::run_agent(&name, &input) {
+            // run_agent_safe so a panic in one agent can't abort the whole batch.
+            let v = match pi_agents::run_agent_safe(&name, &input) {
                 Ok(s) => serde_json::from_str(&s).unwrap_or(serde_json::Value::Null),
                 Err(e) => serde_json::json!({ "__error__": e }),
             };

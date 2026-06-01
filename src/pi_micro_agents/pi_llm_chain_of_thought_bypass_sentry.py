@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LLM_CHAIN_OF_THOUGHT_BYPASS_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_LLM_CHAIN_OF_THOUGHT_BYPASS_STRICT_MODE")
 
 
 class LLMChainOfThoughtBypassInput(BaseModel):
@@ -38,12 +35,12 @@ class PiLLMChainOfThoughtBypassSentry:
         flagged_findings = []
 
         bypass_patterns = [
-            r'skip\s+thinking',
-            r'do\s+not\s+reason',
-            r'bypass\s+chain\s+of\s+thought',
-            r'output\s+only\s+the\s+final\s+answer',
-            r'without\s+any\s+explanation',
-            r'do\s+not\s+explain\s+your\s+reasoning'
+            r"skip\s+thinking",
+            r"do\s+not\s+reason",
+            r"bypass\s+chain\s+of\s+thought",
+            r"output\s+only\s+the\s+final\s+answer",
+            r"without\s+any\s+explanation",
+            r"do\s+not\s+explain\s+your\s+reasoning",
         ]
 
         is_secure = True
@@ -66,8 +63,5 @@ class PiLLMChainOfThoughtBypassSentry:
                 is_secure = True
 
         return LLMChainOfThoughtBypassOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

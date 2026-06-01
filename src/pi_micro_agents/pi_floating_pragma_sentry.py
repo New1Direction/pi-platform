@@ -1,31 +1,16 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_PRAGMA_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_PRAGMA_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_PRAGMA_STRICT_MODE")
 
 
 # 2. Pydantic-Enforced Input/Output Envelopes
@@ -37,8 +22,12 @@ class PragmaSentryInput(BaseModel):
 
 class PragmaSentryOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract has a safe locked pragma compiler setup")
-    vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names (always empty for file-level pragma checks)")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed pragma safety and compliance findings")
+    vulnerable_functions: List[str] = Field(
+        default_factory=list, description="Vulnerable function names (always empty for file-level pragma checks)"
+    )
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed pragma safety and compliance findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_PRAGMA_RISK, REJECTED_PRAGMA_RISK)")
 
@@ -57,7 +46,7 @@ class PiFloatingPragmaSentry:
         flagged_findings = []
 
         # Find all occurrences of pragma solidity
-        pragma_matches = re.findall(r'pragma\s+solidity\s+([^;]+);', code)
+        pragma_matches = re.findall(r"pragma\s+solidity\s+([^;]+);", code)
 
         if not pragma_matches:
             vulnerable_funcs.append("file_header")
@@ -85,10 +74,10 @@ class PiFloatingPragmaSentry:
                 # Mode 2: Locked Stable Pragma Auditor
                 # Ensure the locked version is stable and not known to be severely buggy or excessively outdated (e.g. <0.8.0)
                 # Parse out any digits/dots representation of version
-                version_match = re.search(r'(\d+\.\d+\.\d+)', pragma_val_clean)
+                version_match = re.search(r"(\d+\.\d+\.\d+)", pragma_val_clean)
                 if version_match:
                     version_str = version_match.group(1)
-                    parts = [int(p) for p in version_str.split('.')]
+                    parts = [int(p) for p in version_str.split(".")]
                     if len(parts) >= 3:
                         major, minor, patch = parts[0], parts[1], parts[2]
                         if major == 0 and minor < 8:
@@ -120,5 +109,5 @@ class PiFloatingPragmaSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

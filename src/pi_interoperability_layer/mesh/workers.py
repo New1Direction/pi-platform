@@ -49,8 +49,18 @@ class EndpointExtractionWorker(WorkerBase):
 
     def _run(self, phase: str, input_slot_ids: List[str]) -> List[ArtifactSlot]:
         traces = [
-            {"endpoint_template": "/api/users", "method": "GET", "mutation_class": "IDEMPOTENT_READ", "replay_class": "IDEMPOTENT"},
-            {"endpoint_template": "/api/users", "method": "POST", "mutation_class": "STATEFUL_MUTATION", "replay_class": "NON_REPLAYABLE"},
+            {
+                "endpoint_template": "/api/users",
+                "method": "GET",
+                "mutation_class": "IDEMPOTENT_READ",
+                "replay_class": "IDEMPOTENT",
+            },
+            {
+                "endpoint_template": "/api/users",
+                "method": "POST",
+                "mutation_class": "STATEFUL_MUTATION",
+                "replay_class": "NON_REPLAYABLE",
+            },
         ]
         slot = ArtifactSlot(
             producer_worker_id=self.worker_id,
@@ -80,7 +90,12 @@ class EndpointDiffWorker(WorkerBase):
 
     def _run(self, phase: str, input_slot_ids: List[str]) -> List[ArtifactSlot]:
         deltas = [
-            {"endpoint_template": "/api/users", "presence": "UNCHANGED", "mutation_class_transition": False, "replay_class_transition": False},
+            {
+                "endpoint_template": "/api/users",
+                "presence": "UNCHANGED",
+                "mutation_class_transition": False,
+                "replay_class_transition": False,
+            },
         ]
         slot = ArtifactSlot(
             producer_worker_id=self.worker_id,

@@ -38,6 +38,10 @@ class CatalogIngestReceipt:
     receipt_hash: str
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash. Excludes the wall-clock timestamp so
+        # the same ingested page reproduces the same hash across runs; the
+        # timestamp is still STORED on the receipt as metadata. ingest_id is
+        # itself content-derived (page + page_hash), so it is safe to include.
         data = json.dumps(
             {
                 "ingest_id": self.ingest_id,
@@ -45,7 +49,6 @@ class CatalogIngestReceipt:
                 "packages": self.packages_ingested,
                 "raw_hash": self.raw_hash,
                 "manifests": [m.compute_hash() for m in self.normalized_manifests],
-                "timestamp": self.timestamp,
             },
             sort_keys=True,
             separators=(",", ":"),

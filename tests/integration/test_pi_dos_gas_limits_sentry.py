@@ -1,16 +1,13 @@
 """Integration tests for PiDoSGasLimitsSentry — dual-use block gas limit and push/pull pattern auditor."""
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_dos_gas_limits_sentry import (
-    PiDoSGasLimitsSentry,
     DoSGasLimitsInput,
     DoSGasLimitsOutput,
+    PiDoSGasLimitsSentry,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
-
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 # ── Fixtures & Mock Contracts ───────────────────────────────────────────────
 
@@ -66,14 +63,16 @@ def clean_env(monkeypatch):
 
 # ── Tests: DoSGasLimitsSentry Heuristics ───────────────────────────────────
 
-class TestDoSGasLimitsSentry:
 
+class TestDoSGasLimitsSentry:
     def test_vulnerable_dos_loop_detected(self) -> None:
         agent = PiDoSGasLimitsSentry()
-        result = agent.audit_dos_gas(DoSGasLimitsInput(
-            file_path="VulnerableDoS.sol",
-            solidity_code=VULNERABLE_DOS_LOOP,
-        ))
+        result = agent.audit_dos_gas(
+            DoSGasLimitsInput(
+                file_path="VulnerableDoS.sol",
+                solidity_code=VULNERABLE_DOS_LOOP,
+            )
+        )
         assert isinstance(result, DoSGasLimitsOutput)
         assert result.is_secure is False
         assert "refundAll" in result.vulnerable_functions
@@ -83,10 +82,12 @@ class TestDoSGasLimitsSentry:
 
     def test_vulnerable_push_payment_warning(self) -> None:
         agent = PiDoSGasLimitsSentry()
-        result = agent.audit_dos_gas(DoSGasLimitsInput(
-            file_path="PushPaymentLoop.sol",
-            solidity_code=VULNERABLE_PUSH_PAYMENT,
-        ))
+        result = agent.audit_dos_gas(
+            DoSGasLimitsInput(
+                file_path="PushPaymentLoop.sol",
+                solidity_code=VULNERABLE_PUSH_PAYMENT,
+            )
+        )
         assert isinstance(result, DoSGasLimitsOutput)
         # It's an external call in loop, so it will flag as insecure and fail security check
         assert result.is_secure is False
@@ -95,10 +96,12 @@ class TestDoSGasLimitsSentry:
 
     def test_safe_pull_payment_passes(self) -> None:
         agent = PiDoSGasLimitsSentry()
-        result = agent.audit_dos_gas(DoSGasLimitsInput(
-            file_path="SafePullPayment.sol",
-            solidity_code=SAFE_PULL_PAYMENT,
-        ))
+        result = agent.audit_dos_gas(
+            DoSGasLimitsInput(
+                file_path="SafePullPayment.sol",
+                solidity_code=SAFE_PULL_PAYMENT,
+            )
+        )
         assert isinstance(result, DoSGasLimitsOutput)
         assert result.is_secure is True
         assert len(result.vulnerable_functions) == 0
@@ -107,20 +110,24 @@ class TestDoSGasLimitsSentry:
     def test_warn_only_mode(self, monkeypatch) -> None:
         monkeypatch.setenv("PI_DOS_GAS_STRICT_MODE", "false")
         agent = PiDoSGasLimitsSentry()
-        result = agent.audit_dos_gas(DoSGasLimitsInput(
-            file_path="VulnerableDoS.sol",
-            solidity_code=VULNERABLE_DOS_LOOP,
-        ))
+        result = agent.audit_dos_gas(
+            DoSGasLimitsInput(
+                file_path="VulnerableDoS.sol",
+                solidity_code=VULNERABLE_DOS_LOOP,
+            )
+        )
         assert isinstance(result, DoSGasLimitsOutput)
         assert result.is_secure is True
         assert result.status == "WARN_DOS_GAS_RISK"
 
     def test_model_dump_and_serialization(self) -> None:
         agent = PiDoSGasLimitsSentry()
-        result = agent.audit_dos_gas(DoSGasLimitsInput(
-            file_path="SafePullPayment.sol",
-            solidity_code=SAFE_PULL_PAYMENT,
-        ))
+        result = agent.audit_dos_gas(
+            DoSGasLimitsInput(
+                file_path="SafePullPayment.sol",
+                solidity_code=SAFE_PULL_PAYMENT,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -129,16 +136,15 @@ class TestDoSGasLimitsSentry:
 
 # ── Tests: Orchestration NLP & Consensus Integration ────────────────────────
 
+
 def test_orchestrator_nlp_routing_to_dos_gas_limits_sentry() -> None:
     orchestrator = PiOrchestrator()
-    result = orchestrator.execute_goal(OrchestratorInput(
-        goal="Perform a block gas limit dos audit on loop functions.",
-        context={
-            "file_path": "VulnerableDoS.sol",
-            "solidity_code": VULNERABLE_DOS_LOOP,
-            "check_level": "STRICT"
-        }
-    ))
+    result = orchestrator.execute_goal(
+        OrchestratorInput(
+            goal="Perform a block gas limit dos audit on loop functions.",
+            context={"file_path": "VulnerableDoS.sol", "solidity_code": VULNERABLE_DOS_LOOP, "check_level": "STRICT"},
+        )
+    )
     assert result.success is False
     assert "PiDoSGasLimitsSentry" in result.routed_agent
     assert result.risk_score == 80.0

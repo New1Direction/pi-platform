@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-import tempfile
 import json
+import tempfile
+from pathlib import Path
 
 from pi_interoperability_layer.visualization import (
-    render_validation_html,
     render_diff_heatmap,
-    render_topology_graph,
     render_governance_dashboard,
+    render_topology_graph,
+    render_validation_html,
 )
 
 
@@ -20,7 +20,12 @@ def test_render_validation_html() -> None:
             "status": "FAIL",
             "generated_at": "2024-01-01T00:00:00Z",
             "violations": [
-                {"pass_name": "boundary", "rule": "forbidden_crossing", "severity": "CRITICAL", "context": {"endpoint": "/api/admin"}},
+                {
+                    "pass_name": "boundary",
+                    "rule": "forbidden_crossing",
+                    "severity": "CRITICAL",
+                    "context": {"endpoint": "/api/admin"},
+                },
             ],
         }
         in_path = Path(tmp) / "validation.json"
@@ -41,7 +46,12 @@ def test_render_diff_heatmap() -> None:
             "structural_delta_score": 0.5,
             "semantic_delta_score": 0.25,
             "endpoint_deltas": [
-                {"endpoint_template": "/api/users", "presence": "ADDED", "mutation_class_transition": True, "replay_class_transition": False},
+                {
+                    "endpoint_template": "/api/users",
+                    "presence": "ADDED",
+                    "mutation_class_transition": True,
+                    "replay_class_transition": False,
+                },
             ],
         }
         out_path = Path(tmp) / "diff.html"

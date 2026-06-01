@@ -173,9 +173,9 @@ class LayerValidationPass:
         # 4. Forbidden imports from policy forbidden_import_rules
         for fir in policy.forbidden_import_rules:
             layer = None
-            for l in policy.layers:
-                if l.layer_id == fir.layer_id:
-                    layer = l
+            for candidate_layer in policy.layers:
+                if candidate_layer.layer_id == fir.layer_id:
+                    layer = candidate_layer
                     break
             if layer is None:
                 continue
@@ -203,9 +203,7 @@ class LayerValidationPass:
             execution_time_ms=0,
         )
 
-    def _find_layer_rule(
-        self, policy: ArchitecturePolicy, from_layer: str, to_layer: str
-    ) -> Optional[Any]:
+    def _find_layer_rule(self, policy: ArchitecturePolicy, from_layer: str, to_layer: str) -> Optional[Any]:
         for rule in policy.layer_rules:
             if rule.from_layer == from_layer and rule.to_layer == to_layer:
                 return rule

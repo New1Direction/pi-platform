@@ -1,31 +1,16 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_VYPER_LOCK_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_VYPER_LOCK_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_VYPER_LOCK_STRICT_MODE")
 
 
 # 2. Pydantic-Enforced Input/Output Envelopes
@@ -38,9 +23,13 @@ class VyperLockInput(BaseModel):
 class VyperLockOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if Vyper reentrancy lock usage is secure")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed Vyper reentrancy lock safety findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed Vyper reentrancy lock safety findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_VYPER_LOCK_RISK, REJECTED_VYPER_LOCK_RISK)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_VYPER_LOCK_RISK, REJECTED_VYPER_LOCK_RISK)"
+    )
 
 
 # 3. Core Micro-Agent Class
@@ -57,17 +46,22 @@ class PiVyperStateLockSentry:
         flagged_findings = []
 
         # Find all function definitions in Vyper: @external or @internal followed by def funcName(...):
-        func_blocks = re.findall(r'((?:@[a-zA-Z0-9_]+(?:\([^)]*\))?\s*)*)def\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^:]*:\s*([\s\S]*?)(?=\n\S|\Z)', code)
+        func_blocks = re.findall(
+            r"((?:@[a-zA-Z0-9_]+(?:\([^)]*\))?\s*)*)def\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^:]*:\s*([\s\S]*?)(?=\n\S|\Z)",
+            code,
+        )
 
-        for decorators, name, args, body in func_blocks:
+        for decorators, name, _args, body in func_blocks:
             # Check if function performs external call: raw_call, ext_call, or self.
-            has_external_call = "raw_call" in body or "ext_call" in body or re.search(r'\b[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\(', body)
+            has_external_call = (
+                "raw_call" in body or "ext_call" in body or re.search(r"\b[a-zA-Z0-9_]+\.[a-zA-Z0-9_]+\(", body)
+            )
             # Check if it has a nonreentrant decorator
             has_nonreentrant = "@nonreentrant" in decorators
 
             if has_external_call and not has_nonreentrant:
                 # In Vyper, functions modifying state and performing external calls should use nonreentrant
-                state_mod_patterns = [r'self\.[a-zA-Z0-9_]+\s*=', r'self\.[a-zA-Z0-9_]+\s*(\+=|-=)']
+                state_mod_patterns = [r"self\.[a-zA-Z0-9_]+\s*=", r"self\.[a-zA-Z0-9_]+\s*(\+=|-=)"]
                 if any(re.search(pat, body) for pat in state_mod_patterns):
                     vulnerable_funcs.append(name)
                     flagged_findings.append(
@@ -92,5 +86,5 @@ class PiVyperStateLockSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

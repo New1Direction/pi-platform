@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 import tempfile
+from pathlib import Path
 
-from pi_interoperability_layer.registry import SnapshotRegistry
 from pi_interoperability_layer.queries import SemanticQueryEngine
+from pi_interoperability_layer.registry import SnapshotRegistry
 
 
 def _make_registry() -> tuple[SnapshotRegistry, str]:
@@ -14,8 +14,18 @@ def _make_registry() -> tuple[SnapshotRegistry, str]:
     reg = SnapshotRegistry(Path(tmp))
     payload = {
         "traces": [
-            {"endpoint_template": "/api/users", "method": "GET", "mutation_class": "IDEMPOTENT_READ", "replay_class": "IDEMPOTENT"},
-            {"endpoint_template": "/api/users", "method": "POST", "mutation_class": "STATEFUL_MUTATION", "replay_class": "NON_REPLAYABLE"},
+            {
+                "endpoint_template": "/api/users",
+                "method": "GET",
+                "mutation_class": "IDEMPOTENT_READ",
+                "replay_class": "IDEMPOTENT",
+            },
+            {
+                "endpoint_template": "/api/users",
+                "method": "POST",
+                "mutation_class": "STATEFUL_MUTATION",
+                "replay_class": "NON_REPLAYABLE",
+            },
         ],
         "auth": [
             {"invariant_id": "auth1", "invariant_type": "bearer", "affected_endpoints": ["/api/users"]},

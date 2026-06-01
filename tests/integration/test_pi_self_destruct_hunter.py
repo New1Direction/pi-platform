@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_self_destruct_hunter import (
     PiSelfDestructHunter,
     SelfDestructHunterInput,
-    SelfDestructHunterOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -36,11 +33,7 @@ def test_self_destruct_hunter_vulnerable():
         }
     }
     """
-    inp = SelfDestructHunterInput(
-        file_path="Vulnerable.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = SelfDestructHunterInput(file_path="Vulnerable.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_selfdestruct(inp)
 
@@ -78,11 +71,7 @@ def test_self_destruct_hunter_compliant():
         }
     }
     """
-    inp = SelfDestructHunterInput(
-        file_path="Compliant.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = SelfDestructHunterInput(file_path="Compliant.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_selfdestruct(inp)
 
@@ -117,31 +106,27 @@ def test_orchestrator_self_destruct_hunter_consensus_passed(monkeypatch):
             "vulnerable_functions": ["destroy"],
             "flagged_findings": ["Unprotected selfdestruct call found"],
             "risk_score": 95.0,
-            "status": "REJECTED_SELFDESTRUCT_VULNERABILITY"
+            "status": "REJECTED_SELFDESTRUCT_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["destroy"],
             "flagged_findings": ["Unprotected selfdestruct call found"],
             "risk_score": 95.0,
-            "status": "REJECTED_SELFDESTRUCT_VULNERABILITY"
+            "status": "REJECTED_SELFDESTRUCT_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["destroy"],
             "flagged_findings": ["Unprotected selfdestruct call found"],
             "risk_score": 95.0,
-            "status": "REJECTED_SELFDESTRUCT_VULNERABILITY"
-        }
+            "status": "REJECTED_SELFDESTRUCT_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
         goal="selfdestruct hunter scan on Vuln.sol to detect insecure suicide calls",
-        context={
-            "file_path": "Vuln.sol",
-            "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+        context={"file_path": "Vuln.sol", "solidity_code": solidity_code, "mock_consensus_runs": mock_consensus_runs},
     )
     res = orchestrator.execute_goal(inp)
 

@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_DIVIDE_BEFORE_MULTIPLY_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_DIVIDE_BEFORE_MULTIPLY_STRICT_MODE")
 
 
 class DivideBeforeMultiplyInput(BaseModel):
@@ -24,7 +21,9 @@ class DivideBeforeMultiplyInput(BaseModel):
 class DivideBeforeMultiplyOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract math division order is secure")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on division before multiplication")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on division before multiplication"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -41,14 +40,14 @@ class PiSolidityDivideBeforeMultiplyAuditor:
         flagged_findings = []
 
         # Find all functions
-        func_blocks = re.findall(r'function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(r"function\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for name, args, body in func_blocks:
+        for name, _args, body in func_blocks:
             # Check for division followed by multiplication, e.g. a / b * c, or a.div(b).mul(c)
             # Match pattern: division operator '/' followed by multiplication '*'
             # Or safe math methods: .div(...) followed by .mul(...)
-            has_operator_issue = re.search(r'\b[a-zA-Z0-9_]+\s*/\s*[a-zA-Z0-9_]+\s*\*\s*[a-zA-Z0-9_]+\b', body)
-            has_safemath_issue = re.search(r'\.div\s*\(.*?\)\s*\.mul\s*\(', body)
+            has_operator_issue = re.search(r"\b[a-zA-Z0-9_]+\s*/\s*[a-zA-Z0-9_]+\s*\*\s*[a-zA-Z0-9_]+\b", body)
+            has_safemath_issue = re.search(r"\.div\s*\(.*?\)\s*\.mul\s*\(", body)
 
             if has_operator_issue or has_safemath_issue:
                 vulnerable_funcs.append(name)
@@ -74,5 +73,5 @@ class PiSolidityDivideBeforeMultiplyAuditor:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

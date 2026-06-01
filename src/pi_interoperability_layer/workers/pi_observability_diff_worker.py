@@ -25,6 +25,7 @@ from pi_interoperability_layer.snapshot.artifacts import SnapshotArtifact
 #  Delta Classification
 # ──────────────────────────────
 
+
 class DeltaType(str, Enum):
     """Strict classification of every detected change.
 
@@ -124,6 +125,7 @@ class SemanticDelta(BaseModel):
 #  Semantic Drift Report
 # ──────────────────────────────
 
+
 class SemanticDriftReport(BaseModel):
     """Deterministic report of all semantic differences between two snapshots.
 
@@ -162,9 +164,7 @@ class SemanticDriftReport(BaseModel):
             "baseline": self.baseline_snapshot_id,
             "modified": self.modified_snapshot_id,
         }
-        return hashlib.sha256(
-            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
     def _compute_report_hash(self) -> str:
         payload = {
@@ -185,14 +185,15 @@ class SemanticDriftReport(BaseModel):
 #  Diff Engine
 # ──────────────────────────────
 
+
 class SemanticDiffEngine:
     """Deterministic semantic diff engine.
 
-    Computes deltas between two SnapshotArtifacts using rule-based
-diff classification. Produces a SemanticDriftReport.
+        Computes deltas between two SnapshotArtifacts using rule-based
+    diff classification. Produces a SemanticDriftReport.
 
-    NO LLM inference. NO probabilistic scoring. All logic is
-    structural comparison with deterministic classification rules.
+        NO LLM inference. NO probabilistic scoring. All logic is
+        structural comparison with deterministic classification rules.
     """
 
     # Severity mapping by delta type
@@ -247,24 +248,37 @@ diff classification. Produces a SemanticDriftReport.
                 high_severity.append(d.delta_id)
 
         # Deterministic drift scores
-        total_elements = max(
-            len(baseline.payload.data), len(modified.payload.data), 1
-        )
+        total_elements = max(len(baseline.payload.data), len(modified.payload.data), 1)
         structural_count = sum(
             counts.get(t, 0)
             for t in (
-                "node_added", "node_removed", "node_modified",
-                "edge_added", "edge_removed", "edge_modified",
-                "topology_expanded", "topology_contracted", "topology_rewired",
+                "node_added",
+                "node_removed",
+                "node_modified",
+                "edge_added",
+                "edge_removed",
+                "edge_modified",
+                "topology_expanded",
+                "topology_contracted",
+                "topology_rewired",
             )
         )
         semantic_count = sum(
             counts.get(t, 0)
             for t in (
-                "config_added", "config_removed", "config_changed",
-                "state_changed", "auth_added", "auth_removed", "auth_changed",
-                "policy_added", "policy_removed", "policy_changed",
-                "capability_added", "capability_removed", "capability_updated",
+                "config_added",
+                "config_removed",
+                "config_changed",
+                "state_changed",
+                "auth_added",
+                "auth_removed",
+                "auth_changed",
+                "policy_added",
+                "policy_removed",
+                "policy_changed",
+                "capability_added",
+                "capability_removed",
+                "capability_updated",
             )
         )
         total_changes = len(deltas)
@@ -291,9 +305,7 @@ diff classification. Produces a SemanticDriftReport.
     # Type-specific diff methods
     # ------------------------------------------------------------------
 
-    def _diff_topology(
-        self, baseline: SnapshotArtifact, modified: SnapshotArtifact
-    ) -> List[SemanticDelta]:
+    def _diff_topology(self, baseline: SnapshotArtifact, modified: SnapshotArtifact) -> List[SemanticDelta]:
         """Diff two topology snapshots."""
         deltas: List[SemanticDelta] = []
         base_nodes = set(baseline.payload.data.get("nodes", {}).keys())
@@ -308,47 +320,67 @@ diff classification. Produces a SemanticDriftReport.
         }
 
         for node_id in mod_nodes - base_nodes:
-            deltas.append(self._make_delta(
-                DeltaType.NODE_ADDED, f"nodes.{node_id}",
-                "Node added to topology", None, node_id,
-            ))
+            deltas.append(
+                self._make_delta(
+                    DeltaType.NODE_ADDED,
+                    f"nodes.{node_id}",
+                    "Node added to topology",
+                    None,
+                    node_id,
+                )
+            )
         for node_id in base_nodes - mod_nodes:
-            deltas.append(self._make_delta(
-                DeltaType.NODE_REMOVED, f"nodes.{node_id}",
-                "Node removed from topology", node_id, None,
-            ))
-
+            deltas.append(
+                self._make_delta(
+                    DeltaType.NODE_REMOVED,
+                    f"nodes.{node_id}",
+                    "Node removed from topology",
+                    node_id,
+                    None,
+                )
+            )
 
         return deltas
 
-    def _diff_configuration(
-        self, baseline: SnapshotArtifact, modified: SnapshotArtifact
-    ) -> List[SemanticDelta]:
+    def _diff_configuration(self, baseline: SnapshotArtifact, modified: SnapshotArtifact) -> List[SemanticDelta]:
         deltas: List[SemanticDelta] = []
         base_cfg = baseline.payload.data.get("config", {})
         mod_cfg = modified.payload.data.get("config", {})
         all_keys = set(base_cfg.keys()) | set(mod_cfg.keys())
         for key in sorted(all_keys):
             if key in mod_cfg and key not in base_cfg:
-                deltas.append(self._make_delta(
-                    DeltaType.CONFIG_ADDED, f"config.{key}",
-                    f"Configuration key '{key}' added", None, mod_cfg[key],
-                ))
+                deltas.append(
+                    self._make_delta(
+                        DeltaType.CONFIG_ADDED,
+                        f"config.{key}",
+                        f"Configuration key '{key}' added",
+                        None,
+                        mod_cfg[key],
+                    )
+                )
             elif key in base_cfg and key not in mod_cfg:
-                deltas.append(self._make_delta(
-                    DeltaType.CONFIG_REMOVED, f"config.{key}",
-                    f"Configuration key '{key}' removed", base_cfg[key], None,
-                ))
+                deltas.append(
+                    self._make_delta(
+                        DeltaType.CONFIG_REMOVED,
+                        f"config.{key}",
+                        f"Configuration key '{key}' removed",
+                        base_cfg[key],
+                        None,
+                    )
+                )
             elif base_cfg.get(key) != mod_cfg.get(key):
-                deltas.append(self._make_delta(
-                    DeltaType.CONFIG_CHANGED, f"config.{key}",
-                    f"Configuration key '{key}' changed", base_cfg[key], mod_cfg[key],
-                ))
+                deltas.append(
+                    self._make_delta(
+                        DeltaType.CONFIG_CHANGED,
+                        f"config.{key}",
+                        f"Configuration key '{key}' changed",
+                        base_cfg[key],
+                        mod_cfg[key],
+                    )
+                )
         return deltas
 
-    def _diff_state(
-        self, baseline: SnapshotArtifact, modified: SnapshotArtifact
-    ) -> List[SemanticDelta]:
+    def _diff_state(self, baseline: SnapshotArtifact, modified: SnapshotArtifact) -> List[SemanticDelta]:
         deltas: List[SemanticDelta] = []
         base_state = baseline.payload.data.get("state", {})
         mod_state = modified.payload.data.get("state", {})
@@ -366,33 +398,44 @@ diff classification. Produces a SemanticDriftReport.
                             dt = DeltaType.STATE_DECREASED
                 except (TypeError, ValueError):
                     pass
-                deltas.append(self._make_delta(
-                    dt, f"state.{key}",
-                    f"State '{key}' changed", b_val, m_val,
-                ))
+                deltas.append(
+                    self._make_delta(
+                        dt,
+                        f"state.{key}",
+                        f"State '{key}' changed",
+                        b_val,
+                        m_val,
+                    )
+                )
         return deltas
 
-    def _diff_capability_mesh(
-        self, baseline: SnapshotArtifact, modified: SnapshotArtifact
-    ) -> List[SemanticDelta]:
+    def _diff_capability_mesh(self, baseline: SnapshotArtifact, modified: SnapshotArtifact) -> List[SemanticDelta]:
         deltas: List[SemanticDelta] = []
         base_caps = set(baseline.payload.data.get("capabilities", []))
         mod_caps = set(modified.payload.data.get("capabilities", []))
         for cap in sorted(mod_caps - base_caps):
-            deltas.append(self._make_delta(
-                DeltaType.CAPABILITY_ADDED, f"capabilities.{cap}",
-                f"Capability '{cap}' added", None, cap,
-            ))
+            deltas.append(
+                self._make_delta(
+                    DeltaType.CAPABILITY_ADDED,
+                    f"capabilities.{cap}",
+                    f"Capability '{cap}' added",
+                    None,
+                    cap,
+                )
+            )
         for cap in sorted(base_caps - mod_caps):
-            deltas.append(self._make_delta(
-                DeltaType.CAPABILITY_REMOVED, f"capabilities.{cap}",
-                f"Capability '{cap}' removed", cap, None,
-            ))
+            deltas.append(
+                self._make_delta(
+                    DeltaType.CAPABILITY_REMOVED,
+                    f"capabilities.{cap}",
+                    f"Capability '{cap}' removed",
+                    cap,
+                    None,
+                )
+            )
         return deltas
 
-    def _diff_trust_zone(
-        self, baseline: SnapshotArtifact, modified: SnapshotArtifact
-    ) -> List[SemanticDelta]:
+    def _diff_trust_zone(self, baseline: SnapshotArtifact, modified: SnapshotArtifact) -> List[SemanticDelta]:
         deltas: List[SemanticDelta] = []
         base_zones = baseline.payload.data.get("trust_zones", {})
         mod_zones = modified.payload.data.get("trust_zones", {})
@@ -401,15 +444,25 @@ diff classification. Produces a SemanticDriftReport.
             m_zone = mod_zones.get(entity_id)
             if b_zone != m_zone:
                 if b_zone is None:
-                    deltas.append(self._make_delta(
-                        DeltaType.NODE_ADDED, f"trust_zones.{entity_id}",
-                        f"Entity '{entity_id}' added to trust zone map", None, m_zone,
-                    ))
+                    deltas.append(
+                        self._make_delta(
+                            DeltaType.NODE_ADDED,
+                            f"trust_zones.{entity_id}",
+                            f"Entity '{entity_id}' added to trust zone map",
+                            None,
+                            m_zone,
+                        )
+                    )
                 elif m_zone is None:
-                    deltas.append(self._make_delta(
-                        DeltaType.NODE_REMOVED, f"trust_zones.{entity_id}",
-                        f"Entity '{entity_id}' removed from trust zone map", b_zone, None,
-                    ))
+                    deltas.append(
+                        self._make_delta(
+                            DeltaType.NODE_REMOVED,
+                            f"trust_zones.{entity_id}",
+                            f"Entity '{entity_id}' removed from trust zone map",
+                            b_zone,
+                            None,
+                        )
+                    )
                 else:
                     # Determine promotion/demotion
                     zone_rank = {"SANDBOX_EXPERIMENTAL": 0, "GOVERNED_EXTENSION": 1, "CORE_TRUSTED": 2}
@@ -419,16 +472,18 @@ diff classification. Produces a SemanticDriftReport.
                         dt = DeltaType.TRUST_ZONE_PROMOTED
                     else:
                         dt = DeltaType.TRUST_ZONE_DEMOTED
-                    deltas.append(self._make_delta(
-                        dt, f"trust_zones.{entity_id}",
-                        f"Entity '{entity_id}' trust zone changed from {b_zone} to {m_zone}",
-                        b_zone, m_zone,
-                    ))
+                    deltas.append(
+                        self._make_delta(
+                            dt,
+                            f"trust_zones.{entity_id}",
+                            f"Entity '{entity_id}' trust zone changed from {b_zone} to {m_zone}",
+                            b_zone,
+                            m_zone,
+                        )
+                    )
         return deltas
 
-    def _diff_policy(
-        self, baseline: SnapshotArtifact, modified: SnapshotArtifact
-    ) -> List[SemanticDelta]:
+    def _diff_policy(self, baseline: SnapshotArtifact, modified: SnapshotArtifact) -> List[SemanticDelta]:
         deltas: List[SemanticDelta] = []
         base_pol = baseline.payload.data.get("policies", {})
         mod_pol = modified.payload.data.get("policies", {})
@@ -436,45 +491,73 @@ diff classification. Produces a SemanticDriftReport.
             b = base_pol.get(pid)
             m = mod_pol.get(pid)
             if b is None and m is not None:
-                deltas.append(self._make_delta(
-                    DeltaType.POLICY_ADDED, f"policies.{pid}",
-                    f"Policy '{pid}' added", None, m,
-                ))
+                deltas.append(
+                    self._make_delta(
+                        DeltaType.POLICY_ADDED,
+                        f"policies.{pid}",
+                        f"Policy '{pid}' added",
+                        None,
+                        m,
+                    )
+                )
             elif b is not None and m is None:
-                deltas.append(self._make_delta(
-                    DeltaType.POLICY_REMOVED, f"policies.{pid}",
-                    f"Policy '{pid}' removed", b, None,
-                ))
+                deltas.append(
+                    self._make_delta(
+                        DeltaType.POLICY_REMOVED,
+                        f"policies.{pid}",
+                        f"Policy '{pid}' removed",
+                        b,
+                        None,
+                    )
+                )
             elif b != m:
-                deltas.append(self._make_delta(
-                    DeltaType.POLICY_CHANGED, f"policies.{pid}",
-                    f"Policy '{pid}' modified", b, m,
-                ))
+                deltas.append(
+                    self._make_delta(
+                        DeltaType.POLICY_CHANGED,
+                        f"policies.{pid}",
+                        f"Policy '{pid}' modified",
+                        b,
+                        m,
+                    )
+                )
         return deltas
 
-    def _diff_generic(
-        self, baseline: SnapshotArtifact, modified: SnapshotArtifact
-    ) -> List[SemanticDelta]:
+    def _diff_generic(self, baseline: SnapshotArtifact, modified: SnapshotArtifact) -> List[SemanticDelta]:
         """Fallback generic diff: compare top-level keys."""
         deltas: List[SemanticDelta] = []
         base_keys = set(baseline.payload.data.keys())
         mod_keys = set(modified.payload.data.keys())
         for key in sorted(mod_keys - base_keys):
-            deltas.append(self._make_delta(
-                DeltaType.COMPOSITE, key,
-                f"Key '{key}' added", None, modified.payload.data[key],
-            ))
+            deltas.append(
+                self._make_delta(
+                    DeltaType.COMPOSITE,
+                    key,
+                    f"Key '{key}' added",
+                    None,
+                    modified.payload.data[key],
+                )
+            )
         for key in sorted(base_keys - mod_keys):
-            deltas.append(self._make_delta(
-                DeltaType.COMPOSITE, key,
-                f"Key '{key}' removed", baseline.payload.data[key], None,
-            ))
+            deltas.append(
+                self._make_delta(
+                    DeltaType.COMPOSITE,
+                    key,
+                    f"Key '{key}' removed",
+                    baseline.payload.data[key],
+                    None,
+                )
+            )
         for key in sorted(base_keys & mod_keys):
             if baseline.payload.data[key] != modified.payload.data[key]:
-                deltas.append(self._make_delta(
-                    DeltaType.COMPOSITE, key,
-                    f"Key '{key}' changed", baseline.payload.data[key], modified.payload.data[key],
-                ))
+                deltas.append(
+                    self._make_delta(
+                        DeltaType.COMPOSITE,
+                        key,
+                        f"Key '{key}' changed",
+                        baseline.payload.data[key],
+                        modified.payload.data[key],
+                    )
+                )
         return deltas
 
     def _make_delta(
@@ -502,6 +585,7 @@ diff classification. Produces a SemanticDriftReport.
 # ──────────────────────────────
 #  Worker
 # ──────────────────────────────
+
 
 class PiObservabilityDiffWorker(WorkerBase):
     """Observability diff worker: computes SemanticDriftReport from two snapshots.

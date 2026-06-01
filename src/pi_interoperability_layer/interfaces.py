@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 #  Worker Input Envelope
 # ──────────────────────────────
 
+
 class WorkerInputEnvelope(BaseModel):
     """Deterministic input envelope for all governed runtimes."""
 
@@ -72,6 +73,7 @@ class WorkerInputEnvelope(BaseModel):
 #  Worker Output Envelope
 # ──────────────────────────────
 
+
 class WorkerOutputEnvelope(BaseModel):
     """Deterministic output envelope from all governed runtimes."""
 
@@ -115,6 +117,7 @@ class WorkerOutputEnvelope(BaseModel):
 # ──────────────────────────────
 #  Runtime Message Contract
 # ──────────────────────────────
+
 
 class RuntimeMessage(BaseModel):
     """Deterministic runtime-to-runtime message with provenance continuity."""
@@ -161,6 +164,7 @@ class RuntimeMessage(BaseModel):
 #  Provenance Continuity
 # ──────────────────────────────
 
+
 class ProvenanceChain(BaseModel):
     """Immutable provenance chain for cross-runtime artifact flow."""
 
@@ -197,9 +201,7 @@ class ProvenanceChain(BaseModel):
 
     def verify_continuity(self) -> bool:
         """Verify that the chain hash matches recomputed state."""
-        combined = "".join(
-            self.runtime_sequence + self.envelope_sequence + self.artifact_fingerprints
-        )
+        combined = "".join(self.runtime_sequence + self.envelope_sequence + self.artifact_fingerprints)
         expected = hashlib.sha256(combined.encode()).hexdigest()
         return self.chain_hash == expected
 
@@ -207,6 +209,7 @@ class ProvenanceChain(BaseModel):
 # ──────────────────────────────
 #  Replay-Safe Runtime Messaging
 # ──────────────────────────────
+
 
 class ReplaySafeRouter(BaseModel):
     """Deterministic router for replay-safe runtime messaging."""

@@ -24,6 +24,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 #  Structured Logging
 # ──────────────────────────────
 
+
 class StructuredLogger:
     """Deterministic structured logger with correlation tracking.
 
@@ -68,6 +69,7 @@ class StructuredLogger:
 #  Metrics Registry (Prometheus-compatible)
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class MetricKey:
     name: str
@@ -91,19 +93,19 @@ class MetricsRegistry:
     def counter(self, name: str, label_names: List[str], labels: Dict[str, str], value: int = 1) -> None:
         with self._lock:
             self._label_names[name] = label_names
-            key = tuple(labels.get(l, "") for l in label_names)
+            key = tuple(labels.get(label, "") for label in label_names)
             self._counters[name][key] += value
 
     def gauge(self, name: str, label_names: List[str], labels: Dict[str, str], value: float) -> None:
         with self._lock:
             self._label_names[name] = label_names
-            key = tuple(labels.get(l, "") for l in label_names)
+            key = tuple(labels.get(label, "") for label in label_names)
             self._gauges[name][key] = value
 
     def histogram(self, name: str, label_names: List[str], labels: Dict[str, str], value: float) -> None:
         with self._lock:
             self._label_names[name] = label_names
-            key = tuple(labels.get(l, "") for l in label_names)
+            key = tuple(labels.get(label, "") for label in label_names)
             self._histograms[name][key].append(value)
 
     def prometheus_format(self) -> str:
@@ -149,6 +151,7 @@ class MetricsRegistry:
 #  Trace Span (Deterministic)
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class TraceSpan:
     span_id: str
@@ -172,7 +175,13 @@ class Tracer:
         self._spans: List[TraceSpan] = []
         self._lock = threading.Lock()
 
-    def start_span(self, trace_id: str, operation: str, parent_id: Optional[str] = None, attributes: Optional[Dict[str, Any]] = None) -> TraceSpan:
+    def start_span(
+        self,
+        trace_id: str,
+        operation: str,
+        parent_id: Optional[str] = None,
+        attributes: Optional[Dict[str, Any]] = None,
+    ) -> TraceSpan:
         span = TraceSpan(
             span_id=self._derive_id(f"{trace_id}:{operation}"),
             trace_id=trace_id,
@@ -214,17 +223,20 @@ class Tracer:
                     "status": s.status,
                     "attributes": s.attributes,
                 }
-                for s in self._spans if s.trace_id == trace_id
+                for s in self._spans
+                if s.trace_id == trace_id
             ]
 
     def _derive_id(self, seed: str) -> str:
         import hashlib
+
         return hashlib.sha256(seed.encode()).hexdigest()[:16]
 
 
 # ──────────────────────────────
 #  Telemetry Manager
 # ──────────────────────────────
+
 
 class TelemetryManager:
     """Unified telemetry facade for production requests."""
@@ -235,9 +247,7 @@ class TelemetryManager:
         self.tracer = Tracer(component)
 
     @contextmanager
-    def request_scope(
-        self, correlation_id: str, operation: str
-    ) -> Generator[None, None, None]:
+    def request_scope(self, correlation_id: str, operation: str) -> Generator[None, None, None]:
         self.logger.set_correlation(correlation_id)
         span = self.tracer.start_span(correlation_id, operation)
         self.logger.info("request_start", operation=operation)

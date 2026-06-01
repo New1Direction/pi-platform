@@ -25,6 +25,7 @@ from pi_semantic_diff.models import (
 #  Endpoint Deltas
 # ──────────────────────────────
 
+
 def _trace_key(t: SemanticIRTrace) -> str:
     return f"{t.method}:{t.endpoint_template}"
 
@@ -145,7 +146,7 @@ def _compute_field_deltas(
                 if len(deltas) >= max_count:
                     return deltas
 
-    for key, mf in mod_map.items():
+    for key, _mf in mod_map.items():
         if key not in base_map:
             deltas.append(FieldDelta(field_path=key, delta_type="ADDED", severity="INFO"))
             if len(deltas) >= max_count:
@@ -175,6 +176,7 @@ def _replay_transition(base: SemanticIRTrace, mod: SemanticIRTrace) -> bool:
 # ──────────────────────────────
 #  Dependency Graph Deltas
 # ──────────────────────────────
+
 
 def _edge_key(e: StateEdge) -> str:
     return f"{e.upstream_endpoint}:{e.upstream_field}->{e.downstream_endpoint}:{e.downstream_field}"
@@ -221,14 +223,14 @@ def compute_dependency_deltas(
             if len(deltas) >= max_deltas:
                 return deltas
 
-    # Removed nodes
-    for node in base_nodes - mod_nodes:
+    # Removed nodes (sorted for deterministic ordering across runs)
+    for node in sorted(base_nodes - mod_nodes):
         deltas.append(DependencyDelta(delta_type="NODE_REMOVED", node=node))
         if len(deltas) >= max_deltas:
             return deltas
 
-    # Added nodes
-    for node in mod_nodes - base_nodes:
+    # Added nodes (sorted for deterministic ordering across runs)
+    for node in sorted(mod_nodes - base_nodes):
         deltas.append(DependencyDelta(delta_type="NODE_ADDED", node=node))
         if len(deltas) >= max_deltas:
             return deltas
@@ -239,6 +241,7 @@ def compute_dependency_deltas(
 # ──────────────────────────────
 #  Auth Deltas
 # ──────────────────────────────
+
 
 def compute_auth_deltas(
     baseline: List[AuthInvariant],
@@ -300,6 +303,7 @@ def compute_auth_deltas(
 #  Replay Surface Deltas
 # ──────────────────────────────
 
+
 def compute_replay_surface_deltas(
     baseline: List[SemanticIRTrace],
     modified: List[SemanticIRTrace],
@@ -351,6 +355,7 @@ def compute_replay_surface_deltas(
 # ──────────────────────────────
 #  Scoring Functions
 # ──────────────────────────────
+
 
 def compute_structural_delta_score(
     endpoint_deltas: List[EndpointDelta],

@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_CONSTANT_PRAGMA_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_CONSTANT_PRAGMA_STRICT_MODE")
 
 
 class ConstantPragmaInput(BaseModel):
@@ -23,7 +20,9 @@ class ConstantPragmaInput(BaseModel):
 
 class ConstantPragmaOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract compiler version is locked")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on floating pragma version usage")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on floating pragma version usage"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -39,13 +38,13 @@ class PiSolidityConstantPragmaValidation:
         flagged_findings = []
 
         # Find pragma statement
-        pragma_match = re.search(r'pragma\s+solidity\s+([^;]+);', code)
+        pragma_match = re.search(r"pragma\s+solidity\s+([^;]+);", code)
 
         if pragma_match:
             version_expr = pragma_match.group(1).strip()
             # Floating characters: ^, >, <, >=, <=
             is_floating = any(char in version_expr for char in ["^", ">", "<"])
-            
+
             if is_floating:
                 flagged_findings.append(
                     f"Solidity file utilizes floating pragma compiler definition 'pragma solidity {version_expr};'. "
@@ -66,8 +65,5 @@ class PiSolidityConstantPragmaValidation:
                 is_secure = True
 
         return ConstantPragmaOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

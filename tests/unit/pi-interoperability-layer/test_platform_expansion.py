@@ -9,17 +9,29 @@ All tests enforce deterministic, fail-closed, evidence-bound behavior.
 
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
-from typing import Dict, Any, Tuple
+
+import pytest
 
 from pi_extension_governor.manifest import (
     CapabilityClass,
     ExtensionManifest,
-    ExtensionStatus,
     TrustZone,
 )
-
+from pi_interoperability_layer.platform.execution_fabric import (
+    DeterministicExecutionFabric,
+    ExecutionAuditLog,
+)
+from pi_interoperability_layer.platform.marketplace import (
+    CapabilityLifecycleState,
+    CapabilityMarketplaceRegistry,
+    CompositionEdge,
+    CompositionEngine,
+    CompositionNode,
+    CompositionRequest,
+    MarketCapabilityListing,
+    TrustTier,
+)
 from pi_interoperability_layer.platform.tenant import (
     ResourceQuota,
     Tenant,
@@ -28,34 +40,12 @@ from pi_interoperability_layer.platform.tenant import (
     TenantPolicyEngine,
     TenantPolicyRule,
     TenantRegistry,
-    TenantRegistryEntry,
     TenantStatus,
     TenantTier,
 )
 
-from pi_interoperability_layer.platform.execution_fabric import (
-    DeterministicExecutionFabric,
-    ExecutionAuditLog,
-    ExecutionFabricReceipt,
-    ExecutionPhase,
-    PhaseBarrier,
-    WorkerLease,
-)
-
-from pi_interoperability_layer.platform.marketplace import (
-    CapabilityLifecycleState,
-    CompositionEdge,
-    CompositionEngine,
-    CompositionNode,
-    CompositionRequest,
-    CompositionResult,
-    MarketCapabilityListing,
-    TrustTier,
-    CapabilityMarketplaceRegistry,
-)
-
-
 # ── Layer 1: Tenant Control Plane Tests ──────────────────────────────
+
 
 class TestTenantRegistry:
     def test_register_tenant(self, tmp_path: Path) -> None:
@@ -162,13 +152,15 @@ class TestTenantExecutionLog:
     def test_compliance_report(self, tmp_path: Path) -> None:
         log = TenantExecutionLog(root_dir=tmp_path)
         for i, status in enumerate(["completed", "completed", "failed", "rejected"]):
-            log.record(TenantExecutionRecord(
-                tenant_id="t1",
-                execution_id=f"e{i}",
-                pipeline_hash="h",
-                manifest_id="m",
-                status=status,
-            ))
+            log.record(
+                TenantExecutionRecord(
+                    tenant_id="t1",
+                    execution_id=f"e{i}",
+                    pipeline_hash="h",
+                    manifest_id="m",
+                    status=status,
+                )
+            )
         report = log.get_compliance_report("t1")
         assert report["total_executions"] == 4
         assert report["completed"] == 2
@@ -187,6 +179,7 @@ class TestTenantExecutionLog:
 
 # ── Layer 2: Execution Fabric Tests ─────────────────────────────────
 
+
 class TestDeterministicShardAssignment:
     def test_same_manifest_same_shard(self) -> None:
         fabric = DeterministicExecutionFabric(shard_count=4)
@@ -196,8 +189,8 @@ class TestDeterministicShardAssignment:
 
     def test_different_manifests_different_shards(self) -> None:
         fabric = DeterministicExecutionFabric(shard_count=4)
-        s1 = fabric.assign_to_shard("manifest_a")
-        s2 = fabric.assign_to_shard("manifest_b")
+        fabric.assign_to_shard("manifest_a")
+        fabric.assign_to_shard("manifest_b")
         # Not guaranteed different, but highly likely
         assignments = {fabric.assign_to_shard(f"manifest_{i}") for i in range(1000)}
         assert len(assignments) == 4  # uses all shards
@@ -321,6 +314,7 @@ class TestExecutionAuditLog:
 
 # ── Layer 3: Capability Economy Tests ────────────────────────────────
 
+
 class TestCompositionRequest:
     def test_request_hash_determinism(self) -> None:
         req1 = CompositionRequest(
@@ -353,26 +347,30 @@ class TestCompositionEngine:
     @pytest.fixture
     def engine_with_catalog(self) -> CompositionEngine:
         engine = CompositionEngine()
-        engine.register_listing(MarketCapabilityListing(
-            listing_id="l1",
-            manifest_id="m1",
-            name="openapi-tool",
-            version="1.0.0",
-            capability_class=CapabilityClass.OPENAPI_TOOLING,
-            trust_tier=TrustTier.VERIFIED,
-            trust_score=75,
-            publisher_tenant_id="t1",
-        ))
-        engine.register_listing(MarketCapabilityListing(
-            listing_id="l2",
-            manifest_id="m2",
-            name="static-analyzer",
-            version="1.0.0",
-            capability_class=CapabilityClass.STATIC_ANALYZER,
-            trust_tier=TrustTier.VERIFIED,
-            trust_score=80,
-            publisher_tenant_id="t1",
-        ))
+        engine.register_listing(
+            MarketCapabilityListing(
+                listing_id="l1",
+                manifest_id="m1",
+                name="openapi-tool",
+                version="1.0.0",
+                capability_class=CapabilityClass.OPENAPI_TOOLING,
+                trust_tier=TrustTier.VERIFIED,
+                trust_score=75,
+                publisher_tenant_id="t1",
+            )
+        )
+        engine.register_listing(
+            MarketCapabilityListing(
+                listing_id="l2",
+                manifest_id="m2",
+                name="static-analyzer",
+                version="1.0.0",
+                capability_class=CapabilityClass.STATIC_ANALYZER,
+                trust_tier=TrustTier.VERIFIED,
+                trust_score=80,
+                publisher_tenant_id="t1",
+            )
+        )
         return engine
 
     def test_compose_valid_request(self, engine_with_catalog: CompositionEngine) -> None:
@@ -555,27 +553,54 @@ class TestCapabilityMarketplaceLifecycle:
 
     def test_query_by_class(self) -> None:
         registry = CapabilityMarketplaceRegistry()
-        registry.publish(MarketCapabilityListing("l1", "m1", "tool1", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1"))
-        registry.publish(MarketCapabilityListing("l2", "m2", "tool2", "1.0", CapabilityClass.STATIC_ANALYZER, TrustTier.BASIC, publisher_tenant_id="t1"))
+        registry.publish(
+            MarketCapabilityListing(
+                "l1", "m1", "tool1", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1"
+            )
+        )
+        registry.publish(
+            MarketCapabilityListing(
+                "l2", "m2", "tool2", "1.0", CapabilityClass.STATIC_ANALYZER, TrustTier.BASIC, publisher_tenant_id="t1"
+            )
+        )
         openapi_listings = registry.query_by_class(CapabilityClass.OPENAPI_TOOLING)
         assert len(openapi_listings) == 1
         assert openapi_listings[0].listing_id == "l1"
 
     def test_query_by_tier(self) -> None:
         registry = CapabilityMarketplaceRegistry()
-        registry.publish(MarketCapabilityListing("l1", "m1", "tool1", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1"))
-        registry.publish(MarketCapabilityListing("l2", "m2", "tool2", "1.0", CapabilityClass.STATIC_ANALYZER, TrustTier.CERTIFIED, publisher_tenant_id="t1"))
+        registry.publish(
+            MarketCapabilityListing(
+                "l1", "m1", "tool1", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1"
+            )
+        )
+        registry.publish(
+            MarketCapabilityListing(
+                "l2",
+                "m2",
+                "tool2",
+                "1.0",
+                CapabilityClass.STATIC_ANALYZER,
+                TrustTier.CERTIFIED,
+                publisher_tenant_id="t1",
+            )
+        )
         basic_listings = registry.query_by_tier(TrustTier.BASIC)
         assert len(basic_listings) == 1
         assert basic_listings[0].listing_id == "l1"
 
     def test_listing_hash_determinism(self) -> None:
-        l1 = MarketCapabilityListing("l1", "m1", "tool", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1")
-        l2 = MarketCapabilityListing("l1", "m1", "tool", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1")
+        l1 = MarketCapabilityListing(
+            "l1", "m1", "tool", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1"
+        )
+        l2 = MarketCapabilityListing(
+            "l1", "m1", "tool", "1.0", CapabilityClass.OPENAPI_TOOLING, TrustTier.BASIC, publisher_tenant_id="t1"
+        )
         assert l1.compute_hash() == l2.compute_hash()
 
 
 # ── Cross-Layer Integration Tests ────────────────────────────────────
+
 
 class TestCrossLayerIntegration:
     def test_tenant_runs_composition_through_fabric(self, tmp_path: Path) -> None:
@@ -587,16 +612,18 @@ class TestCrossLayerIntegration:
 
         # Layer 3: Build composition
         marketplace = CapabilityMarketplaceRegistry()
-        marketplace.publish(MarketCapabilityListing(
-            listing_id="l1",
-            manifest_id="m1",
-            name="detector",
-            version="1.0.0",
-            capability_class=CapabilityClass.STATIC_ANALYZER,
-            trust_tier=TrustTier.VERIFIED,
-            trust_score=90,
-            publisher_tenant_id="t1",
-        ))
+        marketplace.publish(
+            MarketCapabilityListing(
+                listing_id="l1",
+                manifest_id="m1",
+                name="detector",
+                version="1.0.0",
+                capability_class=CapabilityClass.STATIC_ANALYZER,
+                trust_tier=TrustTier.VERIFIED,
+                trust_score=90,
+                publisher_tenant_id="t1",
+            )
+        )
 
         engine = CompositionEngine({"l1": marketplace.get_listing("l1")})
         request = CompositionRequest(

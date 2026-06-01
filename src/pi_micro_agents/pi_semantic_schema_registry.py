@@ -1,30 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_SEMANTIC_SCHEMA_REGIST_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_SEMANTIC_SCHEMA_REGIST_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_SEMANTIC_SCHEMA_REGIST_STRICT_MODE")
 
 
 class SemanticSchemaRegistryInput(BaseModel):
@@ -54,7 +39,9 @@ class PiSemanticSchemaRegistry:
 
         # Find dynamic schema shifts, unstructured fields with wildcards, or lack of primary constraints
         # E.g. raw JSON field types or wildcards in schema validations that allow arbitrary inputs
-        unstructured_match = re.search(r'(JSON1|dynamic_schema|unstructured_data|Column\(\s*JSON\s*\)|BypassValidation)', code)
+        unstructured_match = re.search(
+            r"(JSON1|dynamic_schema|unstructured_data|Column\(\s*JSON\s*\)|BypassValidation)", code
+        )
 
         if unstructured_match:
             vulnerable_elements.append(unstructured_match.group(1))
@@ -81,5 +68,5 @@ class PiSemanticSchemaRegistry:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

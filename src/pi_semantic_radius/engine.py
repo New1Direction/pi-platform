@@ -53,7 +53,7 @@ class BlastRadiusEngine:
             (graph.depth_from(n) for n in graph.nodes.keys()),
             default=0,
         )
-        return float(node_count + edge_count + (max_fanout ** 2) + (max_depth ** 2))
+        return float(node_count + edge_count + (max_fanout**2) + (max_depth**2))
 
     def compute_score(
         self,
@@ -102,14 +102,8 @@ class BlastRadiusEngine:
         replay_depth = mod_depth
 
         # Mutation impact
-        base_se = sum(
-            1 for n in baseline.nodes.values()
-            if n.mutation_class == "SIDE_EFFECT_BOUND"
-        )
-        mod_se = sum(
-            1 for n in modified.nodes.values()
-            if n.mutation_class == "SIDE_EFFECT_BOUND"
-        )
+        base_se = sum(1 for n in baseline.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND")
+        mod_se = sum(1 for n in modified.nodes.values() if n.mutation_class == "SIDE_EFFECT_BOUND")
         se_delta = mod_se - base_se
 
         # Downstream mutation impact: count of reachable nodes with mutation class escalation
@@ -127,9 +121,7 @@ class BlastRadiusEngine:
             "modified_nodes": sorted(modified.nodes.keys()),
             "target_node": target_node,
         }
-        input_hash = hashlib.sha256(
-            json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()
-        ).hexdigest()
+        input_hash = hashlib.sha256(json.dumps(inputs, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
         return RiskScore(
             score_id=f"br_{target_node}_{input_hash[:16]}",

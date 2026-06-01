@@ -1,30 +1,14 @@
 from __future__ import annotations
 
-import json
-import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_RUST_TUI_RESOURCE_LIMIT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_RUST_TUI_RESOURCE_LIMIT_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_RUST_TUI_RESOURCE_LIMIT_STRICT_MODE")
 
 
 class RustTuiResourceLimitInput(BaseModel):
@@ -56,12 +40,14 @@ class PiRustTuiResourceLimit:
         # E.g. while let, loop, while, and containing terminal.draw()
         # Look for infinite loops or rendering loops
         has_draw = "terminal.draw" in code or "Terminal::draw" in code or "draw(" in code
-        
+
         if has_draw:
             # We want to check if they have duration limits, poll, sleep, or interval
             # E.g. event::poll, sleep, Interval, tick
-            has_throttle = any(x in code for x in ["event::poll", "Duration::from", "sleep(", "tick(", "interval(", "FrameRate", "fps"])
-            
+            has_throttle = any(
+                x in code for x in ["event::poll", "Duration::from", "sleep(", "tick(", "interval(", "FrameRate", "fps"]
+            )
+
             if not has_throttle:
                 vulnerable_elements.append("terminal_draw_loop")
                 flagged_findings.append(
@@ -87,5 +73,5 @@ class PiRustTuiResourceLimit:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

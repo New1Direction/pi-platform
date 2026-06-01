@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_TRANSCRIBER_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_TRANSCRIBER_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_TRANSCRIBER_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Heuristic check: screens auto-generated transcripts for prompt injection jailbreaks
 def detect_transcriber_anomalies(text: str) -> Tuple[float, List[str]]:
@@ -47,14 +33,17 @@ def detect_transcriber_anomalies(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # 3. Pydantic Inputs and Outputs
 class TranscriptInput(BaseModel):
     video_urls: List[str] = Field(..., description="List of YouTube video URLs to transcribe")
     creator: str = Field(..., description="Creator/Author of the videos")
 
+
 class TranscriptItem(BaseModel):
     video_id: str
     text: str
+
 
 class TranscriptOutput(BaseModel):
     success: bool
@@ -62,6 +51,7 @@ class TranscriptOutput(BaseModel):
     transcripts: List[TranscriptItem] = Field(default_factory=list)
     combined_text: str = ""
     anomalies_detected: List[str] = Field(default_factory=list)
+
 
 # 4. Core Agent Class
 class PiYoutubeTranscriber:
@@ -79,6 +69,7 @@ class PiYoutubeTranscriber:
         has_api = False
         try:
             from youtube_transcript_api import YouTubeTranscriptApi
+
             has_api = True
         except ImportError:
             pass
@@ -97,6 +88,7 @@ class PiYoutubeTranscriber:
             if has_api:
                 try:
                     from youtube_transcript_api import YouTubeTranscriptApi
+
                     transcript = YouTubeTranscriptApi.get_transcript(video_id)
                     text = " ".join([item["text"] for item in transcript])
                 except Exception:

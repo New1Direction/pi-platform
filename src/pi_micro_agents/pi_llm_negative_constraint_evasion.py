@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LLM_NEGATIVE_CONSTRAINT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_LLM_NEGATIVE_CONSTRAINT_STRICT_MODE")
 
 
 class LLMNegativeConstraintInput(BaseModel):
@@ -38,11 +35,11 @@ class PiLLMNegativeConstraintEvasion:
         flagged_findings = []
 
         evasion_patterns = [
-            r'i\s+know\s+this\s+is\s+forbidden',
-            r'hypothetical\s+scenario',
-            r'do\s+not\s+say\s+no',
-            r'for\s+educational\s+purposes\s+only',
-            r'academic\s+research\s+only'
+            r"i\s+know\s+this\s+is\s+forbidden",
+            r"hypothetical\s+scenario",
+            r"do\s+not\s+say\s+no",
+            r"for\s+educational\s+purposes\s+only",
+            r"academic\s+research\s+only",
         ]
 
         is_secure = True
@@ -65,8 +62,5 @@ class PiLLMNegativeConstraintEvasion:
                 is_secure = True
 
         return LLMNegativeConstraintOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

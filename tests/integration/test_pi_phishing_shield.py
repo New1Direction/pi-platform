@@ -1,16 +1,13 @@
 """Integration tests for PiPhishingShield — dual-use callback phishing and permit verifier."""
 
-import os
 import pytest
-from pydantic import ValidationError
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_phishing_shield import (
-    PiPhishingShield,
     PhishingShieldInput,
     PhishingShieldOutput,
+    PiPhishingShield,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
-
 
 # ── Fixtures & Mock Contracts ───────────────────────────────────────────────
 
@@ -73,14 +70,16 @@ def clean_env(monkeypatch):
 
 # ── Tests: PhishingShield Heuristics ─────────────────────────────────────────
 
-class TestPhishingShield:
 
+class TestPhishingShield:
     def test_vulnerable_callback_detected(self) -> None:
         agent = PiPhishingShield()
-        result = agent.audit_phishing(PhishingShieldInput(
-            file_path="PhishingCallback.sol",
-            solidity_code=VULNERABLE_CALLBACK,
-        ))
+        result = agent.audit_phishing(
+            PhishingShieldInput(
+                file_path="PhishingCallback.sol",
+                solidity_code=VULNERABLE_CALLBACK,
+            )
+        )
         assert isinstance(result, PhishingShieldOutput)
         assert result.is_secure is False
         assert "onTokenTransfer" in result.vulnerable_functions
@@ -90,20 +89,24 @@ class TestPhishingShield:
 
     def test_vulnerable_permit_deadline_warning(self) -> None:
         agent = PiPhishingShield()
-        result = agent.audit_phishing(PhishingShieldInput(
-            file_path="PermitVulnerable.sol",
-            solidity_code=VULNERABLE_PERMIT,
-        ))
+        result = agent.audit_phishing(
+            PhishingShieldInput(
+                file_path="PermitVulnerable.sol",
+                solidity_code=VULNERABLE_PERMIT,
+            )
+        )
         assert isinstance(result, PhishingShieldOutput)
         assert result.is_secure is True  # permit deadline is warning, doesn't reject
         assert any("deadline" in finding for finding in result.flagged_findings)
 
     def test_safe_callback_passes(self) -> None:
         agent = PiPhishingShield()
-        result = agent.audit_phishing(PhishingShieldInput(
-            file_path="SafeCallback.sol",
-            solidity_code=SAFE_CALLBACK,
-        ))
+        result = agent.audit_phishing(
+            PhishingShieldInput(
+                file_path="SafeCallback.sol",
+                solidity_code=SAFE_CALLBACK,
+            )
+        )
         assert isinstance(result, PhishingShieldOutput)
         assert result.is_secure is True
         assert len(result.vulnerable_functions) == 0
@@ -111,10 +114,12 @@ class TestPhishingShield:
 
     def test_safe_permit_passes(self) -> None:
         agent = PiPhishingShield()
-        result = agent.audit_phishing(PhishingShieldInput(
-            file_path="SafePermit.sol",
-            solidity_code=SAFE_PERMIT,
-        ))
+        result = agent.audit_phishing(
+            PhishingShieldInput(
+                file_path="SafePermit.sol",
+                solidity_code=SAFE_PERMIT,
+            )
+        )
         assert isinstance(result, PhishingShieldOutput)
         assert result.is_secure is True
         assert len(result.flagged_findings) == 0
@@ -122,20 +127,24 @@ class TestPhishingShield:
     def test_warn_only_mode(self, monkeypatch) -> None:
         monkeypatch.setenv("PI_PHISHING_STRICT_MODE", "false")
         agent = PiPhishingShield()
-        result = agent.audit_phishing(PhishingShieldInput(
-            file_path="PhishingCallback.sol",
-            solidity_code=VULNERABLE_CALLBACK,
-        ))
+        result = agent.audit_phishing(
+            PhishingShieldInput(
+                file_path="PhishingCallback.sol",
+                solidity_code=VULNERABLE_CALLBACK,
+            )
+        )
         assert isinstance(result, PhishingShieldOutput)
         assert result.is_secure is True
         assert result.status == "WARN_PHISHING_RISK"
 
     def test_model_dump_and_serialization(self) -> None:
         agent = PiPhishingShield()
-        result = agent.audit_phishing(PhishingShieldInput(
-            file_path="SafePermit.sol",
-            solidity_code=SAFE_PERMIT,
-        ))
+        result = agent.audit_phishing(
+            PhishingShieldInput(
+                file_path="SafePermit.sol",
+                solidity_code=SAFE_PERMIT,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -144,16 +153,19 @@ class TestPhishingShield:
 
 # ── Tests: Orchestration NLP & Consensus Integration ────────────────────────
 
+
 def test_orchestrator_nlp_routing_to_phishing_shield() -> None:
     orchestrator = PiOrchestrator()
-    result = orchestrator.execute_goal(OrchestratorInput(
-        goal="Perform a phishing shield scan and check callback functions.",
-        context={
-            "file_path": "PhishingCallback.sol",
-            "solidity_code": VULNERABLE_CALLBACK,
-            "check_level": "STRICT"
-        }
-    ))
+    result = orchestrator.execute_goal(
+        OrchestratorInput(
+            goal="Perform a phishing shield scan and check callback functions.",
+            context={
+                "file_path": "PhishingCallback.sol",
+                "solidity_code": VULNERABLE_CALLBACK,
+                "check_level": "STRICT",
+            },
+        )
+    )
     assert result.success is False
     assert "PiPhishingShield" in result.routed_agent
     assert result.risk_score == 85.0

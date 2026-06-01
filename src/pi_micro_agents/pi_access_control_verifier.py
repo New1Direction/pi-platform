@@ -1,38 +1,27 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ACCESS_CONTROL_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_ACCESS_CONTROL_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_ACCESS_CONTROL_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Pydantic-Enforced Input/Output Envelopes
 class AccessControlInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level of parsing: STRICT, MEDIUM")
-    allowed_modifiers: List[str] = Field(default_factory=list, description="User-defined custom access control modifiers")
+    allowed_modifiers: List[str] = Field(
+        default_factory=list, description="User-defined custom access control modifiers"
+    )
+
 
 class AccessControlOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from access control vulnerabilities")
@@ -41,13 +30,14 @@ class AccessControlOutput(BaseModel):
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_ACCESS_CONTROL, REJECTED_ACCESS_CONTROL)")
 
+
 # 3. Helper function to extract concrete Solidity functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
     functions = []
     code_len = len(solidity_code)
 
     # Pattern matching "function [name] (" or "constructor ("
-    pattern = re.compile(r'\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -57,11 +47,11 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         start_idx = match.start()
 
         # Calculate line number of start_idx
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
         # Semicolons and opening braces determine concrete vs abstract functions
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -71,9 +61,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -82,6 +72,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 4. Core Micro-Agent Class
 class PiAccessControlVerifier:
@@ -100,15 +91,30 @@ class PiAccessControlVerifier:
 
         # List of sensitive admin action keywords in function names
         sensitive_keywords = [
-            "mint", "burn", "withdraw", "transferownership", "setowner",
-            "pause", "unpause", "upgrade", "selfdestruct", "kill",
-            "setrole", "grantrole", "initialize"
+            "mint",
+            "burn",
+            "withdraw",
+            "transferownership",
+            "setowner",
+            "pause",
+            "unpause",
+            "upgrade",
+            "selfdestruct",
+            "kill",
+            "setrole",
+            "grantrole",
+            "initialize",
         ]
 
         # Base list of standard access control modifiers
         standard_modifiers = [
-            "onlyowner", "onlyadmin", "hasrole", "onlyrole", "requiresauth",
-            "onlygovernor", "onlyminter"
+            "onlyowner",
+            "onlyadmin",
+            "hasrole",
+            "onlyrole",
+            "requiresauth",
+            "onlygovernor",
+            "onlyminter",
         ]
 
         # Include user custom modifiers
@@ -124,13 +130,13 @@ class PiAccessControlVerifier:
                 has_initializer_mechanism = True
 
             # Clean body of comments to prevent false positives
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Identify internal/private vs public/external
             # If function signature does not declare private/internal, it defaults/explicitly defines public/external
             # We can inspect the function declaration line (up to first {)
-            declaration_part = func_body.split('{')[0].lower()
+            declaration_part = func_body.split("{")[0].lower()
 
             is_internal_or_private = "internal" in declaration_part or "private" in declaration_part
 
@@ -149,7 +155,10 @@ class PiAccessControlVerifier:
                     # Look for assignments to admin variables or role mappings
                     if "=" in stripped and not any(comp in stripped for comp in ["==", "<=", ">=", "!="]):
                         # Match variables: owner, admin, roles, _owner, role
-                        if any(term in stripped.lower() for term in ["owner =", "admin =", "roles[", "isadmin[", "hasrole["]):
+                        if any(
+                            term in stripped.lower()
+                            for term in ["owner =", "admin =", "roles[", "isadmin[", "hasrole["]
+                        ):
                             # Exclude local variable definitions
                             if not any(stripped.startswith(t) for t in ["uint", "address ", "bool ", "bytes "]):
                                 has_privilege_elevation = True
@@ -165,7 +174,7 @@ class PiAccessControlVerifier:
                 has_modifier = False
                 for modifier in standard_modifiers:
                     # Match modifier name as a whole word or followed by brackets e.g. onlyOwner, hasRole(...)
-                    pattern = re.compile(rf'\b{modifier}\b')
+                    pattern = re.compile(rf"\b{modifier}\b")
                     if pattern.search(declaration_part):
                         has_modifier = True
                         break
@@ -184,7 +193,9 @@ class PiAccessControlVerifier:
 
         # Check for uninitialized ownership
         if has_owner_var and not has_initializer_mechanism:
-            flagged_findings.append("Contract defines an 'owner' variable but lacks a constructor or initializer function to configure ownership.")
+            flagged_findings.append(
+                "Contract defines an 'owner' variable but lacks a constructor or initializer function to configure ownership."
+            )
             vulnerable_funcs.append("contract_structure")
 
         is_secure = len(vulnerable_funcs) == 0
@@ -197,12 +208,12 @@ class PiAccessControlVerifier:
                 status = "REJECTED_ACCESS_CONTROL"
             else:
                 status = "WARN_ACCESS_CONTROL"
-                is_secure = True # Warn only in non-strict mode
+                is_secure = True  # Warn only in non-strict mode
 
         return AccessControlOutput(
             is_secure=is_secure,
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field
 try:
     from fastapi import APIRouter, HTTPException, Request
     from fastapi.responses import JSONResponse, PlainTextResponse
+
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -28,6 +29,7 @@ except ImportError:
 # ──────────────────────────────
 #  OpenAPI Schemas
 # ──────────────────────────────
+
 
 class SubmitCompositionRequest(BaseModel):
     tenant_id: str
@@ -119,6 +121,7 @@ class HealthResponse(BaseModel):
 #  Router Factory
 # ──────────────────────────────
 
+
 def create_production_router(
     storage_engine,
     telemetry,
@@ -192,9 +195,14 @@ def create_production_router(
         allowed, rate_info = rate_limiter.check(ctx["tenant_id"], ctx["actor_id"])
         if not allowed:
             audit_logger.log(
-                tenant_id=ctx["tenant_id"], actor_id=ctx["actor_id"], actor_type="API",
-                action="composition:submit", resource_type="composition", resource_id=req.composition_id,
-                request_payload=req.model_dump(), response_summary={"rate_limited": True},
+                tenant_id=ctx["tenant_id"],
+                actor_id=ctx["actor_id"],
+                actor_type="API",
+                action="composition:submit",
+                resource_type="composition",
+                resource_id=req.composition_id,
+                request_payload=req.model_dump(),
+                response_summary={"rate_limited": True},
                 correlation_id=ctx["correlation_id"],
             )
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limit_exceeded")
@@ -204,14 +212,17 @@ def create_production_router(
 
         # Deterministic receipt generation
         receipt_id = f"rcpt_{req.composition_id}_{int(time.time() * 1_000_000)}"
-        determinism_proof = hashlib.sha256(
-            json.dumps(req.model_dump(), sort_keys=True).encode()
-        ).hexdigest()
+        determinism_proof = hashlib.sha256(json.dumps(req.model_dump(), sort_keys=True).encode()).hexdigest()
 
         audit_logger.log(
-            tenant_id=ctx["tenant_id"], actor_id=ctx["actor_id"], actor_type="API",
-            action="composition:submit", resource_type="composition", resource_id=req.composition_id,
-            request_payload=req.model_dump(), response_summary={"receipt_id": receipt_id},
+            tenant_id=ctx["tenant_id"],
+            actor_id=ctx["actor_id"],
+            actor_type="API",
+            action="composition:submit",
+            resource_type="composition",
+            resource_id=req.composition_id,
+            request_payload=req.model_dump(),
+            response_summary={"receipt_id": receipt_id},
             correlation_id=ctx["correlation_id"],
         )
 
@@ -238,14 +249,17 @@ def create_production_router(
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limit_exceeded")
 
         report_id = f"sim_{req.composition_id}_{int(time.time() * 1_000_000)}"
-        simulation_hash = hashlib.sha256(
-            json.dumps(req.model_dump(), sort_keys=True).encode()
-        ).hexdigest()
+        simulation_hash = hashlib.sha256(json.dumps(req.model_dump(), sort_keys=True).encode()).hexdigest()
 
         audit_logger.log(
-            tenant_id=ctx["tenant_id"], actor_id=ctx["actor_id"], actor_type="API",
-            action="composition:simulate", resource_type="composition", resource_id=req.composition_id,
-            request_payload=req.model_dump(), response_summary={"report_id": report_id},
+            tenant_id=ctx["tenant_id"],
+            actor_id=ctx["actor_id"],
+            actor_type="API",
+            action="composition:simulate",
+            resource_type="composition",
+            resource_id=req.composition_id,
+            request_payload=req.model_dump(),
+            response_summary={"report_id": report_id},
             correlation_id=ctx["correlation_id"],
         )
 
@@ -284,9 +298,14 @@ def create_production_router(
         )
 
         audit_logger.log(
-            tenant_id=ctx["tenant_id"], actor_id=ctx["actor_id"], actor_type="API",
-            action="snapshot:store", resource_type="snapshot", resource_id=snapshot_id,
-            request_payload=req.model_dump(), response_summary={"snapshot_id": snapshot_id},
+            tenant_id=ctx["tenant_id"],
+            actor_id=ctx["actor_id"],
+            actor_type="API",
+            action="snapshot:store",
+            resource_type="snapshot",
+            resource_id=snapshot_id,
+            request_payload=req.model_dump(),
+            response_summary={"snapshot_id": snapshot_id},
             correlation_id=ctx["correlation_id"],
         )
 
@@ -329,9 +348,14 @@ def create_production_router(
             raise HTTPException(status_code=status.HTTP_429_TOO_MANY_REQUESTS, detail="rate_limit_exceeded")
 
         audit_logger.log(
-            tenant_id=ctx["tenant_id"], actor_id=ctx["actor_id"], actor_type="API",
-            action="replay:view", resource_type="snapshot", resource_id=req.source_id,
-            request_payload=req.model_dump(), response_summary={},
+            tenant_id=ctx["tenant_id"],
+            actor_id=ctx["actor_id"],
+            actor_type="API",
+            action="replay:view",
+            resource_type="snapshot",
+            resource_id=req.source_id,
+            request_payload=req.model_dump(),
+            response_summary={},
             correlation_id=ctx["correlation_id"],
         )
 

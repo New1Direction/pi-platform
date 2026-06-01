@@ -2,27 +2,20 @@
 
 from __future__ import annotations
 
-import os
 import pytest
-from pydantic import ValidationError
 
+from pi_micro_agents.pi_arbitrage_guard import (
+    ArbitrageInput,
+    PiArbitrageGuard,
+)
 from pi_micro_agents.pi_mempool_sentry import (
-    PiMempoolSentry,
     MempoolTxInput,
-    MempoolTxOutput,
-    detect_mempool_exploits,
+    PiMempoolSentry,
 )
 from pi_micro_agents.pi_patch_synthesizer import (
-    PiPatchSynthesizer,
     PatchInput,
-    PatchOutput,
+    PiPatchSynthesizer,
     detect_unpatched_vulnerabilities,
-)
-from pi_micro_agents.pi_arbitrage_guard import (
-    PiArbitrageGuard,
-    ArbitrageInput,
-    ArbitrageOutput,
-    detect_arbitrage_anomalies,
 )
 
 
@@ -44,7 +37,7 @@ def test_mempool_sentry_logic():
     # Case A: Normal transaction proceeds
     tx_normal = MempoolTxInput(
         transaction_hash="0xhash123",
-        calldata="0xa9059cbb000000000000000000000000", # normal ERC20 transfer
+        calldata="0xa9059cbb000000000000000000000000",  # normal ERC20 transfer
         gas_price_gwei=50.0,
         value_eth=1.0,
         slippage_limit=0.5,
@@ -58,9 +51,9 @@ def test_mempool_sentry_logic():
     tx_frontrun = MempoolTxInput(
         transaction_hash="0xhashFront",
         calldata="This transaction is a frontrun attempt using flash_loan pools.",
-        gas_price_gwei=600.0, # extreme gas war price
+        gas_price_gwei=600.0,  # extreme gas war price
         value_eth=0.0,
-        slippage_limit=6.0, # dangerous slippage limits
+        slippage_limit=6.0,  # dangerous slippage limits
     )
     res_front = sentry.check_transaction(tx_frontrun)
     assert not res_front.is_admitted
@@ -105,11 +98,11 @@ def test_patch_synthesizer_logic():
         source_code=vuln_code,
     )
     patch_out = synth.synthesize_remediation(patch_in)
-    
+
     assert patch_out.success
     assert "msg.sender" in patch_out.patched_code
     assert "tx.origin" not in patch_out.patched_code
-    assert "require(success, \"Transfer failed\");" in patch_out.patched_code
+    assert 'require(success, "Transfer failed");' in patch_out.patched_code
     assert len(patch_out.remediation_steps) >= 2
 
 
@@ -126,13 +119,13 @@ def test_arbitrage_guard_logic():
         token_out="ETH",
         amount_in=1000.0,
         pool_price_a=3000.0,
-        pool_price_b=3060.0, # 2% spread
+        pool_price_b=3060.0,  # 2% spread
         min_spread_percent=0.5,
     )
     res = guard.analyze_spread(arb_in)
     assert res.should_execute
     assert pytest.approx(res.spread_detected_percent, 0.01) == 2.0
-    assert res.expected_profit > 18.0 # $20 theoretical profit minus $1 gas/slippage cost
+    assert res.expected_profit > 18.0  # $20 theoretical profit minus $1 gas/slippage cost
 
     # Case B: Extreme spread >50% trips high risk audit safety check
     arb_anomaly = ArbitrageInput(
@@ -140,7 +133,7 @@ def test_arbitrage_guard_logic():
         token_out="ETH",
         amount_in=1000.0,
         pool_price_a=3000.0,
-        pool_price_b=6000.0, # 100% spread anomaly
+        pool_price_b=6000.0,  # 100% spread anomaly
         min_spread_percent=0.5,
     )
     res_anomaly = guard.analyze_spread(arb_anomaly)

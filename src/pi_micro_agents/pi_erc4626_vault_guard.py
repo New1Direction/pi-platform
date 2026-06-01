@@ -18,6 +18,7 @@ from pi_micro_agents.utils import is_strict_mode
 
 # ── Pydantic Envelopes ─────────────────────────────────────────────────────
 
+
 class VaultGuardInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity vault contract source")
@@ -27,7 +28,9 @@ class VaultGuardInput(BaseModel):
 class VaultGuardOutput(BaseModel):
     is_compliant: bool = Field(..., description="True if no attack vectors or missing interface items found")
     attack_vectors: List[str] = Field(default_factory=list, description="Detected attack surface findings")
-    missing_functions: List[str] = Field(default_factory=list, description="ERC-4626 required functions that are absent")
+    missing_functions: List[str] = Field(
+        default_factory=list, description="ERC-4626 required functions that are absent"
+    )
     rounding_violations: List[str] = Field(default_factory=list, description="Rounding direction errors detected")
     risk_score: float = Field(..., description="Risk score 0.0–100.0")
     status: str = Field(..., description="PASSED | WARN_VAULT_RISK | REJECTED_VAULT_RISK")
@@ -58,6 +61,7 @@ ERC4626_REQUIRED_EVENTS = ["Deposit", "Withdraw"]
 
 # ── Core Agent ─────────────────────────────────────────────────────────────
 
+
 class PiERC4626VaultGuard:
     """Audits ERC-4626 tokenized vault contracts for inflation attacks,
     rounding errors, and spec compliance."""
@@ -76,9 +80,7 @@ class PiERC4626VaultGuard:
         rounding_violations: List[str] = []
         missing_functions: List[str] = []
 
-        is_vault = bool(
-            re.search(r"\bERC4626\b|\bIVault\b|\btotalAssets\b|\bconvertToShares\b", code)
-        )
+        is_vault = bool(re.search(r"\bERC4626\b|\bIVault\b|\btotalAssets\b|\bconvertToShares\b", code))
 
         # ── Mode 1: Attack Surface Detection ──────────────────────────────
 
@@ -162,11 +164,7 @@ class PiERC4626VaultGuard:
                 missing_functions.append(f"MISSING event: {ev}")
 
         # ── Scoring & Status ───────────────────────────────────────────────
-        is_compliant = (
-            len(attack_vectors) == 0
-            and len(rounding_violations) == 0
-            and len(missing_functions) == 0
-        )
+        is_compliant = len(attack_vectors) == 0 and len(rounding_violations) == 0 and len(missing_functions) == 0
         has_critical = len(attack_vectors) > 0 or len(rounding_violations) > 0
 
         risk_score = 0.0
@@ -197,6 +195,7 @@ class PiERC4626VaultGuard:
 
 # ── Utility ────────────────────────────────────────────────────────────────
 
+
 def _extract_function_body(code: str, fn_name: str) -> str:
     """Return the body of the first matching function, or empty string."""
     pattern = re.compile(
@@ -213,5 +212,5 @@ def _extract_function_body(code: str, fn_name: str) -> str:
         elif code[i] == "}":
             depth -= 1
             if depth == 0:
-                return code[start:i + 1]
+                return code[start : i + 1]
     return ""

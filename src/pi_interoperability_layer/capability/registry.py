@@ -117,9 +117,13 @@ class RegistryEntry:
     entry_hash: str = ""
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash. Excludes the wall-clock registered_at
+        # (it would salt the hash per run, breaking reproducibility). Causal
+        # position is captured by previous_entry_hash (chain link). registered_at
+        # remains STORED on the entry as metadata.
         payload = (
             f"{self.extension_id}:{self.name}:{self.version}:"
-            f"{self.registered_at}:{self.fingerprints.combined_hash()}:"
+            f"{self.fingerprints.combined_hash()}:"
             f"{self.trust_score.composite_score}:{self.status.value}:"
             f"{self.previous_entry_hash}"
         )
@@ -127,9 +131,7 @@ class RegistryEntry:
 
     def __post_init__(self) -> None:
         # Since dataclass is NOT frozen for post_init, we can set entry_hash
-        object.__setattr__(
-            self, "entry_hash", self.compute_hash()
-        )
+        object.__setattr__(self, "entry_hash", self.compute_hash())
 
 
 class RegistryIndexKey(NamedTuple):
@@ -228,6 +230,7 @@ class SemanticCapabilityRegistry:
         min_trust_score: int = 0,
     ) -> List[RegistryEntry]:
         key = RegistryIndexKey(capability_class, trust_zone, status)
+
         # If any field is None, we need to scan instead of exact index match
         def _match(eid: str) -> bool:
             e = self._entries[eid]
@@ -262,9 +265,24 @@ class SemanticCapabilityRegistry:
 
     def verify_chain_integrity(self) -> Tuple[bool, List[str]]:
         errors: List[str] = []
+        # Index resident entries by their content-addressed hash so we can
+        # actually LINK previous_entry_hash references (not just self-check each
+        # entry's recomputed hash).
+        by_hash: Dict[str, RegistryEntry] = {e.entry_hash: e for e in self._entries.values()}
         for eid, entry in self._entries.items():
+            # 1. Self-check: the stored content-addressed hash must recompute.
             if entry.entry_hash != entry.compute_hash():
                 errors.append(f"Hash mismatch: {eid}")
+            # 2. Chain link: a chained entry must not reference itself, and when
+            #    its predecessor is still resident it must belong to the same
+            #    extension lineage.
+            prev = entry.previous_entry_hash
+            if prev:
+                if prev == entry.entry_hash:
+                    errors.append(f"Self-referential chain link: {eid}")
+                predecessor = by_hash.get(prev)
+                if predecessor is not None and predecessor.extension_id != entry.extension_id:
+                    errors.append(f"Chain lineage mismatch: {eid} links to {predecessor.extension_id}")
         return len(errors) == 0, errors
 
     def audit_log(self) -> List[str]:

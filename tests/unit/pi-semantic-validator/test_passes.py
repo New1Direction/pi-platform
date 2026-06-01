@@ -2,10 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
 from pi_semantic_validator.models import (
-    AuthInvariant,
     DependencyGraph,
     SemanticDiff,
     SemanticIRTrace,
@@ -14,23 +11,21 @@ from pi_semantic_validator.models import (
     ValidationBoundsConfig,
     WorkerStatus,
 )
-from pi_semantic_validator.policy import (
-    ArchitecturePolicy,
-    BlastRadiusLimit,
-    ForbiddenImportRule,
-    LayerDefinition,
-    LayerRule,
-    MutationRule,
-    ReplayRule,
-    StateWriterRule,
-    TrustBoundaryRule,
-    TrustZone,
-)
+from pi_semantic_validator.passes.blast_radius import BlastRadiusValidationPass
 from pi_semantic_validator.passes.boundary import BoundaryValidationPass
 from pi_semantic_validator.passes.layer import LayerValidationPass
 from pi_semantic_validator.passes.mutation_drift import MutationDriftValidationPass
 from pi_semantic_validator.passes.replay_safety import ReplaySafetyValidationPass
-from pi_semantic_validator.passes.blast_radius import BlastRadiusValidationPass
+from pi_semantic_validator.policy import (
+    ArchitecturePolicy,
+    BlastRadiusLimit,
+    LayerDefinition,
+    LayerRule,
+    MutationRule,
+    ReplayRule,
+    TrustBoundaryRule,
+    TrustZone,
+)
 
 
 def _make_envelope(artifacts, policy):
@@ -46,6 +41,7 @@ def _make_envelope(artifacts, policy):
 #  Boundary Pass Tests
 # ──────────────────────────────
 
+
 def test_boundary_pass_no_violations():
     policy = ArchitecturePolicy(
         policy_id="test",
@@ -54,7 +50,14 @@ def test_boundary_pass_no_violations():
     graph = DependencyGraph(
         session_window_id="sw1",
         nodes=["/api/a", "/api/b"],
-        edges=[StateEdge(upstream_endpoint="/api/a", upstream_field="id", downstream_endpoint="/api/b", downstream_field="user_id")],
+        edges=[
+            StateEdge(
+                upstream_endpoint="/api/a",
+                upstream_field="id",
+                downstream_endpoint="/api/b",
+                downstream_field="user_id",
+            )
+        ],
     )
     art = ValidationArtifact(
         artifact_id="g1",
@@ -82,7 +85,14 @@ def test_boundary_pass_forbidden_crossing():
     graph = DependencyGraph(
         session_window_id="sw1",
         nodes=["/public/login", "/api/users"],
-        edges=[StateEdge(upstream_endpoint="/public/login", upstream_field="token", downstream_endpoint="/api/users", downstream_field="auth")],
+        edges=[
+            StateEdge(
+                upstream_endpoint="/public/login",
+                upstream_field="token",
+                downstream_endpoint="/api/users",
+                downstream_field="auth",
+            )
+        ],
     )
     art = ValidationArtifact(
         artifact_id="g1",
@@ -118,6 +128,7 @@ def test_boundary_pass_unauthorized_state_writer():
 #  Layer Pass Tests
 # ──────────────────────────────
 
+
 def test_layer_pass_forbidden_import():
     policy = ArchitecturePolicy(
         policy_id="test",
@@ -125,14 +136,19 @@ def test_layer_pass_forbidden_import():
             LayerDefinition(layer_id="frontend", endpoint_patterns=["/public/*"], forbidden_importers=["backend"]),
             LayerDefinition(layer_id="backend", endpoint_patterns=["/api/*"]),
         ],
-        layer_rules=[
-            LayerRule(rule_id="front-no-back", from_layer="frontend", to_layer="backend", action="FORBIDDEN")
-        ],
+        layer_rules=[LayerRule(rule_id="front-no-back", from_layer="frontend", to_layer="backend", action="FORBIDDEN")],
     )
     graph = DependencyGraph(
         session_window_id="sw1",
         nodes=["/public/login", "/api/users"],
-        edges=[StateEdge(upstream_endpoint="/public/login", upstream_field="x", downstream_endpoint="/api/users", downstream_field="y")],
+        edges=[
+            StateEdge(
+                upstream_endpoint="/public/login",
+                upstream_field="x",
+                downstream_endpoint="/api/users",
+                downstream_field="y",
+            )
+        ],
     )
     art = ValidationArtifact(
         artifact_id="g1",
@@ -156,7 +172,14 @@ def test_layer_pass_inversion_detected():
     graph = DependencyGraph(
         session_window_id="sw1",
         nodes=["/api/users", "/public/login"],
-        edges=[StateEdge(upstream_endpoint="/api/users", upstream_field="x", downstream_endpoint="/public/login", downstream_field="y")],
+        edges=[
+            StateEdge(
+                upstream_endpoint="/api/users",
+                upstream_field="x",
+                downstream_endpoint="/public/login",
+                downstream_field="y",
+            )
+        ],
     )
     art = ValidationArtifact(
         artifact_id="g1",
@@ -172,6 +195,7 @@ def test_layer_pass_inversion_detected():
 # ──────────────────────────────
 #  Mutation Drift Pass Tests
 # ──────────────────────────────
+
 
 def test_mutation_drift_class_violation():
     policy = ArchitecturePolicy(
@@ -246,6 +270,7 @@ def test_mutation_drift_delta_limit():
 # ──────────────────────────────
 #  Replay Safety Pass Tests
 # ──────────────────────────────
+
 
 def test_replay_safety_production_prohibited():
     policy = ArchitecturePolicy(
@@ -331,6 +356,7 @@ def test_replay_safety_class_mismatch():
 #  Blast Radius Pass Tests
 # ──────────────────────────────
 
+
 def test_blast_radius_dependency_limit():
     policy = ArchitecturePolicy(
         policy_id="test",
@@ -392,7 +418,7 @@ def test_blast_radius_topology_complexity():
         semantic_hash="hash1",
     )
     envelope = _make_envelope([art], policy)
-    result = BlastRadiusValidationPass().execute(envelope)
+    BlastRadiusValidationPass().execute(envelope)
     # 3 edges / 3 nodes = 1.0 complexity; at limit, no violation
     # Let's set lower
     policy2 = ArchitecturePolicy(
@@ -425,6 +451,7 @@ def test_blast_radius_replay_scope():
 #  Unparseable Artifact Tests (fail-closed)
 # ──────────────────────────────
 
+
 def test_unparseable_graph_boundary():
     policy = ArchitecturePolicy(policy_id="test")
     art = ValidationArtifact(
@@ -440,6 +467,7 @@ def test_unparseable_graph_boundary():
 
 def test_empty_artifacts_runtime_indeterminate():
     from pi_semantic_validator.runtime import ValidatorRuntime
+
     policy = ArchitecturePolicy(policy_id="test", global_fail_closed=True)
     runtime = ValidatorRuntime(policy=policy)
     report = runtime.run([])

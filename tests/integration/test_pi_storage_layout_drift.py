@@ -1,7 +1,5 @@
 """Integration tests for PiStorageLayoutDrift — dual-use storage slot drift sentinel."""
 
-import pytest
-
 from pi_micro_agents.pi_storage_layout_drift import (
     PiStorageLayoutDrift,
     StorageDriftInput,
@@ -105,15 +103,17 @@ contract MyToken is Initializable {
 
 # ── Tests: Mode 1 — Drift Detection ────────────────────────────────────────
 
-class TestStorageLayoutDriftMode1:
 
+class TestStorageLayoutDriftMode1:
     def test_safe_append_only_upgrade_passes(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=SAFE_V2_APPEND_ONLY,
-            previous_code=SAFE_V1,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=SAFE_V2_APPEND_ONLY,
+                previous_code=SAFE_V1,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         assert result.is_safe is True
         assert result.drifted_slots == []
@@ -122,11 +122,13 @@ class TestStorageLayoutDriftMode1:
 
     def test_inserted_variable_causes_slot_drift(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=DRIFT_V2_INSERT,
-            previous_code=SAFE_V1,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=DRIFT_V2_INSERT,
+                previous_code=SAFE_V1,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         # totalSupply should be flagged as drifted
         assert any("totalSupply" in f for f in result.drifted_slots)
@@ -134,20 +136,24 @@ class TestStorageLayoutDriftMode1:
 
     def test_no_previous_code_skips_drift_check(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=SAFE_V1,
-            previous_code="",
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=SAFE_V1,
+                previous_code="",
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         assert result.drifted_slots == []  # no drift check without previous
 
     def test_output_is_pydantic_model(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="x.sol",
-            solidity_code=SAFE_V1,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="x.sol",
+                solidity_code=SAFE_V1,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         assert hasattr(result, "is_safe")
         assert hasattr(result, "drifted_slots")
@@ -158,42 +164,50 @@ class TestStorageLayoutDriftMode1:
 
 # ── Tests: Mode 2 — Compliance Auditing ───────────────────────────────────
 
-class TestStorageLayoutDriftMode2:
 
+class TestStorageLayoutDriftMode2:
     def test_missing_gap_flagged(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=MISSING_GAP,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=MISSING_GAP,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         assert any("__gap" in f for f in result.compliance_findings)
 
     def test_tiny_gap_flagged(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=TINY_GAP,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=TINY_GAP,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         assert any("Undersized" in f or "5" in f for f in result.compliance_findings)
 
     def test_sufficient_gap_passes_compliance(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=SAFE_V1,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=SAFE_V1,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         # SAFE_V1 has uint256[50] __gap — should be clean
         assert not any("__gap" in f for f in result.compliance_findings)
 
     def test_constructor_state_init_flagged(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=CONSTRUCTOR_STATE_INIT,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=CONSTRUCTOR_STATE_INIT,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         # May flag constructor state init as compliance issue
         # At minimum, the function should not crash
@@ -201,17 +215,19 @@ class TestStorageLayoutDriftMode2:
 
     def test_risk_score_bounded(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="token.sol",
-            solidity_code=MISSING_GAP,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="token.sol",
+                solidity_code=MISSING_GAP,
+            )
+        )
         assert 0.0 <= result.risk_score <= 100.0
 
 
 # ── Tests: Dual-Use Integration ────────────────────────────────────────────
 
-class TestStorageLayoutDriftDualUse:
 
+class TestStorageLayoutDriftDualUse:
     def test_drift_and_compliance_both_reported(self) -> None:
         """Inserting a var + missing gap should report both drift AND compliance findings."""
         missing_gap_drift = """
@@ -225,29 +241,35 @@ class TestStorageLayoutDriftDualUse:
         }
         """
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="bad.sol",
-            solidity_code=missing_gap_drift,
-            previous_code=SAFE_V1,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="bad.sol",
+                solidity_code=missing_gap_drift,
+                previous_code=SAFE_V1,
+            )
+        )
         assert isinstance(result, StorageDriftOutput)
         # At least drift should be detected
         assert len(result.drifted_slots) > 0
 
     def test_status_is_string(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="x.sol",
-            solidity_code=SAFE_V1,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="x.sol",
+                solidity_code=SAFE_V1,
+            )
+        )
         assert isinstance(result.status, str)
 
     def test_model_dump_serializable(self) -> None:
         agent = PiStorageLayoutDrift()
-        result = agent.audit_storage(StorageDriftInput(
-            file_path="x.sol",
-            solidity_code=SAFE_V1,
-        ))
+        result = agent.audit_storage(
+            StorageDriftInput(
+                file_path="x.sol",
+                solidity_code=SAFE_V1,
+            )
+        )
         d = result.model_dump()
         assert "is_safe" in d
         assert "risk_score" in d

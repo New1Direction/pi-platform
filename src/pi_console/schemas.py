@@ -23,6 +23,7 @@ from pydantic import BaseModel, Field, field_validator
 #  The ONE canonical request type
 # ──────────────────────────────
 
+
 class CompositionNode(BaseModel):
     """A single node in the composition DAG."""
 
@@ -132,9 +133,7 @@ class ExplicitCompositionRequest(BaseModel):
 
     def compute_hash(self) -> str:
         """Deterministic SHA-256 of this request."""
-        payload = self.model_dump(
-            exclude={"request_hash", "created_at", "approval_timestamp"}
-        )
+        payload = self.model_dump(exclude={"request_hash", "created_at", "approval_timestamp"})
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
         return hashlib.sha256(canonical.encode()).hexdigest()
 
@@ -148,6 +147,7 @@ class ExplicitCompositionRequest(BaseModel):
 #  Tool Request/Response Schemas
 #  (OpenAPI-exposed operations)
 # ──────────────────────────────
+
 
 class SubmitCompositionRequest(BaseModel):
     """Tool request: submit_explicit_composition_request"""
@@ -408,6 +408,7 @@ class ChatTranslationResponse(BaseModel):
 #  Console Session State
 #  (Ephemeral, tenant-scoped)
 # ──────────────────────────────
+
 
 class ConsoleSession(BaseModel):
     """Ephemeral session state for a PI Console user."""

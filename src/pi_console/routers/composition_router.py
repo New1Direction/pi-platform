@@ -1,5 +1,7 @@
 """Composition router: simulate, submit, translate (chat mode)."""
 
+import ipaddress
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -23,6 +25,43 @@ quota_tracker = QuotaTracker()
 audit_store = ConsoleAuditStore(Path("./audit_logs"))
 session_store = ConsoleSessionStore()
 
+
+def _trusted_proxy(remote: str) -> bool:
+    """Return True if X-Forwarded-For should be honoured for this peer."""
+    trusted = os.getenv("PI_TRUSTED_PROXY_CIDRS", "").strip()
+    if not trusted or not remote:
+        return False
+    try:
+        peer = ipaddress.ip_address(remote)
+    except ValueError:
+        return False
+    for cidr in (c.strip() for c in trusted.split(",")):
+        if not cidr:
+            continue
+        try:
+            if peer in ipaddress.ip_network(cidr, strict=False):
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def _client_ip(req: Request) -> str:
+    """
+    Resolve client IP without trusting forged X-Forwarded-For.
+
+    Default: ``req.client.host`` only (the actual TCP peer).
+    If ``PI_TRUSTED_PROXY_CIDRS`` is set AND the peer falls inside one of
+    those CIDRs, we read the left-most IP from X-Forwarded-For instead.
+    """
+    peer = req.client.host if req.client else ""
+    if _trusted_proxy(peer):
+        xff = req.headers.get("X-Forwarded-For", "")
+        if xff:
+            return xff.split(",")[0].strip()
+    return peer or ""
+
+
 @router.post("/simulate", response_model=SimulateCompositionResponse)
 async def simulate(req: Request, body: SimulateCompositionRequest) -> SimulateCompositionResponse:
     tenant_id: str = getattr(req.state, "tenant_id", "default")
@@ -42,10 +81,11 @@ async def simulate(req: Request, body: SimulateCompositionRequest) -> SimulateCo
             action="COMPOSITION_SIMULATED",
             structured_request=comp.model_dump(),
             response_status="SIMULATED",
-            user_ip=req.client.host or "",
+            user_ip=_client_ip(req),
         )
     )
     return result
+
 
 @router.post("/submit", response_model=SubmitCompositionResponse)
 async def submit(req: Request, body: SubmitCompositionRequest) -> SubmitCompositionResponse:
@@ -72,12 +112,22 @@ async def submit(req: Request, body: SubmitCompositionRequest) -> SubmitComposit
             action="COMPOSITION_SUBMITTED",
             structured_request=comp.model_dump(),
             response_status=result.status,
-            user_ip=req.client.host or "",
+            user_ip=_client_ip(req),
         )
     )
     return result
 
-@router.post("/translate-chat", response_model=ChatTranslationResponse)
+
+@router.post(
+    "/translate-chat",
+    response_model=ChatTranslationResponse,
+    summary="Translate natural language → composition (experimental)",
+    description=(
+        "**Experimental.** Returns a deterministic single-node demo composition. "
+        "Production NLP translation requires an LLM provider configured on the "
+        "session (`llm_enabled=true`) — no LLM is invoked from this endpoint yet."
+    ),
+)
 async def translate_chat(req: Request, body: ChatTranslationRequest) -> ChatTranslationResponse:
     tenant_id: str = getattr(req.state, "tenant_id", "default")
     if body.tenant_id != tenant_id:

@@ -8,8 +8,17 @@ trust zone enforcement, provenance ledger, semantic normalization.
 from __future__ import annotations
 
 import tempfile
+from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
+from pi_extension_governor.governor import ExtensionGovernor
+from pi_extension_governor.inspector import (
+    CapabilityClassification,
+    StaticCapabilityInspector,
+)
 from pi_extension_governor.manifest import (
     CapabilityClass,
     ExtensionBundle,
@@ -17,22 +26,17 @@ from pi_extension_governor.manifest import (
     ExtensionStatus,
     TrustZone,
 )
-from pi_extension_governor.inspector import (
-    CapabilityClassification,
-    StaticCapabilityInspector,
-)
-from pi_extension_governor.sandbox import SandboxedExtensionRuntime
-from pi_extension_governor.policy import ExtensionGovernancePolicy
 from pi_extension_governor.normalizer import SemanticOutputNormalizer
+from pi_extension_governor.policy import ExtensionGovernancePolicy
 from pi_extension_governor.provenance import (
     ExtensionExecutionReceipt,
     ExtensionProvenanceLedger,
 )
+from pi_extension_governor.sandbox import SandboxedExtensionRuntime
 from pi_extension_governor.trust_zones import TrustZoneEnforcer
-from pi_extension_governor.governor import ExtensionGovernor
-
 
 # ── Manifest Tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_manifest_compute_hash_determinism() -> None:
     m = ExtensionManifest(
@@ -57,11 +61,10 @@ def test_manifest_frozen_immutable() -> None:
         package_hash="abc123",
         capability_class=CapabilityClass.OPENAPI_TOOLING,
     )
-    try:
+    # Must raise on mutation. The old try/except form passed even when the model
+    # was NOT frozen (the AssertionError was swallowed by the same `except`).
+    with pytest.raises(ValidationError):
         m.package_name = "modified"
-        assert False, "Manifest should be frozen"
-    except Exception:
-        pass
 
 
 def test_bundle_compute_hash() -> None:
@@ -80,12 +83,14 @@ def test_bundle_compute_hash() -> None:
 
 # ── Static Capability Inspector Tests ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_inspector_detects_eval() -> None:
     inspector = StaticCapabilityInspector()
     source = "x = eval('1 + 1')"
-    report = inspector.inspect_package(Path("."), "hash1")
+    inspector.inspect_package(Path("."), "hash1")
     # inspect_package on empty dir won't find eval; test via direct tree inspection
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_eval_exec(node, Path("test.py"))
@@ -98,6 +103,7 @@ def test_inspector_detects_subprocess() -> None:
     inspector = StaticCapabilityInspector()
     source = "import subprocess; subprocess.Popen(['ls'])"
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_calls(node, Path("test.py"), source)
@@ -110,6 +116,7 @@ def test_inspector_detects_network() -> None:
     inspector = StaticCapabilityInspector()
     source = "import socket; s = socket.socket(); s.connect(('1.2.3.4', 80))"
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_calls(node, Path("test.py"), source)
@@ -121,6 +128,7 @@ def test_inspector_detects_file_write() -> None:
     inspector = StaticCapabilityInspector()
     source = "with open('/tmp/test', 'w') as f: f.write('x')"
     import ast
+
     tree = ast.parse(source)
     for node in ast.walk(tree):
         inspector._check_file_operations(node, Path("test.py"))
@@ -150,8 +158,9 @@ def test_inspector_package_hash_deterministic() -> None:
 
 # ── Sandbox Runtime Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_sandbox_successful_execution() -> None:
-    sandbox = SandboxedExtensionRuntime()
+    sandbox = SandboxedExtensionRuntime(allow_execution=True)
     source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'endpoints': 3}}"
     result = sandbox.execute(source, {})
     assert result.status == "SUCCESS"
@@ -160,7 +169,7 @@ def test_sandbox_successful_execution() -> None:
 
 
 def test_sandbox_timeout() -> None:
-    sandbox = SandboxedExtensionRuntime(cpu_ms_max=50)
+    sandbox = SandboxedExtensionRuntime(cpu_ms_max=50, allow_execution=True)
     source = """
 n = 0
 while True:
@@ -172,21 +181,21 @@ OUTPUT = {}
 
 
 def test_sandbox_output_size_rejected() -> None:
-    sandbox = SandboxedExtensionRuntime(output_size_max=10)
+    sandbox = SandboxedExtensionRuntime(output_size_max=10, allow_execution=True)
     source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'x': 'a' * 1000}}"
     result = sandbox.execute(source, {})
     assert result.status == "REJECTED"
 
 
 def test_sandbox_verify_determinism_pass() -> None:
-    sandbox = SandboxedExtensionRuntime()
+    sandbox = SandboxedExtensionRuntime(allow_execution=True)
     source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'n': INPUTS.get('n', 0) + 1}}"
     result = sandbox.verify_determinism(source, {"n": 5}, runs=3)
     assert result is True
 
 
 def test_sandbox_verify_determinism_fail() -> None:
-    sandbox = SandboxedExtensionRuntime()
+    sandbox = SandboxedExtensionRuntime(allow_execution=True)
     source = """
 import random
 OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'n': random.randint(1, 100)}}
@@ -196,6 +205,7 @@ OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'n': random.randint(1,
 
 
 # ── Policy Engine Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_policy_allows_good_extension() -> None:
     policy = ExtensionGovernancePolicy()
@@ -289,6 +299,7 @@ def test_policy_evaluation_deterministic_hash() -> None:
 
 # ── Semantic Normalizer Tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_normalizer_accepts_canonical_type() -> None:
     normalizer = SemanticOutputNormalizer()
     manifest = ExtensionManifest(
@@ -334,6 +345,7 @@ def test_normalizer_schema_validation() -> None:
 
 # ── Provenance Ledger Tests ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_ledger_append_and_verify() -> None:
     with tempfile.TemporaryDirectory() as td:
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td))
@@ -353,8 +365,24 @@ def test_ledger_append_and_verify() -> None:
 def test_ledger_chain_integrity() -> None:
     with tempfile.TemporaryDirectory() as td:
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td))
-        r1 = ExtensionExecutionReceipt(receipt_id="rcpt_1", extension_id="ext1", package_hash="hash1", worker_contract_version="1.0.0", execution_duration_ms=100, output_hash="h1", deterministic_fingerprint="f1")
-        r2 = ExtensionExecutionReceipt(receipt_id="rcpt_2", extension_id="ext2", package_hash="hash2", worker_contract_version="1.0.0", execution_duration_ms=200, output_hash="h2", deterministic_fingerprint="f2")
+        r1 = ExtensionExecutionReceipt(
+            receipt_id="rcpt_1",
+            extension_id="ext1",
+            package_hash="hash1",
+            worker_contract_version="1.0.0",
+            execution_duration_ms=100,
+            output_hash="h1",
+            deterministic_fingerprint="f1",
+        )
+        r2 = ExtensionExecutionReceipt(
+            receipt_id="rcpt_2",
+            extension_id="ext2",
+            package_hash="hash2",
+            worker_contract_version="1.0.0",
+            execution_duration_ms=200,
+            output_hash="h2",
+            deterministic_fingerprint="f2",
+        )
         ledger.append_receipt(r1)
         ledger.append_receipt(r2)
         assert ledger.verify_chain() is True
@@ -365,6 +393,7 @@ def test_ledger_chain_integrity() -> None:
 
 
 # ── Trust Zone Tests ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
 
 def test_trust_zone_experimental_stays_experimental() -> None:
     enforcer = TrustZoneEnforcer()
@@ -425,12 +454,13 @@ def test_trust_zone_experimental_no_governance_authority() -> None:
 
 # ── Extension Governor Integration Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 
+
 def test_governor_admits_safe_extension() -> None:
     with tempfile.TemporaryDirectory() as td:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="safe_ext",
@@ -460,7 +490,7 @@ def test_governor_rejects_eval_extension() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="evil_ext",
@@ -489,7 +519,7 @@ def test_governor_rejects_non_deterministic_extension() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="rand_ext",
@@ -516,7 +546,7 @@ def test_governor_rejects_policy_violation() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="net_ext",
@@ -542,7 +572,7 @@ def test_governor_rejects_unknown_artifact_type() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="type_ext",
@@ -566,7 +596,7 @@ def test_governor_experimental_no_governance_authority() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="exp_ext",
@@ -593,7 +623,7 @@ def test_governor_provenance_receipt_on_admission() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="prov_ext",
@@ -619,7 +649,7 @@ def test_governor_receipt_chain_integrity() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         for i in range(3):
             manifest = ExtensionManifest(
@@ -638,3 +668,153 @@ def test_governor_receipt_chain_integrity() -> None:
             governor.process_bundle(bundle, source, {})
 
         assert ledger.verify_chain() is True
+
+
+# ── Reproducibility Regression Tests ────────────────────────────────────────────────────────────────────────────────────────────────────────────
+#
+# These guard the "deterministic kernel" claim: an identity/content hash must
+# be a pure function of LOGICAL content, never of wall-clock time or random
+# uuids. Each test builds the SAME logical object TWICE as two FRESH instances
+# (so the wall-clock default fields differ between them) and asserts the hashes
+# are IDENTICAL, while also asserting the wall-clock/id metadata is still
+# recorded (the fields are kept, just excluded from the hash).
+
+
+class TestExtensionGovernorReproducibility:
+    """Same logical input -> same hash across fresh constructions/runs."""
+
+    @staticmethod
+    def _make_manifest(build_ts: datetime) -> ExtensionManifest:
+        return ExtensionManifest(
+            extension_id="ext_repro",
+            package_name="repro-ext",
+            package_version="1.0.0",
+            package_hash="pkg_hash_repro",
+            capability_class=CapabilityClass.OPENAPI_TOOLING,
+            deterministic_claim=True,
+            replayability_claim=True,
+            trust_zone=TrustZone.GOVERNED_EXTENSION,
+            provenance_build_timestamp=build_ts,
+        )
+
+    def test_manifest_hash_is_reproducible_across_build_timestamps(self) -> None:
+        # Two fresh manifests, identical logical content, DIFFERENT wall-clock
+        # provenance_build_timestamp. The content hash must be identical.
+        m1 = self._make_manifest(datetime(2020, 1, 1, tzinfo=timezone.utc))
+        m2 = self._make_manifest(datetime(2026, 5, 29, 12, 34, 56, tzinfo=timezone.utc))
+
+        assert m1.provenance_build_timestamp != m2.provenance_build_timestamp
+        assert m1.compute_hash() == m2.compute_hash()
+
+        # Timestamp metadata is still recorded on each manifest.
+        assert m1.provenance_build_timestamp == datetime(2020, 1, 1, tzinfo=timezone.utc)
+        assert m2.provenance_build_timestamp is not None
+
+    def test_manifest_hash_default_timestamp_is_reproducible(self) -> None:
+        # Even using the live datetime.now() default, two fresh manifests built
+        # at (potentially) different instants must hash identically.
+        m1 = ExtensionManifest(
+            extension_id="ext_default",
+            package_name="default-ext",
+            package_version="2.1.0",
+            package_hash="pkg_default",
+            capability_class=CapabilityClass.STATIC_ANALYZER,
+        )
+        m2 = ExtensionManifest(
+            extension_id="ext_default",
+            package_name="default-ext",
+            package_version="2.1.0",
+            package_hash="pkg_default",
+            capability_class=CapabilityClass.STATIC_ANALYZER,
+        )
+        assert m1.compute_hash() == m2.compute_hash()
+        # The auto-populated wall-clock metadata is still present.
+        assert m1.provenance_build_timestamp is not None
+        assert m2.provenance_build_timestamp is not None
+
+    def test_bundle_hash_is_reproducible_across_created_at(self) -> None:
+        # Two fresh bundles wrapping logically identical manifests, with
+        # DIFFERENT created_at, must produce the same bundle hash.
+        m1 = self._make_manifest(datetime(2020, 1, 1, tzinfo=timezone.utc))
+        m2 = self._make_manifest(datetime(2026, 5, 29, tzinfo=timezone.utc))
+        b1 = ExtensionBundle(
+            bundle_id="bundle_repro",
+            manifest=m1,
+            payload_hash="payload_repro",
+            created_at=datetime(2020, 1, 1, tzinfo=timezone.utc),
+        )
+        b2 = ExtensionBundle(
+            bundle_id="bundle_repro",
+            manifest=m2,
+            payload_hash="payload_repro",
+            created_at=datetime(2026, 5, 29, 9, 0, 0, tzinfo=timezone.utc),
+        )
+        assert b1.created_at != b2.created_at
+        assert b1.compute_bundle_hash() == b2.compute_bundle_hash()
+        # created_at metadata is still recorded.
+        assert b1.created_at == datetime(2020, 1, 1, tzinfo=timezone.utc)
+        assert b2.created_at is not None
+
+    def test_receipt_hash_is_reproducible_across_execution_timestamp(self) -> None:
+        # Two fresh receipts with identical logical content but DIFFERENT
+        # execution_timestamp / execution_duration_ms must hash identically.
+        common = {
+            "receipt_id": "rcpt_repro",
+            "extension_id": "ext_repro",
+            "package_hash": "pkg_hash_repro",
+            "worker_contract_version": "1.0.0",
+            "output_hash": "out_hash_repro",
+            "deterministic_fingerprint": "out_hash_repro",
+            "replay_lineage": ["ext_repro"],
+        }
+        r1 = ExtensionExecutionReceipt(
+            execution_timestamp=datetime(2020, 1, 1, tzinfo=timezone.utc),
+            execution_duration_ms=100,
+            **common,
+        )
+        r2 = ExtensionExecutionReceipt(
+            execution_timestamp=datetime(2026, 5, 29, 12, 0, 0, tzinfo=timezone.utc),
+            execution_duration_ms=999,
+            **common,
+        )
+        assert r1.execution_timestamp != r2.execution_timestamp
+        assert r1.execution_duration_ms != r2.execution_duration_ms
+        assert r1.compute_hash() == r2.compute_hash()
+        # Wall-clock metadata is still recorded on each receipt.
+        assert r1.execution_timestamp == datetime(2020, 1, 1, tzinfo=timezone.utc)
+        assert r2.execution_duration_ms == 999
+
+    def test_receipt_id_is_content_addressed_not_random(self) -> None:
+        # Admitting the SAME logical extension twice (two fresh governor stacks)
+        # must yield the SAME receipt_id, proving it is derived from content and
+        # not from a random uuid4.
+        def _admit_once() -> str:
+            with tempfile.TemporaryDirectory() as td:
+                policy = ExtensionGovernancePolicy()
+                ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
+                trust = TrustZoneEnforcer()
+                governor = ExtensionGovernor(
+                    policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True)
+                )
+                manifest = ExtensionManifest(
+                    extension_id="receipt_repro_ext",
+                    package_name="receipt-repro",
+                    package_version="1.0.0",
+                    package_hash="hash_receipt_repro",
+                    capability_class=CapabilityClass.OPENAPI_TOOLING,
+                    deterministic_claim=True,
+                    replayability_claim=True,
+                    network_access=False,
+                    trust_zone=TrustZone.GOVERNED_EXTENSION,
+                )
+                bundle = ExtensionBundle(bundle_id="receipt_repro_bundle", manifest=manifest, payload_hash="ph_repro")
+                source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'k': 1}}"
+                result = governor.process_bundle(bundle, source, {})
+                assert result.admitted is True
+                assert result.provenance_receipt_id is not None
+                return result.provenance_receipt_id
+
+        id1 = _admit_once()
+        id2 = _admit_once()
+        assert id1 == id2
+        assert id1.startswith("rcpt_receipt_repro_ext_")

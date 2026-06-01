@@ -16,6 +16,7 @@ from pydantic import BaseModel, Field
 #  Topology Primitives
 # ──────────────────────────────
 
+
 class TopologyNode(BaseModel):
     node_id: str
     node_type: str = "UNKNOWN"  # endpoint, service, database, queue
@@ -80,6 +81,7 @@ class TopologyGraph(BaseModel):
 #  Risk Score Models
 # ──────────────────────────────
 
+
 class RiskScore(BaseModel):
     score_id: str
     target_node: str
@@ -122,8 +124,13 @@ class RiskReport(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
+        # Content-addressed: the report hash is a pure function of the logical
+        # risk content. report_id (a random uuid-derived execution id) and
+        # generated_at (wall-clock) are stored/returned as metadata but are
+        # excluded from the hashed input so the same logical input reproduces
+        # the same hash across runs.
         payload = json.dumps(
-            self.model_dump(exclude={"report_hash", "generated_at"}),
+            self.model_dump(exclude={"report_hash", "generated_at", "report_id"}),
             sort_keys=True,
             separators=(",", ":"),
             default=str,
@@ -134,6 +141,7 @@ class RiskReport(BaseModel):
 # ──────────────────────────────
 #  Pass Results
 # ──────────────────────────────
+
 
 class PassResult(BaseModel):
     pass_name: str

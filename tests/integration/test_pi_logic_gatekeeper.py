@@ -1,16 +1,13 @@
 """Integration tests for PiLogicGatekeeper — dual-use logic flow and dead code auditor."""
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_logic_gatekeeper import (
-    PiLogicGatekeeper,
     LogicGatekeeperInput,
     LogicGatekeeperOutput,
+    PiLogicGatekeeper,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
-
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 # ── Fixtures & Mock Contracts ───────────────────────────────────────────────
 
@@ -80,14 +77,16 @@ def clean_env(monkeypatch):
 
 # ── Tests: LogicGatekeeper Heuristics ────────────────────────────────────────
 
-class TestLogicGatekeeper:
 
+class TestLogicGatekeeper:
     def test_vulnerable_modifier_detected(self) -> None:
         agent = PiLogicGatekeeper()
-        result = agent.audit_logic(LogicGatekeeperInput(
-            file_path="BadModifier.sol",
-            solidity_code=VULNERABLE_MODIFIER,
-        ))
+        result = agent.audit_logic(
+            LogicGatekeeperInput(
+                file_path="BadModifier.sol",
+                solidity_code=VULNERABLE_MODIFIER,
+            )
+        )
         assert isinstance(result, LogicGatekeeperOutput)
         assert result.is_secure is False
         assert "onlyOwner" in result.vulnerable_functions
@@ -97,10 +96,12 @@ class TestLogicGatekeeper:
 
     def test_vulnerable_tautology_detected(self) -> None:
         agent = PiLogicGatekeeper()
-        result = agent.audit_logic(LogicGatekeeperInput(
-            file_path="TautologyCheck.sol",
-            solidity_code=VULNERABLE_TAUTOLOGY,
-        ))
+        result = agent.audit_logic(
+            LogicGatekeeperInput(
+                file_path="TautologyCheck.sol",
+                solidity_code=VULNERABLE_TAUTOLOGY,
+            )
+        )
         assert isinstance(result, LogicGatekeeperOutput)
         assert result.is_secure is False
         assert "verify" in result.vulnerable_functions
@@ -108,20 +109,24 @@ class TestLogicGatekeeper:
 
     def test_dead_code_detected(self) -> None:
         agent = PiLogicGatekeeper()
-        result = agent.audit_logic(LogicGatekeeperInput(
-            file_path="UnreachableCode.sol",
-            solidity_code=DEAD_CODE_UNREACHABLE,
-        ))
+        result = agent.audit_logic(
+            LogicGatekeeperInput(
+                file_path="UnreachableCode.sol",
+                solidity_code=DEAD_CODE_UNREACHABLE,
+            )
+        )
         assert isinstance(result, LogicGatekeeperOutput)
         assert result.is_secure is True  # dead code is a compliance warning, doesn't reject
         assert any("unreachable code" in finding for finding in result.flagged_findings)
 
     def test_safe_contract_passes(self) -> None:
         agent = PiLogicGatekeeper()
-        result = agent.audit_logic(LogicGatekeeperInput(
-            file_path="SafeContract.sol",
-            solidity_code=SAFE_CONTRACT,
-        ))
+        result = agent.audit_logic(
+            LogicGatekeeperInput(
+                file_path="SafeContract.sol",
+                solidity_code=SAFE_CONTRACT,
+            )
+        )
         assert isinstance(result, LogicGatekeeperOutput)
         assert result.is_secure is True
         assert len(result.vulnerable_functions) == 0
@@ -131,20 +136,24 @@ class TestLogicGatekeeper:
     def test_warn_only_mode(self, monkeypatch) -> None:
         monkeypatch.setenv("PI_LOGIC_STRICT_MODE", "false")
         agent = PiLogicGatekeeper()
-        result = agent.audit_logic(LogicGatekeeperInput(
-            file_path="BadModifier.sol",
-            solidity_code=VULNERABLE_MODIFIER,
-        ))
+        result = agent.audit_logic(
+            LogicGatekeeperInput(
+                file_path="BadModifier.sol",
+                solidity_code=VULNERABLE_MODIFIER,
+            )
+        )
         assert isinstance(result, LogicGatekeeperOutput)
         assert result.is_secure is True
         assert result.status == "WARN_LOGIC_RISK"
 
     def test_model_dump_and_serialization(self) -> None:
         agent = PiLogicGatekeeper()
-        result = agent.audit_logic(LogicGatekeeperInput(
-            file_path="SafeContract.sol",
-            solidity_code=SAFE_CONTRACT,
-        ))
+        result = agent.audit_logic(
+            LogicGatekeeperInput(
+                file_path="SafeContract.sol",
+                solidity_code=SAFE_CONTRACT,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -153,16 +162,15 @@ class TestLogicGatekeeper:
 
 # ── Tests: Orchestration NLP & Consensus Integration ────────────────────────
 
+
 def test_orchestrator_nlp_routing_to_logic_gatekeeper() -> None:
     orchestrator = PiOrchestrator()
-    result = orchestrator.execute_goal(OrchestratorInput(
-        goal="Perform a strict logic tautology check on the solidity modifiers.",
-        context={
-            "file_path": "BadModifier.sol",
-            "solidity_code": VULNERABLE_MODIFIER,
-            "check_level": "STRICT"
-        }
-    ))
+    result = orchestrator.execute_goal(
+        OrchestratorInput(
+            goal="Perform a strict logic tautology check on the solidity modifiers.",
+            context={"file_path": "BadModifier.sol", "solidity_code": VULNERABLE_MODIFIER, "check_level": "STRICT"},
+        )
+    )
     assert result.success is False
     assert "PiLogicGatekeeper" in result.routed_agent
     assert result.risk_score == 85.0

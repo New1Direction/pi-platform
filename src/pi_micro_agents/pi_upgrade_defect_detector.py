@@ -1,31 +1,16 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_UPGRADE_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_UPGRADE_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
+    return resolve_strict_mode("PI_UPGRADE_STRICT_MODE")
 
 
 # 2. Pydantic-Enforced Input/Output Envelopes
@@ -37,7 +22,9 @@ class UpgradeDefectInput(BaseModel):
 
 class UpgradeDefectOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract upgrade patterns are secure")
-    vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names or contract names")
+    vulnerable_functions: List[str] = Field(
+        default_factory=list, description="Vulnerable function names or contract names"
+    )
     flagged_findings: List[str] = Field(default_factory=list, description="Detailed upgradeability findings")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_UPGRADE_RISK, REJECTED_UPGRADE_RISK)")
@@ -46,7 +33,7 @@ class UpgradeDefectOutput(BaseModel):
 # Helper to check if a line is within a function
 def is_inside_function(solidity_code: str, index: int) -> bool:
     # Find the last function definition before index and check braces
-    func_pattern = re.compile(r'\b(function|constructor|fallback|receive)\b')
+    func_pattern = re.compile(r"\b(function|constructor|fallback|receive)\b")
     func_matches = list(func_pattern.finditer(solidity_code[:index]))
     if not func_matches:
         return False
@@ -54,7 +41,7 @@ def is_inside_function(solidity_code: str, index: int) -> bool:
     # Check if the closest function braces contain the index
     last_match = func_matches[-1]
     start_idx = last_match.start()
-    brace_idx = solidity_code.find('{', start_idx)
+    brace_idx = solidity_code.find("{", start_idx)
     if brace_idx == -1 or brace_idx > index:
         return False
 
@@ -65,9 +52,9 @@ def is_inside_function(solidity_code: str, index: int) -> bool:
         if curr_idx == index:
             return True
         char = solidity_code[curr_idx]
-        if char == '{':
+        if char == "{":
             brace_count += 1
-        elif char == '}':
+        elif char == "}":
             brace_count -= 1
         curr_idx += 1
 
@@ -88,13 +75,13 @@ class PiUpgradeDefectDetector:
         flagged_findings = []
 
         # Find contract names
-        contract_matches = re.finditer(r'\bcontract\s+([a-zA-Z0-9_]+)', code)
+        contract_matches = re.finditer(r"\bcontract\s+([a-zA-Z0-9_]+)", code)
         for contract_match in contract_matches:
             contract_name = contract_match.group(1)
 
             # Determine contract body limits
             start_idx = contract_match.end()
-            brace_idx = code.find('{', start_idx)
+            brace_idx = code.find("{", start_idx)
             if brace_idx == -1:
                 continue
 
@@ -103,17 +90,21 @@ class PiUpgradeDefectDetector:
             code_len = len(code)
             while curr_idx < code_len and brace_count > 0:
                 char = code[curr_idx]
-                if char == '{':
+                if char == "{":
                     brace_count += 1
-                elif char == '}':
+                elif char == "}":
                     brace_count -= 1
                 curr_idx += 1
             contract_body = code[brace_idx:curr_idx]
 
             # Check if this contract is upgradeable (inherits from Upgradeable, Initializable, or defines an initialize function)
             is_upgradeable = False
-            inherits_clause = code[contract_match.start():brace_idx]
-            if "upgradeable" in inherits_clause.lower() or "initializable" in inherits_clause.lower() or "initialize" in contract_body.lower():
+            inherits_clause = code[contract_match.start() : brace_idx]
+            if (
+                "upgradeable" in inherits_clause.lower()
+                or "initializable" in inherits_clause.lower()
+                or "initialize" in contract_body.lower()
+            ):
                 is_upgradeable = True
 
             if not is_upgradeable:
@@ -121,7 +112,7 @@ class PiUpgradeDefectDetector:
 
             # Mode 1: Storage Collision Scan (Missing __gap variable in upgradeable contracts)
             # Find if there is a storage gap declared: e.g. "uint256[50] private __gap" or "__gap" or "gap"
-            gap_match = re.search(r'\b__gap\b|\bgap\b', contract_body)
+            gap_match = re.search(r"\b__gap\b|\bgap\b", contract_body)
             if not gap_match:
                 # Check if it declares any state variables. If it does not declare state variables, maybe it's fine,
                 # but typically all upgradeable parent contracts should define a storage gap.
@@ -138,19 +129,19 @@ class PiUpgradeDefectDetector:
             # - NOT constants/immutable (since constants and immutables are stored in bytecode, not storage slot)
             # Let's search for assignments like `type name = value;`
             # Clean comments first in the contract body
-            cleaned_body = re.sub(r'//.*', '', contract_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", contract_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Find matches of "type [public/private/internal/external] name = value;"
             # Or simply look for '=' signs that are outside of function blocks
-            lines = cleaned_body.split('\n')
-            for line_idx, line in enumerate(lines):
+            lines = cleaned_body.split("\n")
+            for _line_idx, line in enumerate(lines):
                 line_clean = line.strip()
-                if not line_clean or line_clean.startswith('*') or line_clean.startswith('//'):
+                if not line_clean or line_clean.startswith("*") or line_clean.startswith("//"):
                     continue
                 # Match a variable declaration with initialization: e.g., "uint256 public x = 100;"
                 # Must contain "=" and ";"
-                if '=' in line_clean and ';' in line_clean:
+                if "=" in line_clean and ";" in line_clean:
                     # Ignore constant/immutable
                     if "constant" in line_clean or "immutable" in line_clean:
                         continue
@@ -183,5 +174,5 @@ class PiUpgradeDefectDetector:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

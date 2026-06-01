@@ -1,24 +1,31 @@
 from __future__ import annotations
-import os, json, re
-from typing import List, Dict
+
+import re
+from typing import Dict, List
+
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
+
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_DIMENSIONAL_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_DIMENSIONAL_STRICT_MODE")
+
 
 class DimensionalAnalysisInput(BaseModel):
     file_path: str = Field(..., description="Source file path")
     source_code: str = Field(..., description="Source code containing arithmetic operations")
-    unit_registry: Dict[str, str] = Field(..., description="Mapping of variables to their units (e.g. 'balances[msg.sender]': 'wei', 'rate': 'gwei')")
+    unit_registry: Dict[str, str] = Field(
+        ..., description="Mapping of variables to their units (e.g. 'balances[msg.sender]': 'wei', 'rate': 'gwei')"
+    )
+
 
 class DimensionalAnalysisOutput(BaseModel):
     is_secure: bool = Field(..., description="True if all operations maintain dimensional correctness")
     mismatches: List[str] = Field(default_factory=list, description="Lines featuring dimension or unit collisions")
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status (PASSED, WARN_DIMENSION_RISK, REJECTED_DIMENSION_RISK)")
+
 
 class PiDimensionalAnalysisSentry:
     """Specialized financial & unit governance micro-agent."""
@@ -34,7 +41,7 @@ class PiDimensionalAnalysisSentry:
         for idx, line in enumerate(code.splitlines(), 1):
             # Scan for math assignments (e.g., a = b + c)
             if "=" in line and any(op in line for op in ["+", "-", "*", "/"]):
-                matched_vars = [var for var in registry.keys() if re.search(r'\b' + re.escape(var) + r'\b', line)]
+                matched_vars = [var for var in registry.keys() if re.search(r"\b" + re.escape(var) + r"\b", line)]
                 if len(matched_vars) > 1:
                     # Check if units differ
                     first_unit = registry[matched_vars[0]]
@@ -55,8 +62,5 @@ class PiDimensionalAnalysisSentry:
                 is_secure = True
 
         return DimensionalAnalysisOutput(
-            is_secure=is_secure,
-            mismatches=mismatches,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, mismatches=mismatches, risk_score=risk_score, status=status
         )

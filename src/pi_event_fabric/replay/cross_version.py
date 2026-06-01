@@ -34,6 +34,7 @@ from pi_event_fabric.schema.evolution import (
 #  Versioned Replay Context
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class VersionedReplayContext:
     """Immutable context for cross-version replay.
@@ -81,6 +82,7 @@ class VersionedReplayContext:
 #  Runtime Compatibility Fence
 # ──────────────────────────────
 
+
 class RuntimeCompatibilityFence:
     """Deterministic boundary for cross-version replay.
 
@@ -102,8 +104,7 @@ class RuntimeCompatibilityFence:
     def require_approved(cls, from_version: str, to_version: str) -> None:
         if not cls.is_approved(from_version, to_version):
             raise RuntimeCompatibilityError(
-                f"Replay from {from_version} to {to_version} not approved. "
-                f"Use approve_transition() to whitelist."
+                f"Replay from {from_version} to {to_version} not approved. Use approve_transition() to whitelist."
             )
 
 
@@ -114,6 +115,7 @@ class RuntimeCompatibilityError(Exception):
 # ──────────────────────────────
 #  Replay Hydrator
 # ──────────────────────────────
+
 
 @dataclass(frozen=True)
 class HydrationResult:
@@ -175,9 +177,7 @@ class ReplayHydrator:
             )
 
         # Find migration path
-        path = self.schema_registry.find_migration_path(
-            original_fp, target_schema.fingerprint.value
-        )
+        path = self.schema_registry.find_migration_path(original_fp, target_schema.fingerprint.value)
 
         if not path:
             return HydrationResult(
@@ -261,6 +261,7 @@ class ReplayHydrator:
 #  Cross-Version Replay Report
 # ──────────────────────────────
 
+
 @dataclass(frozen=True)
 class CrossVersionReplayReport:
     """Deterministic summary of cross-version replay operation."""
@@ -274,19 +275,24 @@ class CrossVersionReplayReport:
 
     def __post_init__(self, _: Any = None) -> None:
         if not self.report_hash:
-            data = json.dumps({
-                "replay_id": self.replay_id,
-                "context": self.context.to_dict(),
-                "summary": self.summary,
-            }, sort_keys=True, default=str, separators=(",", ":"))
+            data = json.dumps(
+                {
+                    "replay_id": self.replay_id,
+                    "context": self.context.to_dict(),
+                    "summary": self.summary,
+                },
+                sort_keys=True,
+                default=str,
+                separators=(",", ":"),
+            )
             object.__setattr__(self, "report_hash", hashlib.sha256(data.encode()).hexdigest())
 
 
 class CrossVersionReplayEngine:
     """High-level engine for cross-version replay with full provenance.
 
-    Combines EventBus, SchemaRegistry, and RuntimeCompatibilityFence
-to produce deterministic, auditable replay results.
+        Combines EventBus, SchemaRegistry, and RuntimeCompatibilityFence
+    to produce deterministic, auditable replay results.
     """
 
     def __init__(
@@ -316,7 +322,12 @@ to produce deterministic, auditable replay results.
 
         # Hydrate events
         results, summary = self.hydrator.hydrate_partition(
-            partition_key, target_schema, context, self.event_storage, start_offset, end_offset,
+            partition_key,
+            target_schema,
+            context,
+            self.event_storage,
+            start_offset,
+            end_offset,
         )
 
         # Build report

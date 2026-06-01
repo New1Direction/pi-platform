@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import json
-import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_SOLANA_ARITHMETIC_OVERFLOW_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_SOLANA_ARITHMETIC_OVERFLOW_STRICT_MODE")
 
 
 class SolanaArithmeticOverflowInput(BaseModel):
@@ -35,7 +31,9 @@ class PiRustSolanaArithmeticOverflowCheck:
     def __init__(self) -> None:
         self.agent_name = "PiRustSolanaArithmeticOverflowCheck"
 
-    def audit_arithmetic_overflow(self, input_envelope: SolanaArithmeticOverflowInput) -> SolanaArithmeticOverflowOutput:
+    def audit_arithmetic_overflow(
+        self, input_envelope: SolanaArithmeticOverflowInput
+    ) -> SolanaArithmeticOverflowOutput:
         code = input_envelope.rust_code
         vulnerable_elements = []
         flagged_findings = []
@@ -50,7 +48,9 @@ class PiRustSolanaArithmeticOverflowCheck:
             # Look for basic arithmetic operator usages that don't seem to be checked
             # e.g., standard "+", "-", "*", "/" when assigning values or modifying state
             # but ignoring imports, macros, generics, or attributes.
-            if any(op in line for op in [" + ", " - ", " * ", " / "]) and not any(safe in line for safe in ["checked_", "safe_", "wrapping_", "saturating_", "assert"]):
+            if any(op in line for op in [" + ", " - ", " * ", " / "]) and not any(
+                safe in line for safe in ["checked_", "safe_", "wrapping_", "saturating_", "assert"]
+            ):
                 vulnerable_elements.append(f"Line {idx}")
                 flagged_findings.append(
                     f"Line {idx}: Direct arithmetic operator without checked/safe wrapper: '{stripped}'. "
@@ -74,5 +74,5 @@ class PiRustSolanaArithmeticOverflowCheck:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

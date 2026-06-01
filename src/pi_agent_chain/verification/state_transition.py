@@ -316,8 +316,11 @@ class StateTransitionValidator:
             # Find if the to_node endpoint requires auth
             to_node_obj = node_map.get(edge.to_node)
             if to_node_obj and to_node_obj.endpoint_template in auth_endpoints:
-                relevant = [inv.invariant_id for inv in auth_report.invariants
-                            if to_node_obj.endpoint_template in inv.affected_endpoints]
+                relevant = [
+                    inv.invariant_id
+                    for inv in auth_report.invariants
+                    if to_node_obj.endpoint_template in inv.affected_endpoints
+                ]
                 edge.auth_dependencies = relevant
 
         return edges

@@ -21,6 +21,7 @@ from pi_extension_governor.manifest import CapabilityClass, TrustZone
 
 # ── Tenant Model ─────────────────────────────────────────────────
 
+
 class TenantStatus(str, Enum):
     ACTIVE = "active"
     SUSPENDED = "suspended"
@@ -100,6 +101,7 @@ class Tenant(BaseModel):
 
 
 # ── Tenant Registry ──────────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class TenantRegistryEntry:
@@ -190,7 +192,10 @@ class TenantRegistry:
         if entry.tenant.status != TenantStatus.ACTIVE:
             return False, f"Tenant status is {entry.tenant.status.value}, not active"
         if entry.execution_count_hour >= entry.tenant.quota.max_executions_per_hour:
-            return False, f"Execution rate limit: {entry.execution_count_hour}/{entry.tenant.quota.max_executions_per_hour}"
+            return (
+                False,
+                f"Execution rate limit: {entry.execution_count_hour}/{entry.tenant.quota.max_executions_per_hour}",
+            )
         return True, None
 
     def record_execution(self, tenant_id: str) -> None:
@@ -228,6 +233,7 @@ class TenantRegistry:
 
 # ── Tenant Policy Engine ─────────────────────────────────────────
 
+
 @dataclass(frozen=True)
 class TenantPolicyRule:
     """A tenant-scoped policy rule with evidence."""
@@ -255,12 +261,18 @@ class TenantPolicyEngine:
         rules = self._rules.setdefault(tenant_id, [])
         rules.append(rule)
 
-    def evaluate_capability_class(
-        self, tenant_id: str, cap_class: CapabilityClass
-    ) -> Tuple[bool, str]:
+    def evaluate_capability_class(self, tenant_id: str, cap_class: CapabilityClass) -> Tuple[bool, str]:
         rules = self._rules.get(tenant_id, [])
-        allows = [r for r in rules if r.rule_type == "capability_class" and r.target_value == cap_class.value and r.action == "allow"]
-        denies = [r for r in rules if r.rule_type == "capability_class" and r.target_value == cap_class.value and r.action == "deny"]
+        allows = [
+            r
+            for r in rules
+            if r.rule_type == "capability_class" and r.target_value == cap_class.value and r.action == "allow"
+        ]
+        denies = [
+            r
+            for r in rules
+            if r.rule_type == "capability_class" and r.target_value == cap_class.value and r.action == "deny"
+        ]
         if denies:
             return False, f"Capability class {cap_class.value} denied by policy: {denies[0].evidence}"
         # If any allow rules exist, require at least one match
@@ -268,11 +280,11 @@ class TenantPolicyEngine:
             return False, f"Capability class {cap_class.value} not in allowed set"
         return True, "OK"
 
-    def evaluate_trust_zone(
-        self, tenant_id: str, zone: TrustZone
-    ) -> Tuple[bool, str]:
+    def evaluate_trust_zone(self, tenant_id: str, zone: TrustZone) -> Tuple[bool, str]:
         rules = self._rules.get(tenant_id, [])
-        denies = [r for r in rules if r.rule_type == "trust_zone" and r.target_value == zone.value and r.action == "deny"]
+        denies = [
+            r for r in rules if r.rule_type == "trust_zone" and r.target_value == zone.value and r.action == "deny"
+        ]
         if denies:
             return False, f"Trust zone {zone.value} denied by policy: {denies[0].evidence}"
         return True, "OK"
@@ -282,6 +294,7 @@ class TenantPolicyEngine:
 
 
 # ── Tenant Execution Log ─────────────────────────────────────────
+
 
 @dataclass(frozen=True)
 class TenantExecutionRecord:

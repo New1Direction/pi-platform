@@ -24,6 +24,7 @@ from pi_interoperability_layer.contracts import (
 #  Compatibility Validation
 # ──────────────────────────────
 
+
 class CompatibilityResult(BaseModel):
     """Deterministic compatibility check outcome."""
 
@@ -82,10 +83,7 @@ class SchemaValidator(BaseModel):
     ) -> Tuple[bool, str]:
         """Validate that a migration path exists and is replay-safe."""
         changes = self.evolution_log.changes_for_contract(contract_id)
-        relevant = [
-            r for r in changes
-            if r.from_version == str(from_version) and r.to_version == str(to_version)
-        ]
+        relevant = [r for r in changes if r.from_version == str(from_version) and r.to_version == str(to_version)]
         if not relevant:
             return False, "No registered migration path"
         if not all(r.replay_safe for r in relevant):
@@ -132,6 +130,7 @@ def load_evolution_log(path: Path) -> SchemaEvolutionLog:
 # ──────────────────────────────
 #  Deterministic Schema Identity
 # ──────────────────────────────
+
 
 def schema_identity_hash(contract: ArtifactContract) -> str:
     """Compute deterministic identity hash for a contract definition."""

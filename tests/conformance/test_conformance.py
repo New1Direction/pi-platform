@@ -8,14 +8,11 @@ Run: PYTHONPATH=... pytest tests/test_conformance.py -v
 
 from __future__ import annotations
 
-import hashlib
-import json
 import os
 import sys
-from datetime import datetime, timezone
 
 import pytest
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import ValidationError
 
 # ---------------------------------------------------------------------------
 # Ensure all 6 runtime src/ dirs are on PYTHONPATH
@@ -34,26 +31,21 @@ for r in RUNTIMES:
     if p not in sys.path:
         sys.path.insert(0, p)
 
-from pi_interoperability_layer.contracts import (
-    ArtifactContract,
-    ArtifactFingerprint,
-    ContractRegistry,
-    SchemaEvolutionLog,
-    SchemaEvolutionRecord,
-    SchemaVersion,
-    canonical_json,
-    compute_fingerprint,
-)
-from pi_interoperability_layer.execution import EventRecord, ExecutionEngine, ReplayLedger
-from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
-from pi_interoperability_layer.mesh.receipts import ExecutionReceipt, OrchestrationLedger, PhaseBoundaryReceipt
-from pi_interoperability_layer.mesh.shard import DeterministicPartitioner, ShardCoordinator
-from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
-from pi_interoperability_layer.mesh.workers import SnapshotIngestWorker
-from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest, ExtensionStatus, TrustZone
+from pi_extension_governor.manifest import CapabilityClass, ExtensionManifest, TrustZone
 from pi_extension_governor.policy import ExtensionGovernancePolicy
 from pi_extension_governor.trust_zones import TrustZoneEnforcer
-from pi_interoperability_layer.platform.tenant import Tenant, TenantRegistry, TenantStatus, TenantTier, ResourceQuota
+from pi_interoperability_layer.contracts import (
+    ArtifactContract,
+    ContractRegistry,
+    SchemaVersion,
+    compute_fingerprint,
+)
+from pi_interoperability_layer.execution import EventRecord, ReplayLedger
+from pi_interoperability_layer.mesh.artifact_bus import ArtifactBus, ArtifactSlot
+from pi_interoperability_layer.mesh.receipts import ExecutionReceipt, OrchestrationLedger
+from pi_interoperability_layer.mesh.shard import DeterministicPartitioner, ShardCoordinator
+from pi_interoperability_layer.mesh.worker_base import WorkerBase, WorkerContract
+from pi_interoperability_layer.platform.tenant import Tenant, TenantRegistry, TenantStatus, TenantTier
 
 
 # ===========================================================================
@@ -128,9 +120,9 @@ class TestLedgerChainIntegrity:
             payload={"idx": 0},
             emitted_by="test",
         )
-        linked = ledger.append(ev)
+        ledger.append(ev)
         # Mutate the stored event (bypass frozen model via internal list)
-        original_hash = ledger.events[0].event_hash
+        _ = ledger.events[0].event_hash
         tampered = ledger.events[0].model_copy(update={"payload": {"idx": 999}})
         ledger.events[0] = tampered
         assert not ledger.verify_integrity()
@@ -288,7 +280,7 @@ class TestTenantIsolation:
 # ===========================================================================
 class TestExplicitCompositionRequestBoundary:
     def test_frozen_model_rejects_mutation(self):
-        from pi_console.schemas import ExplicitCompositionRequest, CompositionNode
+        from pi_console.schemas import CompositionNode, ExplicitCompositionRequest
 
         req = ExplicitCompositionRequest(
             tenant_id="t1",
@@ -299,7 +291,7 @@ class TestExplicitCompositionRequestBoundary:
             req.tenant_id = "t2"
 
     def test_hash_is_deterministic(self):
-        from pi_console.schemas import ExplicitCompositionRequest, CompositionNode
+        from pi_console.schemas import CompositionNode, ExplicitCompositionRequest
 
         req1 = ExplicitCompositionRequest(
             request_id="ecr_test_same",
@@ -364,6 +356,7 @@ class TestWorkerContractEnforcement:
         class SlowWorker(WorkerBase):
             def _run(self, phase, input_slot_ids):
                 import time
+
                 time.sleep(0.05)
                 return []
 
@@ -379,7 +372,11 @@ class TestWorkerContractEnforcement:
 class TestBlastRadiusBoundedness:
     def test_limit_exceeded_detection(self):
         from pi_interoperability_layer.blast_radius import (
-            BlastRadiusEngine, BlastRadiusReport, TopologyGraph, TopologyNode, TopologyEdge
+            BlastRadiusEngine,
+            BlastRadiusReport,
+            TopologyEdge,
+            TopologyGraph,
+            TopologyNode,
         )
 
         engine = BlastRadiusEngine(engine_id="be1", max_graph_depth=2)
@@ -390,7 +387,7 @@ class TestBlastRadiusBoundedness:
 
         # Modified: chain graph (depth 9)
         mod_nodes = {f"n{i}": TopologyNode(node_id=f"n{i}") for i in range(10)}
-        mod_edges = [TopologyEdge(edge_id=f"e{i}", upstream=f"n{i}", downstream=f"n{i+1}") for i in range(9)]
+        mod_edges = [TopologyEdge(edge_id=f"e{i}", upstream=f"n{i}", downstream=f"n{i + 1}") for i in range(9)]
         modified = TopologyGraph(graph_id="g_mod", nodes=mod_nodes, edges=mod_edges)
 
         score = engine.compute_score(baseline, modified, "n0")

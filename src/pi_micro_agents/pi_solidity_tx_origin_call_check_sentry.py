@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_TX_ORIGIN_CALL_CHECK_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_TX_ORIGIN_CALL_CHECK_STRICT_MODE")
 
 
 class TxOriginCallCheckInput(BaseModel):
@@ -41,7 +38,9 @@ class PiSolidityTxOriginCallCheckSentry:
         flagged_findings = []
 
         # Find all functions including fallback and receive
-        func_blocks = re.findall(r'(function\s+[a-zA-Z0-9_]+\s*\(.*?\)|fallback\s*\(.*?\)|receive\s*\(.*?\))[^{]*\{([\s\S]*?)\}', code)
+        func_blocks = re.findall(
+            r"(function\s+[a-zA-Z0-9_]+\s*\(.*?\)|fallback\s*\(.*?\)|receive\s*\(.*?\))[^{]*\{([\s\S]*?)\}", code
+        )
 
         for decl, body in func_blocks:
             # Check if tx.origin is used for authorization
@@ -70,5 +69,5 @@ class PiSolidityTxOriginCallCheckSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

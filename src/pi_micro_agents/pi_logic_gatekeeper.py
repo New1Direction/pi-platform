@@ -1,39 +1,26 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
+
+from pi_micro_agents.strict_mode import resolve_strict_mode
 
 
 # 1. Strict-mode configuration resolver
 # is_strict_mode is now provided by pi_micro_agents.utils
 # kept as a local shim for backward compatibility
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LOGIC_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_LOGIC_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_LOGIC_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Pydantic-Enforced Input/Output Envelopes
 class LogicGatekeeperInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level: STRICT, MEDIUM")
+
 
 class LogicGatekeeperOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from logic tautologies and empty modifiers")
@@ -42,12 +29,13 @@ class LogicGatekeeperOutput(BaseModel):
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification (PASSED, WARN_LOGIC_RISK, REJECTED_LOGIC_RISK)")
 
+
 # Helper to extract functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
     functions = []
     code_len = len(solidity_code)
 
-    pattern = re.compile(r'\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -62,10 +50,10 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             func_name = "receive"
 
         start_idx = match.start()
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -74,9 +62,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -85,6 +73,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 3. Core Micro-Agent Class
 class PiLogicGatekeeper:
@@ -101,13 +90,13 @@ class PiLogicGatekeeper:
 
         # Mode 1: Dead Code & Strict Logic Check (unreachable code, tautologies, empty modifiers)
         # Check for empty modifier overrides: e.g. "modifier onlyOwner() { _ ; }" but missing "_;" or containing only space
-        modifier_pattern = re.compile(r'\bmodifier\b\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{([^}]*)\}')
+        modifier_pattern = re.compile(r"\bmodifier\b\s+([a-zA-Z0-9_]+)\s*\(([^)]*)\)\s*\{([^}]*)\}")
         for match in modifier_pattern.finditer(code):
             mod_name = match.group(1)
             mod_body = match.group(3)
             # Clean comments
-            cleaned_mod_body = re.sub(r'//.*', '', mod_body)
-            cleaned_mod_body = re.sub(r'/\*.*?\*/', '', cleaned_mod_body, flags=re.DOTALL).strip()
+            cleaned_mod_body = re.sub(r"//.*", "", mod_body)
+            cleaned_mod_body = re.sub(r"/\*.*?\*/", "", cleaned_mod_body, flags=re.DOTALL).strip()
 
             if "_;" not in cleaned_mod_body:
                 vulnerable_funcs.append(mod_name)
@@ -119,22 +108,22 @@ class PiLogicGatekeeper:
         functions = extract_solidity_functions(code)
 
         for func_name, func_body, start_line in functions:
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Unsigned comparison tautology (e.g., uint_var >= 0 or uint_var >= 0)
             # Match patterns like: ">= 0" or "< 0" for unsigned ints (assuming variables with uint/u prefix or explicitly uint)
-            tautology_match = re.search(r'\b(uint256|uint8|uint160|uint|u)\s+([a-zA-Z0-9_]+)\b', cleaned_body)
+            tautology_match = re.search(r"\b(uint256|uint8|uint160|uint|u)\s+([a-zA-Z0-9_]+)\b", cleaned_body)
             if tautology_match:
                 var_name = tautology_match.group(2)
                 # Check if this variable is compared to >= 0 or < 0
-                if re.search(r'\b' + re.escape(var_name) + r'\s*>=\s*0\b', cleaned_body):
+                if re.search(r"\b" + re.escape(var_name) + r"\s*>=\s*0\b", cleaned_body):
                     vulnerable_funcs.append(func_name)
                     flagged_findings.append(
                         f"Function '{func_name}' on Line {start_line} contains a tautological check comparing "
                         f"unsigned integer variable '{var_name}' >= 0. Unsigned integers are always greater than or equal to zero."
                     )
-                elif re.search(r'\b' + re.escape(var_name) + r'\s*<\s*0\b', cleaned_body):
+                elif re.search(r"\b" + re.escape(var_name) + r"\s*<\s*0\b", cleaned_body):
                     vulnerable_funcs.append(func_name)
                     flagged_findings.append(
                         f"Function '{func_name}' on Line {start_line} contains a tautological check comparing "
@@ -144,7 +133,7 @@ class PiLogicGatekeeper:
             # Mode 2: Clean Code Compliance
             # Check for unreachable code after return or revert statements
             # Match "return x;" or "revert(...);" followed by active statements inside the same scope
-            return_match = re.search(r'\b(return|revert|throw)\b[^;]*;\s*([a-zA-Z0-9_]+)', cleaned_body)
+            return_match = re.search(r"\b(return|revert|throw)\b[^;]*;\s*([a-zA-Z0-9_]+)", cleaned_body)
             if return_match:
                 next_stmt = return_match.group(2)
                 if next_stmt not in ["else", "catch", "finally", "modifier", "function"]:
@@ -170,5 +159,5 @@ class PiLogicGatekeeper:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

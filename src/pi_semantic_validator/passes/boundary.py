@@ -65,9 +65,7 @@ class BoundaryValidationPass:
 
                 if up_zone and down_zone and up_zone.zone_id != down_zone.zone_id:
                     # Cross-zone edge detected; check rules
-                    rule = self._find_boundary_rule(
-                        policy, up_zone.zone_id, down_zone.zone_id
-                    )
+                    rule = self._find_boundary_rule(policy, up_zone.zone_id, down_zone.zone_id)
                     if rule is None:
                         if policy.global_fail_closed:
                             violations.append(

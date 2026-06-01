@@ -115,14 +115,16 @@ class KubernetesConnector(BaseConnectorWorker):
         for resource_type, resources in state.items():
             for resource in resources:
                 metadata = resource.get("metadata", {})
-                nodes.append({
-                    "id": f"k8s:{resource_type}:{metadata.get('namespace','default')}:{metadata.get('name','unknown')}",
-                    "type": resource_type,
-                    "namespace": metadata.get("namespace", "default"),
-                    "name": metadata.get("name", "unknown"),
-                    "labels": metadata.get("labels", {}),
-                    "annotations": metadata.get("annotations", {}),
-                })
+                nodes.append(
+                    {
+                        "id": f"k8s:{resource_type}:{metadata.get('namespace', 'default')}:{metadata.get('name', 'unknown')}",
+                        "type": resource_type,
+                        "namespace": metadata.get("namespace", "default"),
+                        "name": metadata.get("name", "unknown"),
+                        "labels": metadata.get("labels", {}),
+                        "annotations": metadata.get("annotations", {}),
+                    }
+                )
         return nodes
 
     def _extract_edges(self, state: Dict[str, List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
@@ -132,13 +134,13 @@ class KubernetesConnector(BaseConnectorWorker):
         pods = state.get("pods", [])
         for svc in services:
             svc_meta = svc.get("metadata", {})
-            svc_id = f"k8s:services:{svc_meta.get('namespace','default')}:{svc_meta.get('name','unknown')}"
+            svc_id = f"k8s:services:{svc_meta.get('namespace', 'default')}:{svc_meta.get('name', 'unknown')}"
             selector = svc.get("spec", {}).get("selector", {})
             for pod in pods:
                 pod_meta = pod.get("metadata", {})
                 pod_labels = pod_meta.get("labels", {})
                 if all(pod_labels.get(k) == v for k, v in selector.items()):
-                    pod_id = f"k8s:pods:{pod_meta.get('namespace','default')}:{pod_meta.get('name','unknown')}"
+                    pod_id = f"k8s:pods:{pod_meta.get('namespace', 'default')}:{pod_meta.get('name', 'unknown')}"
                     edges.append({"from": svc_id, "to": pod_id, "relation": "selects"})
         return edges
 
@@ -147,13 +149,15 @@ class KubernetesConnector(BaseConnectorWorker):
         for resource_type, items in state.items():
             for item in items:
                 metadata = item.get("metadata", {})
-                resources.append({
-                    "id": f"k8s:{resource_type}:{metadata.get('namespace','default')}:{metadata.get('name','unknown')}",
-                    "type": resource_type,
-                    "namespace": metadata.get("namespace", "default"),
-                    "name": metadata.get("name", "unknown"),
-                    "api_version": item.get("apiVersion", "v1"),
-                    "kind": item.get("kind", resource_type),
-                    "uid": metadata.get("uid", ""),
-                })
+                resources.append(
+                    {
+                        "id": f"k8s:{resource_type}:{metadata.get('namespace', 'default')}:{metadata.get('name', 'unknown')}",
+                        "type": resource_type,
+                        "namespace": metadata.get("namespace", "default"),
+                        "name": metadata.get("name", "unknown"),
+                        "api_version": item.get("apiVersion", "v1"),
+                        "kind": item.get("kind", resource_type),
+                        "uid": metadata.get("uid", ""),
+                    }
+                )
         return resources

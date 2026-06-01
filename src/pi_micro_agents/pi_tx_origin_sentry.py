@@ -1,31 +1,17 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List, Tuple
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 # 1. Strict-mode configuration resolver
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_TXORIGIN_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_TXORIGIN_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_TXORIGIN_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # 2. Pydantic-Enforced Input/Output Envelopes
 class TxOriginInput(BaseModel):
@@ -33,19 +19,25 @@ class TxOriginInput(BaseModel):
     solidity_code: str = Field(..., description="Solidity source code content")
     check_level: str = Field(default="STRICT", description="Strictness level of parsing: STRICT, MEDIUM")
 
+
 class TxOriginOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if contract is free from unsafe tx.origin authentication")
     vulnerable_functions: List[str] = Field(default_factory=list, description="Vulnerable function names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed tx.origin and EIP-2771 compliance findings")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed tx.origin and EIP-2771 compliance findings"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
-    status: str = Field(..., description="Status classification (PASSED, WARN_TXORIGIN_VULNERABILITY, REJECTED_TXORIGIN_VULNERABILITY)")
+    status: str = Field(
+        ..., description="Status classification (PASSED, WARN_TXORIGIN_VULNERABILITY, REJECTED_TXORIGIN_VULNERABILITY)"
+    )
+
 
 # Helper to extract functions
 def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]:
     functions = []
     code_len = len(solidity_code)
 
-    pattern = re.compile(r'\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(')
+    pattern = re.compile(r"\b(function|constructor|fallback|receive)\b\s*([a-zA-Z0-9_]*)\s*\(")
 
     for match in pattern.finditer(solidity_code):
         keyword = match.group(1)
@@ -60,10 +52,10 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             func_name = "receive"
 
         start_idx = match.start()
-        start_line = solidity_code[:start_idx].count('\n') + 1
+        start_line = solidity_code[:start_idx].count("\n") + 1
 
-        semicolon_idx = solidity_code.find(';', start_idx)
-        brace_idx = solidity_code.find('{', start_idx)
+        semicolon_idx = solidity_code.find(";", start_idx)
+        brace_idx = solidity_code.find("{", start_idx)
 
         if brace_idx == -1 or (semicolon_idx != -1 and semicolon_idx < brace_idx):
             continue
@@ -72,9 +64,9 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
         curr_idx = brace_idx + 1
         while curr_idx < code_len and brace_count > 0:
             char = solidity_code[curr_idx]
-            if char == '{':
+            if char == "{":
                 brace_count += 1
-            elif char == '}':
+            elif char == "}":
                 brace_count -= 1
             curr_idx += 1
 
@@ -83,6 +75,7 @@ def extract_solidity_functions(solidity_code: str) -> List[Tuple[str, str, int]]
             functions.append((func_name, func_body, start_line))
 
     return functions
+
 
 # 3. Core Micro-Agent Class
 class PiTxOriginSentry:
@@ -104,8 +97,8 @@ class PiTxOriginSentry:
 
         for func_name, func_body, start_line in functions:
             # Clean comments
-            cleaned_body = re.sub(r'//.*', '', func_body)
-            cleaned_body = re.sub(r'/\*.*?\*/', '', cleaned_body, flags=re.DOTALL)
+            cleaned_body = re.sub(r"//.*", "", func_body)
+            cleaned_body = re.sub(r"/\*.*?\*/", "", cleaned_body, flags=re.DOTALL)
 
             # Mode 1: tx.origin Phishing Scan
             if "tx.origin" in cleaned_body:
@@ -141,5 +134,5 @@ class PiTxOriginSentry:
             vulnerable_functions=vulnerable_funcs,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

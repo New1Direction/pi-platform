@@ -49,7 +49,11 @@ class ReplayBundle(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
-        payload = self.model_dump(exclude={"bundle_hash"})
+        # Content-addressed identity hash over the bundle's logical references.
+        # Excludes the random bundle_id (uuid4-derived) and the wall-clock
+        # created_at so the same logical bundle reproduces the same hash across
+        # runs. Both fields remain STORED as bundle metadata.
+        payload = self.model_dump(exclude={"bundle_hash", "bundle_id", "created_at"})
         payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
         return hashlib.sha256(payload_bytes).hexdigest()
 
@@ -72,8 +76,12 @@ class SnapshotRegistry:
         self.bundles_dir.mkdir(parents=True, exist_ok=True)
         self.policy = policy or RetentionPolicy()
 
-    def store_snapshot(self, runtime: str, execution_id: str, payload: Dict[str, Any], lineage_parent: Optional[str] = None) -> SnapshotRecord:
-        artifact_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()).hexdigest()
+    def store_snapshot(
+        self, runtime: str, execution_id: str, payload: Dict[str, Any], lineage_parent: Optional[str] = None
+    ) -> SnapshotRecord:
+        artifact_hash = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
+        ).hexdigest()
         snapshot_id = f"snap_{runtime}_{execution_id}_{artifact_hash[:16]}"
         meta = SnapshotMetadata(
             snapshot_id=snapshot_id,
@@ -97,7 +105,13 @@ class SnapshotRegistry:
             data = json.load(f)
         return SnapshotRecord(**data)
 
-    def store_bundle(self, baseline_snapshot_id: str, modified_snapshot_id: str, diff_report_id: str, risk_report_id: Optional[str] = None) -> ReplayBundle:
+    def store_bundle(
+        self,
+        baseline_snapshot_id: str,
+        modified_snapshot_id: str,
+        diff_report_id: str,
+        risk_report_id: Optional[str] = None,
+    ) -> ReplayBundle:
         bundle = ReplayBundle(
             bundle_id=f"bundle_{uuid.uuid4().hex[:16]}",
             baseline_snapshot_id=baseline_snapshot_id,
@@ -159,7 +173,7 @@ class SnapshotRegistry:
         # Enforce snapshot count limit
         snapshots = sorted(self.snapshots_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
         if len(snapshots) > self.policy.max_snapshots:
-            for old in snapshots[:-self.policy.max_snapshots]:
+            for old in snapshots[: -self.policy.max_snapshots]:
                 old.unlink()
         # Enforce snapshot age limit
         cutoff = now - timedelta(days=self.policy.max_age_days)
@@ -170,5 +184,5 @@ class SnapshotRegistry:
         # Enforce bundle count limit
         bundles = sorted(self.bundles_dir.glob("*.json"), key=lambda p: p.stat().st_mtime)
         if len(bundles) > self.policy.max_replay_bundles:
-            for old in bundles[:-self.policy.max_replay_bundles]:
+            for old in bundles[: -self.policy.max_replay_bundles]:
                 old.unlink()

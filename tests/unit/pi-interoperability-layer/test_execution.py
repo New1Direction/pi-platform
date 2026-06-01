@@ -6,8 +6,8 @@ import pytest
 
 from pi_interoperability_layer.execution import (
     EventRecord,
-    ReplayLedger,
     ExecutionEngine,
+    ReplayLedger,
     canonical_event_payload,
 )
 
@@ -77,7 +77,7 @@ def test_replay_ledger_replay_slice() -> None:
 
 def test_execution_engine_open_emit_close() -> None:
     engine = ExecutionEngine(engine_id="eng1")
-    ledger = engine.open_ledger("L1")
+    engine.open_ledger("L1")
     emitted = engine.emit(
         ledger_id="L1",
         event_type="ARTIFACT_RECEIVED",

@@ -2,16 +2,13 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 from pi_micro_agents.pi_token_tax_detector import (
     PiTokenTaxDetector,
     TokenTaxInput,
-    TokenTaxOutput,
-    is_strict_mode,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
 
 
 @pytest.fixture(autouse=True)
@@ -43,11 +40,7 @@ def test_token_tax_vulnerable():
         }
     }
     """
-    inp = TokenTaxInput(
-        file_path="TaxToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = TokenTaxInput(file_path="TaxToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_token_tax(inp)
 
@@ -75,11 +68,7 @@ def test_token_tax_compliant_with_warning():
         }
     }
     """
-    inp = TokenTaxInput(
-        file_path="NormalToken.sol",
-        solidity_code=solidity_code,
-        check_level="STRICT"
-    )
+    inp = TokenTaxInput(file_path="NormalToken.sol", solidity_code=solidity_code, check_level="STRICT")
 
     out = agent.audit_token_tax(inp)
 
@@ -121,22 +110,22 @@ def test_orchestrator_token_tax_consensus_passed(monkeypatch):
             "vulnerable_functions": ["transfer"],
             "flagged_findings": ["fee-on-transfer detected"],
             "risk_score": 85.0,
-            "status": "REJECTED_TOKENTAX_VULNERABILITY"
+            "status": "REJECTED_TOKENTAX_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["transfer"],
             "flagged_findings": ["fee-on-transfer detected"],
             "risk_score": 85.0,
-            "status": "REJECTED_TOKENTAX_VULNERABILITY"
+            "status": "REJECTED_TOKENTAX_VULNERABILITY",
         },
         {
             "is_secure": False,
             "vulnerable_functions": ["transfer"],
             "flagged_findings": ["fee-on-transfer detected"],
             "risk_score": 85.0,
-            "status": "REJECTED_TOKENTAX_VULNERABILITY"
-        }
+            "status": "REJECTED_TOKENTAX_VULNERABILITY",
+        },
     ]
 
     inp = OrchestratorInput(
@@ -144,8 +133,8 @@ def test_orchestrator_token_tax_consensus_passed(monkeypatch):
         context={
             "file_path": "TaxToken.sol",
             "solidity_code": solidity_code,
-            "mock_consensus_runs": mock_consensus_runs
-        }
+            "mock_consensus_runs": mock_consensus_runs,
+        },
     )
     res = orchestrator.execute_goal(inp)
 

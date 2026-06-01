@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LLM_CONTEXT_WINDOW_DRIFT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_LLM_CONTEXT_WINDOW_DRIFT_STRICT_MODE")
 
 
 class LLMContextWindowDriftInput(BaseModel):
@@ -44,7 +41,7 @@ class PiLLMContextWindowDriftSentry:
             flagged_findings.append(
                 f"Prompt context size ({len(prompt)} chars) exceeds standard bounds, risking instruction drift or dilution of security constraints."
             )
-        elif len(re.findall(r'(\b\w+\b)(?=.*\1)', prompt)) > 1000:
+        elif len(re.findall(r"(\b\w+\b)(?=.*\1)", prompt)) > 1000:
             # Check for excessive repetition (e.g. repeating a word hundreds of times)
             is_secure = False
             flagged_findings.append(
@@ -63,8 +60,5 @@ class PiLLMContextWindowDriftSentry:
                 is_secure = True
 
         return LLMContextWindowDriftOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

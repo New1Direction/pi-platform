@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_SEMANTIC_SCHEMA_DYNAMIC_FIELD_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_SEMANTIC_SCHEMA_DYNAMIC_FIELD_STRICT_MODE")
 
 
 class SemanticSchemaDynamicFieldInput(BaseModel):
@@ -42,7 +39,9 @@ class PiSemanticSchemaDynamicFieldCheck:
 
         # Find dynamic raw JSON or Dict columns inside models
         # e.g., JSONColumn, Column(JSON), Column(pickle), Column(text) representing raw serialized data
-        matches = re.finditer(r'([a-zA-Z0-9_]+)\s*=\s*(?:Column\s*\(\s*(?:JSON|PickleType|text)\s*\)|JSONColumn)', code, re.IGNORECASE)
+        matches = re.finditer(
+            r"([a-zA-Z0-9_]+)\s*=\s*(?:Column\s*\(\s*(?:JSON|PickleType|text)\s*\)|JSONColumn)", code, re.IGNORECASE
+        )
 
         for match in matches:
             col_name = match.group(1)
@@ -73,5 +72,5 @@ class PiSemanticSchemaDynamicFieldCheck:
             vulnerable_elements=vulnerable_elements,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

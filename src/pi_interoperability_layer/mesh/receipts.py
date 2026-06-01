@@ -26,7 +26,9 @@ class ExecutionReceipt(BaseModel):
     phase: str
     input_slot_ids: List[str] = Field(default_factory=list)
     output_slot_ids: List[str] = Field(default_factory=list)
-    status: str = "PENDING"  # PENDING, SUCCESS, FAIL, TIMEOUT, PANIC, SCHEMA_MISMATCH, REPLAY_MISMATCH, RESOURCE_EXCEEDED
+    status: str = (
+        "PENDING"  # PENDING, SUCCESS, FAIL, TIMEOUT, PANIC, SCHEMA_MISMATCH, REPLAY_MISMATCH, RESOURCE_EXCEEDED
+    )
     status_detail: str = ""
     determinism_proof: str = ""  # hash proving deterministic output
     resource_usage: Dict[str, float] = Field(default_factory=dict)  # e.g. {"cpu_ms": 12.3, "memory_mb": 45.6}
@@ -36,19 +38,23 @@ class ExecutionReceipt(BaseModel):
     model_config = {"frozen": False}
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash over the LOGICAL receipt only. Excludes:
+        #   - receipt_id (random uuid4) and timestamp (wall-clock) — as before;
+        #   - resource_usage (e.g. cpu_ms) — wall-clock telemetry that varies with
+        #     host load and would otherwise make the same logical run hash
+        #     differently and poison the chained ledger;
+        #   - status_detail — free-text that, for TIMEOUT, embeds the wall-clock
+        #     "Elapsed {ms}ms > max ..." string. The logical outcome is captured by
+        #     `status`; the detail/usage remain STORED as receipt metadata.
         payload = {
-            "receipt_id": self.receipt_id,
             "worker_class": self.worker_class,
             "worker_id": self.worker_id,
             "phase": self.phase,
             "input_slot_ids": sorted(self.input_slot_ids),
             "output_slot_ids": sorted(self.output_slot_ids),
             "status": self.status,
-            "status_detail": self.status_detail,
             "determinism_proof": self.determinism_proof,
-            "resource_usage": self.resource_usage,
             "previous_receipt_hash": self.previous_receipt_hash,
-            "timestamp": self.timestamp.isoformat(),
         }
         payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
         return hashlib.sha256(payload_bytes).hexdigest()
@@ -68,14 +74,17 @@ class PhaseBoundaryReceipt(BaseModel):
     model_config = {"frozen": False}
 
     def compute_hash(self) -> str:
+        # Content-addressed identity hash. Excludes the random boundary_id
+        # (uuid4-derived) and the wall-clock timestamp so the same logical
+        # boundary reproduces the same hash across runs. Causal position is
+        # captured by previous_boundary_hash (chain link). boundary_id and
+        # timestamp remain STORED as boundary metadata.
         payload = {
-            "boundary_id": self.boundary_id,
             "phase": self.phase,
             "worker_receipt_ids": sorted(self.worker_receipt_ids),
             "merged_output_slot_id": self.merged_output_slot_id,
             "phase_status": self.phase_status,
             "previous_boundary_hash": self.previous_boundary_hash,
-            "timestamp": self.timestamp.isoformat(),
         }
         payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
         return hashlib.sha256(payload_bytes).hexdigest()

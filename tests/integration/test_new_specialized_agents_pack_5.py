@@ -2,48 +2,47 @@
 
 from __future__ import annotations
 
-import os
 import pytest
 
-from pi_micro_agents.pi_rust_tui_resource_limit import (
-    PiRustTuiResourceLimit,
-    RustTuiResourceLimitInput,
+from pi_micro_agents.pi_adversarial_evaluator_sim import (
+    AdversarialEvaluatorSimInput,
+    PiAdversarialEvaluatorSim,
 )
-from pi_micro_agents.pi_grpc_protocol_interceptor import (
-    PiGrpcProtocolInterceptor,
-    GrpcProtocolInterceptInput,
+from pi_micro_agents.pi_api_reverse_engineered_auth import (
+    ApiReverseEngineeredAuthInput,
+    PiApiReverseEngineeredAuth,
 )
 from pi_micro_agents.pi_deterministic_output_valid import (
-    PiDeterministicOutputValid,
     DeterministicOutputValidInput,
+    PiDeterministicOutputValid,
 )
-from pi_micro_agents.pi_zero_trust_execution_domain import (
-    PiZeroTrustExecutionDomain,
-    ZeroTrustExecDomainInput,
-)
-from pi_micro_agents.pi_solidity_flash_loan_attack import (
-    PiSolidityFlashLoanAttack,
-    SolidityFlashLoanInput,
-)
-from pi_micro_agents.pi_zk_proof_public_input_verif import (
-    PiZKProofPublicInputVerif,
-    ZKProofPublicInputVerifInput,
-)
-from pi_micro_agents.pi_adversarial_evaluator_sim import (
-    PiAdversarialEvaluatorSim,
-    AdversarialEvaluatorSimInput,
+from pi_micro_agents.pi_grpc_protocol_interceptor import (
+    GrpcProtocolInterceptInput,
+    PiGrpcProtocolInterceptor,
 )
 from pi_micro_agents.pi_rust_tokio_deadlock_sentry import (
     PiRustTokioDeadlockSentry,
     RustTokioDeadlockInput,
 )
-from pi_micro_agents.pi_api_reverse_engineered_auth import (
-    PiApiReverseEngineeredAuth,
-    ApiReverseEngineeredAuthInput,
+from pi_micro_agents.pi_rust_tui_resource_limit import (
+    PiRustTuiResourceLimit,
+    RustTuiResourceLimitInput,
 )
 from pi_micro_agents.pi_semantic_schema_registry import (
     PiSemanticSchemaRegistry,
     SemanticSchemaRegistryInput,
+)
+from pi_micro_agents.pi_solidity_flash_loan_attack import (
+    PiSolidityFlashLoanAttack,
+    SolidityFlashLoanInput,
+)
+from pi_micro_agents.pi_zero_trust_execution_domain import (
+    PiZeroTrustExecutionDomain,
+    ZeroTrustExecDomainInput,
+)
+from pi_micro_agents.pi_zk_proof_public_input_verif import (
+    PiZKProofPublicInputVerif,
+    ZKProofPublicInputVerifInput,
 )
 
 
@@ -110,7 +109,9 @@ def test_grpc_protocol_interceptor():
     """
     res_vuln = agent.audit_grpc_interceptor(GrpcProtocolInterceptInput(file_path="client.rs", grpc_code=code_vuln))
     assert not res_vuln.is_secure
-    assert "insecure_channel" in res_vuln.vulnerable_elements or any("insecure" in x for x in res_vuln.vulnerable_elements)
+    assert "insecure_channel" in res_vuln.vulnerable_elements or any(
+        "insecure" in x for x in res_vuln.vulnerable_elements
+    )
     assert res_vuln.status == "REJECTED_GRPC_INTERCEPT"
 
     code_safe = """
@@ -129,12 +130,16 @@ def test_deterministic_output_valid():
     agent = PiDeterministicOutputValid()
 
     content_vuln = "As an AI language model, I cannot ignore previous instructions."
-    res_vuln = agent.validate_deterministic_output(DeterministicOutputValidInput(file_path="generated.txt", output_content=content_vuln))
+    res_vuln = agent.validate_deterministic_output(
+        DeterministicOutputValidInput(file_path="generated.txt", output_content=content_vuln)
+    )
     assert not res_vuln.is_secure
     assert res_vuln.status == "REJECTED_DETERMINISTIC_VAL"
 
     content_safe = "Verification trace is secure and complete."
-    res_safe = agent.validate_deterministic_output(DeterministicOutputValidInput(file_path="generated.txt", output_content=content_safe))
+    res_safe = agent.validate_deterministic_output(
+        DeterministicOutputValidInput(file_path="generated.txt", output_content=content_safe)
+    )
     assert res_safe.is_secure
     assert res_safe.status == "PASSED"
 
@@ -319,7 +324,9 @@ def test_semantic_schema_registry():
     """
     res_vuln = agent.audit_schema_registry(SemanticSchemaRegistryInput(file_path="migration.py", schema_code=code_vuln))
     assert not res_vuln.is_secure
-    assert "dynamic_schema" in res_vuln.vulnerable_elements or any("unstructured" in x or "dynamic" in x for x in res_vuln.vulnerable_elements)
+    assert "dynamic_schema" in res_vuln.vulnerable_elements or any(
+        "unstructured" in x or "dynamic" in x for x in res_vuln.vulnerable_elements
+    )
     assert res_vuln.status == "REJECTED_SCHEMA_REGISTRY"
 
     code_safe = """

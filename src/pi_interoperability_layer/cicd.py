@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 #  GitHub Actions Integration
 # ──────────────────────────────
 
+
 class GitHubActionsWorkflow(BaseModel):
     """Deterministic GitHub Actions workflow definition for governance gates."""
 
@@ -65,6 +66,7 @@ class GitHubActionsWorkflow(BaseModel):
 # ──────────────────────────────
 #  PR Gating
 # ──────────────────────────────
+
 
 class PRGateResult(BaseModel):
     """Deterministic result of a PR gate evaluation."""
@@ -170,6 +172,7 @@ class PRGateConfig(BaseModel):
 #  Artifact Verification
 # ──────────────────────────────
 
+
 class ArtifactVerificationResult(BaseModel):
     """Deterministic artifact verification outcome."""
 
@@ -191,6 +194,7 @@ class ArtifactVerificationResult(BaseModel):
 # ──────────────────────────────
 #  Replay Validation Gate
 # ──────────────────────────────
+
 
 class ReplayValidationGate(BaseModel):
     """Deterministic replay validation gate for CI/CD."""
@@ -227,6 +231,7 @@ class ReplayValidationGate(BaseModel):
 # ──────────────────────────────
 #  Policy Enforcement Hooks
 # ──────────────────────────────
+
 
 class PolicyEnforcementHook(BaseModel):
     """Deterministic hook for policy enforcement in CI/CD pipelines."""

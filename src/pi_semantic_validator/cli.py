@@ -28,7 +28,9 @@ def main() -> None:
 
 @main.command()
 @click.option("--policy", "-p", required=True, type=click.Path(exists=True), help="Path to architecture-policy.json")
-@click.option("--artifacts", "-a", required=True, type=click.Path(exists=True), help="Path to artifact JSON file or directory")
+@click.option(
+    "--artifacts", "-a", required=True, type=click.Path(exists=True), help="Path to artifact JSON file or directory"
+)
 @click.option("--output", "-o", type=click.Path(), help="Path to write validation report JSON")
 @click.option("--strict", is_flag=True, help="Fail-closed: treat warnings as failures")
 def validate(policy: str, artifacts: str, output: str | None, strict: bool) -> None:
@@ -37,7 +39,9 @@ def validate(policy: str, artifacts: str, output: str | None, strict: bool) -> N
     artifact_path = Path(artifacts)
 
     if artifact_path.is_dir():
-        report = validate_recon_output(policy_path=policy_path, recon_output_dir=artifact_path, output_report_path=output)
+        report = validate_recon_output(
+            policy_path=policy_path, recon_output_dir=artifact_path, output_report_path=output
+        )
     else:
         report = run_validator(policy_path=policy_path, artifact_paths=[artifact_path])
         if output:
@@ -75,8 +79,8 @@ def inspect_policy(policy: str) -> None:
     table2 = Table(title="Layers")
     table2.add_column("Layer ID", style="cyan")
     table2.add_column("Patterns", style="green")
-    for l in p.layers:
-        table2.add_row(l.layer_id, ", ".join(l.endpoint_patterns[:3]) + "...")
+    for layer in p.layers:
+        table2.add_row(layer.layer_id, ", ".join(layer.endpoint_patterns[:3]) + "...")
     console.print(table2)
 
     table3 = Table(title="Blast Radius Limits")

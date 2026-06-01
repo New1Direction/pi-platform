@@ -34,9 +34,7 @@ class EntropySnapshot(BaseModel):
     low_confidence_count: int = 0
     structural_complexity: int = 0
     entropy_score: float = 0.0
-    timestamp: str = Field(
-        default_factory=lambda: __import__("datetime").datetime.utcnow().isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: __import__("datetime").datetime.utcnow().isoformat())
 
 
 class EntropyMonitor:
@@ -66,10 +64,7 @@ class EntropyMonitor:
         prev = self._snapshots[-2]
         curr = self._snapshots[-1]
         if curr.entropy_score > prev.entropy_score + 1e-6:
-            return (
-                f"ENTROPY_INCREASE: {prev.state}({prev.entropy_score:.4f}) -> "
-                f"{curr.state}({curr.entropy_score:.4f})"
-            )
+            return f"ENTROPY_INCREASE: {prev.state}({prev.entropy_score:.4f}) -> {curr.state}({curr.entropy_score:.4f})"
         return None
 
     def _compute(self, state: str, artifact: Any) -> EntropySnapshot:
@@ -92,6 +87,7 @@ class EntropyMonitor:
             # Synthesis should reduce entropy (fewer unknowns)
             try:
                 import json
+
                 spec = json.loads(artifact.spec_json)
                 paths = spec.get("paths", {})
                 branches = sum(len(methods) for methods in paths.values())
@@ -110,7 +106,7 @@ class EntropyMonitor:
             complexity = branches
 
         # Composite: more unknowns + low-confidence = higher entropy
-        score = (unknown * 2.0 + low_conf * 1.5 + branches * 0.1 + complexity * 0.05)
+        score = unknown * 2.0 + low_conf * 1.5 + branches * 0.1 + complexity * 0.05
 
         return EntropySnapshot(
             state=state,

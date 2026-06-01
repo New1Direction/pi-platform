@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_ZK_UNUSED_CONSTRAINT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_ZK_UNUSED_CONSTRAINT_STRICT_MODE")
 
 
 class ZKUnusedConstraintInput(BaseModel):
@@ -24,7 +21,9 @@ class ZKUnusedConstraintInput(BaseModel):
 class ZKUnusedConstraintOutput(BaseModel):
     is_secure: bool = Field(..., description="Indicates if all defined constraint variables are active in assertions")
     vulnerable_signals: List[str] = Field(default_factory=list, description="Unused signal or variable names")
-    flagged_findings: List[str] = Field(default_factory=list, description="Detailed findings on unused constraint variables")
+    flagged_findings: List[str] = Field(
+        default_factory=list, description="Detailed findings on unused constraint variables"
+    )
     risk_score: float = Field(..., description="Risk score from 0.0 to 100.0")
     status: str = Field(..., description="Status classification")
 
@@ -40,21 +39,20 @@ class PiZKUnusedConstraintVariables:
         vulnerable_signals = []
         flagged_findings = []
 
-        templates = re.findall(r'template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}', code)
+        templates = re.findall(r"template\s+([a-zA-Z0-9_]+)\s*\((.*?)\)[^{]*\{([\s\S]*?)\}", code)
 
-        for tname, params, body in templates:
+        for tname, _params, body in templates:
             # Find all signals declared
-            declarations = re.findall(r'signal\s+(?:input|output)?\s*([a-zA-Z0-9_]+)', body)
+            declarations = re.findall(r"signal\s+(?:input|output)?\s*([a-zA-Z0-9_]+)", body)
             # Find all statements containing a constraint operator (<==, ==>, ===)
             constraint_statements = [
-                stmt for stmt in body.split(';')
-                if any(op in stmt for op in ['<==', '==>', '==='])
+                stmt for stmt in body.split(";") if any(op in stmt for op in ["<==", "==>", "==="])
             ]
             for sig in declarations:
                 # Check if the signal is used in at least one constraint statement as a word
                 is_used = False
                 for stmt in constraint_statements:
-                    if re.search(rf'\b{sig}\b', stmt):
+                    if re.search(rf"\b{sig}\b", stmt):
                         is_used = True
                         break
                 if not is_used:
@@ -81,5 +79,5 @@ class PiZKUnusedConstraintVariables:
             vulnerable_signals=vulnerable_signals,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )

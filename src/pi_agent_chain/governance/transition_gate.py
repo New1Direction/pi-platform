@@ -32,20 +32,52 @@ CANONICAL_TRANSITIONS: List[TransitionRule] = [
     TransitionRule(from_state=RuntimeState.ASSEMBLING_IR, to_state=RuntimeState.GENERATING_SPEC),
     TransitionRule(from_state=RuntimeState.GENERATING_SPEC, to_state=RuntimeState.COMPLETED),
     # Failure transitions (any state -> failure states)
-    TransitionRule(from_state=RuntimeState.REGISTERED, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.SCOPED, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.CAPTURE_READY, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.CAPTURING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.NORMALIZING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.EXTRACTING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.VERIFYING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.ASSEMBLING_IR, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
-    TransitionRule(from_state=RuntimeState.GENERATING_SPEC, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE),
+    TransitionRule(
+        from_state=RuntimeState.REGISTERED, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.SCOPED, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.CAPTURE_READY, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.CAPTURING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.NORMALIZING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.EXTRACTING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.VERIFYING, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.ASSEMBLING_IR, to_state=RuntimeState.FAILED, required_worker_status=WorkerStatus.FAILURE
+    ),
+    TransitionRule(
+        from_state=RuntimeState.GENERATING_SPEC,
+        to_state=RuntimeState.FAILED,
+        required_worker_status=WorkerStatus.FAILURE,
+    ),
     # Retry transitions
-    TransitionRule(from_state=RuntimeState.FAILED, to_state=RuntimeState.RETRY_PENDING, required_worker_status=WorkerStatus.RETRYABLE_FAILURE),
+    TransitionRule(
+        from_state=RuntimeState.FAILED,
+        to_state=RuntimeState.RETRY_PENDING,
+        required_worker_status=WorkerStatus.RETRYABLE_FAILURE,
+    ),
     # Invalid evidence
-    TransitionRule(from_state=RuntimeState.EXTRACTING, to_state=RuntimeState.INVALID_EVIDENCE, required_worker_status=WorkerStatus.INSUFFICIENT_EVIDENCE),
-    TransitionRule(from_state=RuntimeState.VERIFYING, to_state=RuntimeState.INVALID_EVIDENCE, required_worker_status=WorkerStatus.VERIFICATION_MISMATCH),
+    TransitionRule(
+        from_state=RuntimeState.EXTRACTING,
+        to_state=RuntimeState.INVALID_EVIDENCE,
+        required_worker_status=WorkerStatus.INSUFFICIENT_EVIDENCE,
+    ),
+    TransitionRule(
+        from_state=RuntimeState.VERIFYING,
+        to_state=RuntimeState.INVALID_EVIDENCE,
+        required_worker_status=WorkerStatus.VERIFICATION_MISMATCH,
+    ),
 ]
 
 

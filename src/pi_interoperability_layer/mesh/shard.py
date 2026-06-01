@@ -30,9 +30,7 @@ class ShardAssignment:
     assignment_hash: str = ""
 
     def compute_hash(self) -> str:
-        return hashlib.sha256(
-            f"{self.worker_id}:{self.shard_id}".encode()
-        ).hexdigest()
+        return hashlib.sha256(f"{self.worker_id}:{self.shard_id}".encode()).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -44,11 +42,7 @@ class PhaseBoundary:
     boundary_hash: str = ""
 
     def compute_hash(self) -> str:
-        payload = (
-            f"{self.phase}:{self.shard_id}:"
-            f"{','.join(sorted(self.worker_ids))}:"
-            f"{'1' if self.completed else '0'}"
-        )
+        payload = f"{self.phase}:{self.shard_id}:{','.join(sorted(self.worker_ids))}:{'1' if self.completed else '0'}"
         return hashlib.sha256(payload.encode()).hexdigest()
 
 
@@ -102,9 +96,7 @@ class ShardCoordinator:
         for wid, assignment in assignments.items():
             shard = assignment.shard_id
             if len(self._shard_workers[shard]) >= self.max_workers_per_shard:
-                raise ValueError(
-                    f"Shard {shard} exceeds max_workers_per_shard ({self.max_workers_per_shard})"
-                )
+                raise ValueError(f"Shard {shard} exceeds max_workers_per_shard ({self.max_workers_per_shard})")
             self._shard_workers[shard].add(wid)
             self._execution_log.append(f"REGISTER {wid} -> {shard}")
         return assignments
@@ -127,9 +119,7 @@ class ShardCoordinator:
     def advance_phase(self, next_phase: str) -> PhaseBoundary:
         if not self.can_advance_phase():
             raise RuntimeError("Cannot advance: not all shards completed current phase")
-        workers = tuple(sorted(
-            wid for workers in self._shard_workers.values() for wid in workers
-        ))
+        workers = tuple(sorted(wid for workers in self._shard_workers.values() for wid in workers))
         boundary = PhaseBoundary(
             phase=self._current_phase or "INGEST",
             shard_id="global",
@@ -167,8 +157,7 @@ class ShardCoordinator:
         first = self.partitioner.assign_all(worker_ids)
         second = self.partitioner.assign_all(worker_ids)
         return all(
-            first[wid].shard_id == second[wid].shard_id
-            and first[wid].assignment_hash == second[wid].assignment_hash
+            first[wid].shard_id == second[wid].shard_id and first[wid].assignment_hash == second[wid].assignment_hash
             for wid in worker_ids
         )
 

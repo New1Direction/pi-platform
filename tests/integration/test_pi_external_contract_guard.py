@@ -1,16 +1,13 @@
 """Integration tests for PiExternalContractGuard — dual-use external call and zero-address linter."""
 
-import os
 import pytest
-from pydantic import ValidationError
 
 from pi_micro_agents.pi_external_contract_guard import (
-    PiExternalContractGuard,
     ExternalContractGuardInput,
     ExternalContractGuardOutput,
+    PiExternalContractGuard,
 )
-from pi_micro_agents.pi_orchestrator import PiOrchestrator, OrchestratorInput
-
+from pi_micro_agents.pi_orchestrator import OrchestratorInput, PiOrchestrator
 
 # ── Fixtures & Mock Contracts ───────────────────────────────────────────────
 
@@ -69,14 +66,16 @@ def clean_env(monkeypatch):
 
 # ── Tests: ExternalContractGuard Heuristics ─────────────────────────────────
 
-class TestExternalContractGuard:
 
+class TestExternalContractGuard:
     def test_vulnerable_address_setter_detected(self) -> None:
         agent = PiExternalContractGuard()
-        result = agent.audit_external(ExternalContractGuardInput(
-            file_path="UnsafeExternalSetter.sol",
-            solidity_code=VULNERABLE_ADDRESS_SETTER,
-        ))
+        result = agent.audit_external(
+            ExternalContractGuardInput(
+                file_path="UnsafeExternalSetter.sol",
+                solidity_code=VULNERABLE_ADDRESS_SETTER,
+            )
+        )
         assert isinstance(result, ExternalContractGuardOutput)
         assert result.is_secure is False
         assert "setBridge" in result.vulnerable_functions
@@ -86,20 +85,24 @@ class TestExternalContractGuard:
 
     def test_raw_transfer_warning_flagged(self) -> None:
         agent = PiExternalContractGuard()
-        result = agent.audit_external(ExternalContractGuardInput(
-            file_path="VulnerableTransfer.sol",
-            solidity_code=VULNERABLE_RAW_TRANSFER,
-        ))
+        result = agent.audit_external(
+            ExternalContractGuardInput(
+                file_path="VulnerableTransfer.sol",
+                solidity_code=VULNERABLE_RAW_TRANSFER,
+            )
+        )
         assert isinstance(result, ExternalContractGuardOutput)
         assert result.is_secure is True  # transfer warning is low risk, doesn't reject
         assert any("SafeERC20" in finding or "return value" in finding for finding in result.flagged_findings)
 
     def test_safe_setter_passes(self) -> None:
         agent = PiExternalContractGuard()
-        result = agent.audit_external(ExternalContractGuardInput(
-            file_path="SafeExternalSetter.sol",
-            solidity_code=SAFE_EXTERNAL_SETTER,
-        ))
+        result = agent.audit_external(
+            ExternalContractGuardInput(
+                file_path="SafeExternalSetter.sol",
+                solidity_code=SAFE_EXTERNAL_SETTER,
+            )
+        )
         assert isinstance(result, ExternalContractGuardOutput)
         assert result.is_secure is True
         assert len(result.vulnerable_functions) == 0
@@ -107,10 +110,12 @@ class TestExternalContractGuard:
 
     def test_safe_transfer_passes(self) -> None:
         agent = PiExternalContractGuard()
-        result = agent.audit_external(ExternalContractGuardInput(
-            file_path="SafeTransfer.sol",
-            solidity_code=SAFE_TRANSFER_WRAPPER,
-        ))
+        result = agent.audit_external(
+            ExternalContractGuardInput(
+                file_path="SafeTransfer.sol",
+                solidity_code=SAFE_TRANSFER_WRAPPER,
+            )
+        )
         assert isinstance(result, ExternalContractGuardOutput)
         assert result.is_secure is True
         # Should not flag safeTransfer
@@ -119,20 +124,24 @@ class TestExternalContractGuard:
     def test_warn_only_mode(self, monkeypatch) -> None:
         monkeypatch.setenv("PI_EXTERNAL_STRICT_MODE", "false")
         agent = PiExternalContractGuard()
-        result = agent.audit_external(ExternalContractGuardInput(
-            file_path="UnsafeExternalSetter.sol",
-            solidity_code=VULNERABLE_ADDRESS_SETTER,
-        ))
+        result = agent.audit_external(
+            ExternalContractGuardInput(
+                file_path="UnsafeExternalSetter.sol",
+                solidity_code=VULNERABLE_ADDRESS_SETTER,
+            )
+        )
         assert isinstance(result, ExternalContractGuardOutput)
         assert result.is_secure is True
         assert result.status == "WARN_EXTERNAL_RISK"
 
     def test_model_dump_and_serialization(self) -> None:
         agent = PiExternalContractGuard()
-        result = agent.audit_external(ExternalContractGuardInput(
-            file_path="SafeExternalSetter.sol",
-            solidity_code=SAFE_EXTERNAL_SETTER,
-        ))
+        result = agent.audit_external(
+            ExternalContractGuardInput(
+                file_path="SafeExternalSetter.sol",
+                solidity_code=SAFE_EXTERNAL_SETTER,
+            )
+        )
         d = result.model_dump()
         assert "is_secure" in d
         assert "risk_score" in d
@@ -141,16 +150,19 @@ class TestExternalContractGuard:
 
 # ── Tests: Orchestration NLP & Consensus Integration ────────────────────────
 
+
 def test_orchestrator_nlp_routing_to_external_guard() -> None:
     orchestrator = PiOrchestrator()
-    result = orchestrator.execute_goal(OrchestratorInput(
-        goal="Perform an untrusted contract scan to check external addresses.",
-        context={
-            "file_path": "UnsafeExternalSetter.sol",
-            "solidity_code": VULNERABLE_ADDRESS_SETTER,
-            "check_level": "STRICT"
-        }
-    ))
+    result = orchestrator.execute_goal(
+        OrchestratorInput(
+            goal="Perform an untrusted contract scan to check external addresses.",
+            context={
+                "file_path": "UnsafeExternalSetter.sol",
+                "solidity_code": VULNERABLE_ADDRESS_SETTER,
+                "check_level": "STRICT",
+            },
+        )
+    )
     assert result.success is False
     assert "PiExternalContractGuard" in result.routed_agent
     assert result.risk_score == 80.0

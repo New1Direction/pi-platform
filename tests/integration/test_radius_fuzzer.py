@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import os
+
 import pytest
 from fastapi.testclient import TestClient
 
-from pi_agent_interceptor.proxy import app, ledger, DATABASE_PATH
+from pi_agent_interceptor.proxy import DATABASE_PATH, app, ledger
 from pi_semantic_radius import (
-    RadiusFuzzerEngine,
     FuzzTarget,
+    RadiusFuzzerEngine,
     SemanticParameterSpec,
-    MutationPayload,
 )
 
 
@@ -24,19 +24,18 @@ def cleanup_test_db():
             os.remove(DATABASE_PATH)
         except OSError:
             pass
-        
+
     # Re-initialize ledger
     ledger._initialize_db()
-    
+
     yield
-    
+
     # Final cleanup
     if os.path.exists(DATABASE_PATH):
         try:
             os.remove(DATABASE_PATH)
         except OSError:
             pass
-
 
 
 def test_fuzzer_target_ranking():
@@ -48,17 +47,17 @@ def test_fuzzer_target_ranking():
             path="/v1/users",
             method="get",
             parameters=[SemanticParameterSpec(name="id", type_str="uuid")],
-            blast_radius=3
+            blast_radius=3,
         ),
         FuzzTarget(
             path="/v1/payments",
             method="post",
             parameters=[
                 SemanticParameterSpec(name="amount", type_str="int"),
-                SemanticParameterSpec(name="currency", type_str="string")
+                SemanticParameterSpec(name="currency", type_str="string"),
             ],
-            blast_radius=85
-        )
+            blast_radius=85,
+        ),
     ]
 
     ranked = engine.prioritize_targets(targets)
@@ -108,9 +107,7 @@ def test_shadow_parameter_enumeration():
     engine = RadiusFuzzerEngine()
 
     target = FuzzTarget(
-        path="/v1/login",
-        method="post",
-        parameters=[SemanticParameterSpec(name="username", type_str="string")]
+        path="/v1/login", method="post", parameters=[SemanticParameterSpec(name="username", type_str="string")]
     )
 
     payloads = engine.enumerate_undocumented_parameters(target)
@@ -133,9 +130,9 @@ def test_interceptor_chat_completions_happy_path():
         "model": "gpt-4o",
         "messages": [
             {"role": "system", "content": "You are a safe assistant."},
-            {"role": "user", "content": "Hello! How do I format a date?"}
+            {"role": "user", "content": "Hello! How do I format a date?"},
         ],
-        "temperature": 0.5
+        "temperature": 0.5,
     }
 
     # Since the real backend LLM requires authorization, the proxy should return a 502
@@ -143,4 +140,3 @@ def test_interceptor_chat_completions_happy_path():
     # We verify it passes all initial safety gates (no 403 drift halt).
     response = client.post("/v1/chat/completions", json=payload)
     assert response.status_code in [502, 200, 401]
-

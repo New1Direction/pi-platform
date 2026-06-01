@@ -61,13 +61,9 @@ class DifferentialVerifierNode:
                     ):
                         continue
 
-                    known = self._find_known_packet(
-                        known_packets, path_template, method.upper()
-                    )
+                    known = self._find_known_packet(known_packets, path_template, method.upper())
 
-                    delta = await self._test_endpoint(
-                        client, path_template, method.upper(), operation, known
-                    )
+                    delta = await self._test_endpoint(client, path_template, method.upper(), operation, known)
                     if delta:
                         deltas.append(delta)
                     tested += 1
@@ -95,9 +91,7 @@ class DifferentialVerifierNode:
         headers = self._build_synthetic_headers(operation, known)
 
         try:
-            response = await client.request(
-                method, url, json=payload, headers=headers
-            )
+            response = await client.request(method, url, json=payload, headers=headers)
         except httpx.RequestError:
             return BehavioralDelta(
                 path=path_template,
@@ -129,16 +123,12 @@ class DifferentialVerifierNode:
         if known and known.raw_payload:
             try:
                 import json as _json
+
                 return _json.loads(known.raw_payload)
             except Exception:
                 pass
 
-        schema = (
-            operation.get("requestBody", {})
-            .get("content", {})
-            .get("application/json", {})
-            .get("schema", {})
-        )
+        schema = operation.get("requestBody", {}).get("content", {}).get("application/json", {}).get("schema", {})
         return self._schema_to_example(schema)
 
     def _build_synthetic_headers(

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 from typing import List, Tuple
 
@@ -10,25 +9,12 @@ from pydantic import BaseModel, Field
 
 # Import database state ledger to write publication chains
 from pi_agent_chain.ledger import StateLedger
+from pi_micro_agents.strict_mode import resolve_strict_mode
 
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_PUBLISHER_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
+    return resolve_strict_mode("PI_PUBLISHER_STRICT_MODE")
 
-    config_path = os.path.expanduser("~/.antigravitycli/config.json")
-    if not os.path.exists(config_path):
-        config_path = os.path.join(os.path.dirname(__file__), "../../.antigravitycli/config.json")
-
-    if os.path.exists(config_path):
-        try:
-            with open(config_path, "r") as f:
-                data = json.load(f)
-                return bool(data.get("PI_PUBLISHER_STRICT_MODE", True))
-        except Exception:
-            pass
-    return True
 
 # Heuristic anomaly checking: ensures the published output does not leakage secret keys or private files
 def detect_publisher_anomalies(text: str) -> Tuple[float, List[str]]:
@@ -50,12 +36,14 @@ def detect_publisher_anomalies(text: str) -> Tuple[float, List[str]]:
 
     return max_risk, violations
 
+
 # Pydantic Input/Output envelopes
 class PublisherInput(BaseModel):
     substack_title: str
     substack_markdown_body: str
     x_thread_posts: List[str]
     draft_only: bool = Field(default=True, description="Save to drafts on publishing platforms without releasing")
+
 
 class PublisherOutput(BaseModel):
     success: bool
@@ -64,6 +52,7 @@ class PublisherOutput(BaseModel):
     substack_post_url: str
     ledger_receipt_hash: str
     anomalies_detected: List[str] = Field(default_factory=list)
+
 
 class PiPublisherDispatch:
     """Agent 3: Publishes formatted threads to X and articles to Substack."""
@@ -75,10 +64,13 @@ class PiPublisherDispatch:
     def dispatch_publications(self, input_envelope: PublisherInput) -> PublisherOutput:
         """Publishes the curated threads and Substack updates under cryptographic supervision."""
         import datetime
+
         timestamp = datetime.datetime.now().isoformat()
 
         # 1. Screen entire content stream for leak violations (e.g. siphoning system keys)
-        combined_content = f"{input_envelope.substack_title}\n{input_envelope.substack_markdown_body}\n" + "\n".join(input_envelope.x_thread_posts)
+        combined_content = f"{input_envelope.substack_title}\n{input_envelope.substack_markdown_body}\n" + "\n".join(
+            input_envelope.x_thread_posts
+        )
         risk, violations = detect_publisher_anomalies(combined_content)
 
         success = True
@@ -101,13 +93,13 @@ class PiPublisherDispatch:
         # Write to StateLedger
         try:
             self.ledger.log_trace(
-                trace_id="trace_publish_" + hashlib.md5(timestamp.encode()).hexdigest()[:8],
+                trace_id="trace_publish_" + hashlib.sha256(timestamp.encode()).hexdigest()[:12],
                 node_name=self.agent_name,
                 input_payload_hash=payload_hash,
                 llm_seed=1337,
                 llm_temperature=0.0,
                 raw_output=json.dumps({"success": success, "x_url": x_url, "substack_url": substack_url}),
-                is_valid_type=True
+                is_valid_type=True,
             )
         except Exception:
             # Ignore schema logging issues in memory or offline
@@ -119,5 +111,5 @@ class PiPublisherDispatch:
             x_thread_url=x_url,
             substack_post_url=substack_url,
             ledger_receipt_hash=payload_hash,
-            anomalies_detected=violations
+            anomalies_detected=violations,
         )

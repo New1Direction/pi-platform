@@ -1,18 +1,15 @@
 from __future__ import annotations
 
-import json
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_LLM_PAIRWISE_ADVERSARIAL_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_LLM_PAIRWISE_ADVERSARIAL_STRICT_MODE")
 
 
 class LLMPairwiseAdversarialInput(BaseModel):
@@ -38,11 +35,11 @@ class PiLLMPairwiseAdversarialValidator:
         flagged_findings = []
 
         pairwise_patterns = [
-            r'alice\s+and\s+bob',
-            r'dialogue\s+between',
-            r'roleplay\s+as',
-            r'play\s+a\s+game',
-            r'conversing\s+with'
+            r"alice\s+and\s+bob",
+            r"dialogue\s+between",
+            r"roleplay\s+as",
+            r"play\s+a\s+game",
+            r"conversing\s+with",
         ]
 
         is_secure = True
@@ -65,8 +62,5 @@ class PiLLMPairwiseAdversarialValidator:
                 is_secure = True
 
         return LLMPairwiseAdversarialOutput(
-            is_secure=is_secure,
-            flagged_findings=flagged_findings,
-            risk_score=risk_score,
-            status=status
+            is_secure=is_secure, flagged_findings=flagged_findings, risk_score=risk_score, status=status
         )

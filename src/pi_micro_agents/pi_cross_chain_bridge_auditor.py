@@ -19,6 +19,7 @@ from pi_micro_agents.utils import is_strict_mode
 
 # ── Pydantic Envelopes ─────────────────────────────────────────────────────
 
+
 class BridgeAuditInput(BaseModel):
     file_path: str = Field(..., description="Solidity source file path")
     solidity_code: str = Field(..., description="Bridge contract Solidity source")
@@ -30,7 +31,9 @@ class BridgeAuditOutput(BaseModel):
     unverified_messages: List[str] = Field(default_factory=list, description="Unverified message execution findings")
     replay_risks: List[str] = Field(default_factory=list, description="Nonce / replay vulnerability findings")
     chain_id_issues: List[str] = Field(default_factory=list, description="Missing chain-ID binding findings")
-    centralization_risks: List[str] = Field(default_factory=list, description="Validator/relayer centralization findings")
+    centralization_risks: List[str] = Field(
+        default_factory=list, description="Validator/relayer centralization findings"
+    )
     compliance_findings: List[str] = Field(default_factory=list, description="Interface / event compliance findings")
     risk_score: float = Field(..., description="Risk score 0.0–100.0")
     status: str = Field(..., description="PASSED | WARN_BRIDGE_RISK | REJECTED_BRIDGE_RISK")
@@ -90,6 +93,7 @@ def _extract_function_body(code: str, fn_name: str) -> str:
 
 
 # ── Core Agent ─────────────────────────────────────────────────────────────
+
 
 class PiCrossChainBridgeAuditor:
     """Audits cross-chain bridge contracts for the top four attack vectors
@@ -207,12 +211,7 @@ class PiCrossChainBridgeAuditor:
                 )
 
         # ── Scoring & Status ───────────────────────────────────────────────
-        is_secure = (
-            len(unverified) == 0
-            and len(replay) == 0
-            and len(chain_id) == 0
-            and len(centralization) == 0
-        )
+        is_secure = len(unverified) == 0 and len(replay) == 0 and len(chain_id) == 0 and len(centralization) == 0
         critical_count = len(unverified) + len(replay) + len(chain_id) + len(centralization)
 
         risk_score = 0.0

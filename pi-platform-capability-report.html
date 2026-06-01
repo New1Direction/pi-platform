@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en" class="tech">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PI Platform — Capability &amp; Candor Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0b0d10;
+    --ink-2:#101319;
+    --panel:#13171e;
+    --panel-2:#171c25;
+    --line:#262d39;
+    --line-soft:#1d232d;
+    --txt:#c9d2de;
+    --txt-dim:#8b97a8;
+    --txt-faint:#5c6675;
+    --paper:#e9e4d6;
+    /* maturity spine */
+    --m-prod:#3fd28b;
+    --m-func:#46c2d8;
+    --m-part:#e9b54a;
+    --m-stub:#e8843c;
+    --m-broke:#e5556b;
+    --accent:#e9b54a;
+    --redact:#e5556b;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+    --sans:'IBM Plex Sans',system-ui,sans-serif;
+    --serif:'Instrument Serif',Georgia,serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--ink);
+    color:var(--txt);
+    font-family:var(--sans);
+    font-weight:300;
+    line-height:1.62;
+    font-size:16px;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  /* grain + vignette atmosphere */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(1200px 800px at 80% -10%, rgba(70,194,216,.06), transparent 60%),
+      radial-gradient(1000px 700px at -10% 110%, rgba(233,181,74,.05), transparent 55%);
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 28px}
+
+  a{color:var(--m-func);text-decoration:none}
+
+  /* ---------- swap (technical <-> plain) ---------- */
+  .swap .p{display:none}
+  html.plain .swap .t{display:none}
+  html.plain .swap .p{display:inline}
+  .blockswap .p{display:none}
+  html.plain .blockswap .t{display:none}
+  html.plain .blockswap .p{display:block}
+
+  /* ---------- top control bar ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:11px 28px;
+    background:rgba(11,13,16,.82);
+    backdrop-filter:blur(11px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar .id{font-family:var(--mono);font-size:11.5px;letter-spacing:.13em;color:var(--txt-faint);text-transform:uppercase}
+  .topbar .id b{color:var(--m-broke);font-weight:600}
+  .toggle{display:flex;align-items:center;gap:0;border:1px solid var(--line);border-radius:2px;overflow:hidden;font-family:var(--mono)}
+  .toggle button{
+    background:transparent;border:0;color:var(--txt-faint);
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;
+    padding:7px 14px;cursor:pointer;transition:all .18s;text-transform:uppercase;
+  }
+  .toggle button.on{background:var(--accent);color:#1a1205;font-weight:600}
+  .toggle button:not(.on):hover{color:var(--txt)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:74px 0 38px;border-bottom:1px solid var(--line-soft)}
+  .stamp{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--redact);border:1px solid rgba(229,85,107,.35);
+    padding:5px 11px;border-radius:2px;margin-bottom:26px;
+    background:rgba(229,85,107,.06);
+  }
+  .stamp::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--redact);box-shadow:0 0 9px var(--redact)}
+  h1{
+    font-family:var(--serif);font-weight:400;
+    font-size:clamp(42px,7vw,86px);line-height:.98;letter-spacing:-.01em;
+    margin:0 0 4px;color:#f2f0ea;
+  }
+  h1 .sub{display:block;font-style:italic;color:var(--accent);font-size:clamp(26px,4vw,46px);margin-top:2px}
+  .lede{max-width:730px;font-size:18px;color:var(--txt-dim);margin:26px 0 0;line-height:1.7}
+  .lede b{color:var(--txt);font-weight:500}
+  .meta-row{
+    display:flex;flex-wrap:wrap;gap:26px;margin-top:34px;
+    font-family:var(--mono);font-size:12px;color:var(--txt-faint);letter-spacing:.04em;
+  }
+  .meta-row span b{color:var(--txt);font-weight:600}
+
+  /* ---------- section scaffolding ---------- */
+  section{padding:60px 0;border-bottom:1px solid var(--line-soft)}
+  .eyebrow{
+    font-family:var(--mono);font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;
+    color:var(--txt-faint);display:flex;align-items:center;gap:12px;margin-bottom:18px;
+  }
+  .eyebrow::before{content:"";width:26px;height:1px;background:var(--accent)}
+  .eyebrow .n{color:var(--accent)}
+  h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4.4vw,48px);line-height:1.02;margin:0 0 14px;color:#f2f0ea;letter-spacing:-.005em}
+  .sec-intro{max-width:760px;color:var(--txt-dim);font-size:16.5px;margin-bottom:34px}
+
+  /* ---------- scorecard ---------- */
+  .scorebar{display:flex;height:46px;border-radius:3px;overflow:hidden;border:1px solid var(--line);margin-bottom:8px}
+  .scorebar div{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:600;color:#0b0d10;transition:flex .8s cubic-bezier(.2,.8,.2,1)}
+  .sb-prod{background:var(--m-prod)} .sb-func{background:var(--m-func)} .sb-part{background:var(--m-part)} .sb-stub{background:var(--m-stub)} .sb-broke{background:var(--m-broke)}
+  .legend{display:flex;flex-wrap:wrap;gap:16px 22px;font-family:var(--mono);font-size:11.5px;color:var(--txt-dim);margin-top:16px}
+  .legend .it{display:flex;align-items:center;gap:8px}
+  .legend .dot{width:11px;height:11px;border-radius:2px}
+  .legend small{color:var(--txt-faint);letter-spacing:.02em}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:3px;margin-top:34px;overflow:hidden}
+  .stat{background:var(--panel);padding:22px 20px}
+  .stat .num{font-family:var(--serif);font-size:40px;line-height:1;color:#f2f0ea}
+  .stat .num.warn{color:var(--m-broke)}
+  .stat .num.good{color:var(--m-prod)}
+  .stat .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--txt-faint);margin-top:9px}
+
+  /* ---------- generic card ---------- */
+  .cards{display:grid;gap:16px}
+  .cards.two{grid-template-columns:repeat(auto-fit,minmax(330px,1fr))}
+  .card{
+    background:linear-gradient(180deg,var(--panel),var(--ink-2));
+    border:1px solid var(--line);border-radius:4px;padding:22px 22px 20px;position:relative;
+  }
+  .card h3{margin:0 0 8px;font-family:var(--sans);font-weight:600;font-size:16.5px;color:#eef2f7;letter-spacing:-.005em}
+  .card p{margin:0;color:var(--txt-dim);font-size:14.5px;line-height:1.6}
+  .card .ev{font-family:var(--mono);font-size:11px;color:var(--txt-faint);margin-top:11px;display:block;border-top:1px dashed var(--line);padding-top:10px}
+
+  /* tag chips */
+  .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px;border-radius:2px;font-weight:600}
+  .chip.prod{background:rgba(63,210,139,.13);color:var(--m-prod);border:1px solid rgba(63,210,139,.3)}
+  .chip.func{background:rgba(70,194,216,.13);color:var(--m-func);border:1px solid rgba(70,194,216,.3)}
+  .chip.part{background:rgba(233,181,74,.13);color:var(--m-part);border:1px solid rgba(233,181,74,.3)}
+  .chip.stub{background:rgba(232,132,60,.13);color:var(--m-stub);border:1px solid rgba(232,132,60,.3)}
+  .chip.broke{background:rgba(229,85,107,.13);color:var(--m-broke);border:1px solid rgba(229,85,107,.3)}
+  .chip.hi{background:rgba(229,85,107,.15);color:var(--m-broke);border:1px solid rgba(229,85,107,.35)}
+  .chip.med{background:rgba(233,181,74,.13);color:var(--m-part);border:1px solid rgba(233,181,74,.3)}
+  .chip.lo{background:rgba(139,151,168,.12);color:var(--txt-dim);border:1px solid var(--line)}
+
+  /* ---------- determinism theater feature ---------- */
+  .feature{
+    background:
+      linear-gradient(180deg,rgba(229,85,107,.07),rgba(229,85,107,.02)),
+      var(--panel);
+    border:1px solid rgba(229,85,107,.32);border-radius:5px;padding:34px 32px;position:relative;overflow:hidden;
+  }
+  .feature::before{
+    content:"⚠";position:absolute;right:24px;top:8px;font-size:120px;color:rgba(229,85,107,.06);font-family:var(--serif);line-height:1;
+  }
+  .feature h2{color:#f6efe6}
+  .feature .kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--m-broke);margin-bottom:12px}
+  .feature p{max-width:780px;color:var(--txt);font-size:16.5px}
+  .feature .evidence{margin-top:22px;display:grid;gap:9px}
+  .feature .evidence .row{
+    display:flex;gap:14px;align-items:baseline;font-family:var(--mono);font-size:12.5px;
+    border-left:2px solid rgba(229,85,107,.4);padding:7px 0 7px 14px;background:rgba(0,0,0,.18);
+  }
+  .feature .evidence .row .who{color:var(--accent);min-width:170px;flex-shrink:0}
+  .feature .evidence .row .what{color:var(--txt-dim)}
+
+  /* ---------- claims vs reality ---------- */
+  .cvr{display:grid;gap:0;border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  .cvr .head,.cvr .r{display:grid;grid-template-columns:1fr 1fr}
+  .cvr .head>div{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;padding:13px 18px;background:var(--panel-2)}
+  .cvr .head .c{color:var(--accent)} .cvr .head .v{color:var(--m-broke)}
+  .cvr .r{border-top:1px solid var(--line-soft)}
+  .cvr .r>div{padding:15px 18px;font-size:14.5px}
+  .cvr .r .claim{color:var(--txt-dim);border-right:1px solid var(--line-soft);font-family:var(--mono);font-size:13px}
+  .cvr .r .claim .q{color:#dfe6ef}
+  .cvr .r .real{color:var(--txt)}
+  .cvr .r:nth-child(even){background:rgba(255,255,255,.012)}
+
+  /* ---------- pillars ---------- */
+  .pillar{display:grid;grid-template-columns:44px 1fr auto;gap:18px;align-items:start;padding:20px 0;border-top:1px solid var(--line-soft)}
+  .pillar:first-of-type{border-top:0}
+  .pillar .idx{font-family:var(--serif);font-size:30px;color:var(--txt-faint);line-height:1}
+  .pillar h3{margin:0 0 5px;font-size:18px;font-weight:600;color:#eef2f7}
+  .pillar p{margin:0;color:var(--txt-dim);font-size:14.5px;max-width:680px}
+
+  /* ---------- subsystem matrix ---------- */
+  .subs{display:grid;gap:13px}
+  .sub{
+    background:var(--panel);border:1px solid var(--line);border-radius:4px;overflow:hidden;
+  }
+  .sub summary{
+    list-style:none;cursor:pointer;padding:17px 20px;display:grid;
+    grid-template-columns:1fr auto;gap:16px;align-items:center;transition:background .15s;
+  }
+  .sub summary::-webkit-details-marker{display:none}
+  .sub summary:hover{background:var(--panel-2)}
+  .sub .name{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .sub .name code{font-family:var(--mono);font-size:14.5px;color:#eef2f7;font-weight:500}
+  .sub .name .tiny{font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);letter-spacing:.04em}
+  .sub .minibar{display:flex;height:7px;width:148px;border-radius:2px;overflow:hidden;border:1px solid var(--line)}
+  .sub .minibar i{display:block}
+  .sub .verdict-1{color:var(--txt-dim);font-size:13.5px;margin-top:6px;max-width:760px}
+  .sub .body{padding:4px 20px 22px;border-top:1px solid var(--line-soft);display:grid;gap:14px}
+  .sub .body .purpose{color:var(--txt-dim);font-size:14.5px;padding-top:14px}
+  .sub .sw{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:680px){.sub .sw{grid-template-columns:1fr}.cvr .head,.cvr .r{grid-template-columns:1fr}.cvr .r .claim{border-right:0;border-bottom:1px solid var(--line-soft)}}
+  .sw .col{background:var(--ink-2);border:1px solid var(--line-soft);border-radius:3px;padding:13px 15px}
+  .sw .col .h{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+  .sw .col.s .h{color:var(--m-prod)} .sw .col.w .h{color:var(--m-broke)}
+  .sw .col p{margin:0;font-size:13.5px;color:var(--txt-dim);line-height:1.55}
+  .sub .verdict-full{font-size:14px;color:var(--txt);background:rgba(233,181,74,.05);border-left:2px solid var(--accent);padding:11px 15px;border-radius:0 3px 3px 0}
+  .sub .verdict-full .k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:5px}
+  .sub .arrow{font-family:var(--mono);color:var(--txt-faint);font-size:13px;transition:transform .2s}
+  .sub[open] .arrow{transform:rotate(90deg)}
+
+  /* ---------- next steps ---------- */
+  .steps{display:grid;gap:14px}
+  .step{
+    display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;
+    background:linear-gradient(180deg,var(--panel),var(--ink-2));border:1px solid var(--line);border-radius:4px;padding:22px 24px;
+  }
+  .step .lev{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;border-radius:2px;white-space:nowrap;height:fit-content;font-weight:600}
+  .step .lev.high{background:var(--m-prod);color:#06160e}
+  .step .lev.med{background:var(--m-part);color:#1c1404}
+  .step h3{margin:0 0 6px;font-size:17.5px;font-weight:600;color:#eef2f7}
+  .step p{margin:0;color:var(--txt-dim);font-size:14.5px;max-width:820px}
+  .step p .why{color:var(--txt-faint);font-style:italic}
+
+  /* footer / method */
+  .method{padding:48px 0 70px}
+  .method .box{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:26px 28px}
+  .method h3{font-family:var(--mono);font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--txt-faint);margin:0 0 14px}
+  .method p{color:var(--txt-dim);font-size:14px;max-width:840px;margin:0 0 10px}
+  .method code{font-family:var(--mono);color:var(--accent);font-size:13px}
+
+  /* entrance animation only when JS is active; without JS, content is always visible */
+  html.js .reveal{opacity:0;transform:translateY(14px);transition:opacity .6s ease,transform .6s ease}
+  html.js .reveal.in{opacity:1;transform:none}
+  @media print{html.js .reveal{opacity:1!important;transform:none!important}}
+
+  ::selection{background:var(--accent);color:#1a1205}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="id">PI&nbsp;PLATFORM · INTERNAL AUDIT · <b>EYES-ONLY</b> · 2026-05-29</div>
+  <div class="toggle" role="group" aria-label="Reading mode">
+    <button id="btn-tech" class="on" onclick="setMode('tech')">Technical</button>
+    <button id="btn-plain" onclick="setMode('plain')">Plain English</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <span class="stamp">Candor Report · Verified against source</span>
+    <h1>What this thing<span class="sub">actually does.</span></h1>
+    <p class="lede blockswap">
+      <span class="t">The PI Platform is a <b>~77K-line Python "deterministic semantic execution kernel"</b>: it takes a natural-language security goal, routes it to one (or a chain) of deterministic pattern-matching <b>micro-agents</b> — overwhelmingly Solidity / Web3 smart-contract scanners — runs each through safety shields and a triplicate "consensus" gate, and records every step in append-only SQLite ledgers. Wrapped around that core: a FastAPI console, a Next.js UI, a layered governance / verification stack, and a genuinely fast Rust port. This report maps what is <b>real</b>, what is <b>scaffolding</b>, and where the two get confused.</span>
+      <span class="p">Think of it as an <b>automated security-review assembly line</b>. You hand it a request in plain English ("audit this smart contract"), and it picks the right specialist checkers, runs them, double-checks the result, and writes everything down in a tamper-proof log. There's a control-panel website on top and a faster engine written in a second language underneath. This report is the honest version: what works, what's half-built, and where the labels promise more than the code delivers.</span>
+    </p>
+    <div class="meta-row">
+      <span><b>19</b> subsystems audited</span>
+      <span><b>213</b> capabilities scored</span>
+      <span><b>~296</b> micro-agents</span>
+      <span><b>~1,200</b> Python tests</span>
+      <span><b>38</b> agents · adversarially cross-checked</span>
+    </div>
+  </header>
+
+  <!-- SCORECARD -->
+  <section>
+    <div class="eyebrow"><span class="n">01</span> &nbsp;Maturity at a glance</div>
+    <h2>The honest distribution</h2>
+    <p class="sec-intro blockswap">
+      <span class="t">Every capability was read at the source level and rated on a five-step maturity scale, then a second adversarial pass tried to <em>refute</em> each "production" / "functional" claim. The bar below is the verified result across all 213 capabilities.</span>
+      <span class="p">We looked at every feature in the code and graded it on a five-step scale from "rock solid" to "broken." Then a second reviewer tried to prove the first one wrong. The bar below is what survived that double-check — across all 213 features.</span>
+    </p>
+
+    <div class="scorebar" id="scorebar">
+      <div class="sb-prod" style="flex:28" title="Production: 28">28</div>
+      <div class="sb-func" style="flex:105" title="Functional: 105">105</div>
+      <div class="sb-part" style="flex:46" title="Partial: 46">46</div>
+      <div class="sb-stub" style="flex:22" title="Stub: 22">22</div>
+      <div class="sb-broke" style="flex:12" title="Broken: 12">12</div>
+    </div>
+    <div class="legend">
+      <span class="it"><span class="dot" style="background:var(--m-prod)"></span> Production <small>&nbsp;real, tested, used — 13%</small></span>
+      <span class="it"><span class="dot" style="background:var(--m-func)"></span> Functional <small>&nbsp;runs &amp; does the thing — 49%</small></span>
+      <span class="it"><span class="dot" style="background:var(--m-part)"></span> Partial <small>&nbsp;happy-path only — 22%</small></span>
+      <span class="it"><span class="dot" style="background:var(--m-stub)"></span> Stub <small>&nbsp;canned / not wired — 10%</small></span>
+      <span class="it"><span class="dot" style="background:var(--m-broke)"></span> Broken <small>&nbsp;cannot run — 6%</small></span>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat"><div class="num good">62%</div><div class="lbl">Production + Functional</div></div>
+      <div class="stat"><div class="num warn">~51</div><div class="lbl">SyntaxError source files</div></div>
+      <div class="stat"><div class="num">203</div><div class="lbl">Agents wired &amp; import-clean</div></div>
+      <div class="stat"><div class="num">42</div><div class="lbl">Functional-but-orphaned agents</div></div>
+      <div class="stat"><div class="num good">0</div><div class="lbl">Rust parity mismatches</div></div>
+      <div class="stat"><div class="num good">10 / 19</div><div class="lbl">Subsystems with genuine determinism <small style="color:var(--m-prod)">(was 1/19 — Track A fixed 9)</small></div></div>
+    </div>
+  </section>
+
+  <!-- DETERMINISM THEATER -->
+  <section>
+    <div class="eyebrow"><span class="n">02</span> &nbsp;The throughline finding</div>
+    <div class="feature">
+      <div class="kicker">Cross-cutting pattern · confirmed empirically in 11+ subsystems</div>
+      <h2>Determinism theater</h2>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:rgba(63,210,139,.1);border:1px solid rgba(63,210,139,.4);border-radius:3px;padding:11px 16px;margin:0 0 20px;font-family:var(--mono);font-size:12.5px;color:var(--m-prod)">
+        <b style="letter-spacing:.12em">✓ RESOLVED — TRACK A</b>
+        <span style="color:var(--txt-dim)">9 subsystems re-hashed <b style="color:var(--txt)">content-addressed</b> (wall-clock/uuid excluded, kept as metadata) · ~25 hash sites · reproducibility regression gates added · <b style="color:var(--txt)">647 tests green</b>, 0 residual wall-clock in any hash (independently verified).</span>
+      </div>
+      <p class="blockswap">
+        <span class="t">The platform's headline promise is <b>determinism</b> — the same input always produces the same output, provable by a SHA-256 hash. Nearly every subsystem brands itself "deterministic" and computes such a hash as proof. But those very hashes bake in <code style="font-family:var(--mono);color:var(--m-broke)">datetime.now()</code> and <code style="font-family:var(--mono);color:var(--m-broke)">uuid4()</code>, so they change on <em>every run</em>. The one component literally named <code style="font-family:var(--mono);color:var(--m-broke)">DeterministicClock</code> just returns wall-clock time — and it's the one wired into the live event fabric. The Rust core is the <b>only</b> subsystem where determinism is real, reproduced, and proven — and it documents this exact anti-pattern as a finding.</span>
+        <span class="p">The whole system is sold on one big promise: <b>"ask the same question twice, get the exact same answer."</b> It even prints a fingerprint to prove the answers match. The catch: that fingerprint secretly includes the current time and a random number, so it's different every single time — which means the proof proves nothing. The part actually named "Deterministic Clock" just reports the wall-clock time. The only piece that genuinely keeps the promise is the faster Rust engine — which, to its credit, openly flags this very problem.</span>
+      </p>
+      <div class="evidence">
+        <div class="row"><span class="who">pi_event_fabric ✓</span><span class="what"><s style="color:var(--txt-faint)">"DeterministicEventBus" event hashes derived from wall-clock</s> → fixed: content-addressed, genesis hole closed, 5 gates</span></div>
+        <div class="row"><span class="who">pi_agent_chain ✓</span><span class="what"><s style="color:var(--txt-faint)">state_hash changed every run (utcnow + random trace_id)</s> → fixed: reproducible across processes</span></div>
+        <div class="row"><span class="who">pi_interoperability_layer ✓</span><span class="what"><s style="color:var(--txt-faint)">DeterministicClock fed wall-clock into live hashes</s> → fixed: 7 identity hashes content-addressed; clock now metadata-only</span></div>
+        <div class="row"><span class="who">pi_semantic_diff / radius / validator ✓</span><span class="what"><s style="color:var(--txt-faint)">report_hash / policy_hash used uuid4 + now()</s> → fixed: content-derived, unsorted-set ordering sorted</span></div>
+        <div class="row"><span class="who">pi_console · connector_fabric · extension_governor ✓</span><span class="what"><s style="color:var(--txt-faint)">report/receipt/manifest hashes uuid- or timestamp-salted</s> → fixed</span></div>
+        <div class="row"><span class="who">rust-core ✓</span><span class="what">was already genuine — canonical JSON byte-matches CPython; clock injectable; reproducibility independently verified</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PILLARS -->
+  <section>
+    <div class="eyebrow"><span class="n">03</span> &nbsp;What it's built on</div>
+    <h2>The capability pillars</h2>
+    <p class="sec-intro blockswap">
+      <span class="t">Stripping away the branding, the platform stands on six load-bearing pillars. Their maturity varies sharply.</span>
+      <span class="p">Underneath the marketing, six things are doing the real work. Some are solid; some are mostly an idea with a label on it.</span>
+    </p>
+    <div id="pillars"></div>
+  </section>
+
+  <!-- STRENGTHS -->
+  <section>
+    <div class="eyebrow"><span class="n">04</span> &nbsp;Where it is genuinely strong</div>
+    <h2>Real, verified strengths</h2>
+    <p class="sec-intro blockswap">
+      <span class="t">These survived the adversarial re-check — independently reproduced from the source, not taken on the docstring's word.</span>
+      <span class="p">These are the parts that held up when a second reviewer actively tried to debunk them. They're the real assets.</span>
+    </p>
+    <div class="cards two" id="strengths"></div>
+  </section>
+
+  <!-- WEAKNESSES -->
+  <section>
+    <div class="eyebrow"><span class="n">05</span> &nbsp;Where it is weak</div>
+    <h2>Real weaknesses, ranked</h2>
+    <p class="sec-intro blockswap">
+      <span class="t">Severity reflects impact on the platform's stated value proposition and on anyone who trusts its output. <span class="chip hi">High</span> items undermine a headline claim or a security guarantee.</span>
+      <span class="p">Ranked by how much they hurt. <span class="chip hi">High</span> means a core promise or a safety guarantee isn't actually delivered.</span>
+    </p>
+    <div class="cards" id="weaknesses"></div>
+  </section>
+
+  <!-- CLAIMS VS REALITY -->
+  <section>
+    <div class="eyebrow"><span class="n">06</span> &nbsp;The honest centerpiece</div>
+    <h2>Claims &times; reality</h2>
+    <p class="sec-intro blockswap">
+      <span class="t">The recurring failure mode here is a confident name attached to thinner code. Left: what the name / docstring asserts. Right: what the code actually does, verified.</span>
+      <span class="p">The pattern that comes up again and again: an impressive name over a much smaller reality. Left is what it's called. Right is what it actually does.</span>
+    </p>
+    <div class="cvr" id="cvr">
+      <div class="head"><div class="c">The label claims…</div><div class="v">…the code actually</div></div>
+    </div>
+  </section>
+
+  <!-- SUBSYSTEM MATRIX -->
+  <section>
+    <div class="eyebrow"><span class="n">07</span> &nbsp;Subsystem by subsystem</div>
+    <h2>The full matrix</h2>
+    <p class="sec-intro blockswap">
+      <span class="t">All 19 audited subsystems. The mini-bar shows each one's own maturity distribution. Click any row for its purpose, standout strength &amp; weakness, and the verified verdict.</span>
+      <span class="p">Every part of the system, one row each. The little colored bar shows how healthy that part is. Click a row to expand the details.</span>
+    </p>
+    <div class="subs" id="subs"></div>
+  </section>
+
+  <!-- NEXT STEPS -->
+  <section>
+    <div class="eyebrow"><span class="n">08</span> &nbsp;Where to point next</div>
+    <h2>Highest-leverage moves</h2>
+    <p class="sec-intro blockswap">
+      <span class="t">Grounded in the findings above — each closes a specific verified gap. Ordered by leverage: how much truth-value or capability it buys per unit of effort. These are starting points for the conversation, not a committed roadmap.</span>
+      <span class="p">Ideas for what to do next, each one fixing a specific problem we found. Ordered by bang-for-buck. These are conversation starters, not a locked plan.</span>
+    </p>
+    <div class="steps" id="steps"></div>
+  </section>
+
+  <!-- METHOD -->
+  <div class="method">
+    <div class="box">
+      <h3>How this report was produced</h3>
+      <p class="blockswap">
+        <span class="t">Nineteen subsystem auditors read the real source in parallel and rated every capability; nineteen <em>adversarial</em> reality-checkers then tried to refute each "production"/"functional" claim and each strength, reading the cited <code>file:line</code> evidence and reproducing behavior where possible (38 agents, ~4M tokens, ~1,100 tool calls). Where a verifier marked a claim "overstated," this report follows the reality, not the original claim. Findings were synthesized against the live tree at <code>HEAD</code>.</span>
+        <span class="p">Nineteen reviewers read the code in parallel and graded every feature. Then nineteen <em>skeptics</em> tried to disprove each grade by re-reading the exact lines and re-running the behavior. When the skeptic won, this report sides with the skeptic. So what you're reading is the conservative, double-checked version.</span>
+      </p>
+      <p class="t-only" style="color:var(--txt-faint);font-family:var(--mono);font-size:12px">This is an honest internal assessment — it deliberately surfaces gaps the marketing names hide. Numbers are exact where reproduced; a few counts (e.g. 51 vs 57 broken files) vary by counting method and are noted as ranges.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.documentElement.classList.add('js');
+  function setMode(m){
+    document.documentElement.classList.toggle('plain', m==='plain');
+    document.getElementById('btn-tech').classList.toggle('on', m==='tech');
+    document.getElementById('btn-plain').classList.toggle('on', m==='plain');
+  }
+
+  /* ---- PILLARS ---- */
+  const pillars = [
+    {n:'01', name:'Deterministic micro-agent fleet', mat:'part',
+     t:'~296 single-purpose scanners, ~203 wired and import-clean — overwhelmingly Solidity/Web3 static analyzers with genuine regex + brace-matching logic. This is the real product. But ~51 are SyntaxError-corrupted and ~42 functional ones are orphaned (not callable).',
+     p:'Hundreds of small specialist checkers, mostly for crypto smart-contracts, and the good ones do real work. This is the actual product. But about 51 are broken files and 42 working ones aren’t even plugged in.'},
+    {n:'02', name:'Orchestration & "consensus"', mat:'part',
+     t:'A working goal→route→chain→ledger pipeline (30 tests pass), with real safety shields. But the "triplicate consensus" runs the same deterministic agent 3× on trivially perturbed input, so all 3 verdicts are always identical — the vote carries no signal.',
+     p:'The brain that picks and runs the right checkers actually works. But its "three independent opinions" safety check is fake — it asks the same checker the same question three times, so it always agrees with itself.'},
+    {n:'03', name:'Governance & verification stack', mat:'func',
+     t:'A genuinely substantial layered stack — provenance closure, replay-equivalence, auth-consistency, FSM extraction, semantic quorum, entropy, a fail-closed governance compiler. Much of it is real and tested; the determinism guarantees on top are not.',
+     p:'A serious set of rule-checkers that decide whether work is trustworthy before it’s accepted. The machinery is real; the "guaranteed reproducible" promise stamped on it is not.'},
+    {n:'04', name:'Append-only ledgers & audit trails', mat:'func',
+     t:'SQLite with DB-level BEFORE UPDATE/DELETE triggers that genuinely abort mutation (verified across pi_production, pi_runtime, pi_agent_interceptor, pi_agent_chain). The append-only property is real; the "cryptographic chain" on top is usually computed but never verified.',
+     p:'Tamper-proof logbooks that physically refuse to be edited or deleted — that part genuinely works. The extra "cryptographic seal" on each page is written down but never actually checked.'},
+    {n:'05', name:'Console & operator UI', mat:'part',
+     t:'FastAPI backend + Next.js console. Core read flows (simulate/submit, capabilities, audit, ledger summary) are wired to real routes with honest server-side SQL. But default DB-path mismatches silently disconnect replay/quota/ledger, and several UI panels are decorative theater.',
+     p:'A control-panel website. The main screens show real data. But several "live security" widgets are fake (hardcoded green check-marks, random blinking lights), and some features silently look at the wrong database.'},
+    {n:'06', name:'Rust deterministic core', mat:'prod',
+     t:'205 agents ported and parity-verified against Python byte-for-byte (2,145 curated + 100K+ fuzz comparisons, 0 mismatches), ~5× faster on multi-core via GIL release. The one subsystem where the impressive claims are actually true — still a sidecar, not yet load-bearing.',
+     p:'A second, much faster engine that produces provably identical answers to the original — checked over 100,000 times with zero disagreements, and about 5× quicker. It’s the most honest part of the whole project, but not yet switched on for real traffic.'},
+  ];
+  document.getElementById('pillars').innerHTML = pillars.map(p=>`
+    <div class="pillar reveal">
+      <div class="idx">${p.n}</div>
+      <div><h3>${p.name}</h3><p class="blockswap"><span class="t">${p.t}</span><span class="p">${p.p}</span></p></div>
+      <span class="chip ${p.mat}">${({prod:'Production',func:'Functional',part:'Mixed',stub:'Stub',broke:'Broken'})[p.mat]}</span>
+    </div>`).join('');
+
+  /* ---- STRENGTHS ---- */
+  const strengths = [
+    {h:'The Solidity scanner library is real work', t:'~90 Web3/smart-contract analyzers do genuine static analysis — brace-matched function extraction, checks-effects-interactions ordering, access-control, flash-loan/slippage/delegatecall patterns. 203 modules import cleanly; 58 test files exercise them.', p:'The core crypto-contract checkers genuinely analyze code, not just pretend to. Hundreds of them load correctly and are covered by real tests.', ev:'pi_reentrancy_sentry.py:47–83 · __init__.py (203 modules, 0 import failures)'},
+    {h:'The Rust core is rigorously proven', t:'Cross-language byte-equivalence is the gate, not "it compiles": 2,145 curated parity tests + 102,500 + 8,500 + 300 fuzz comparisons, all 0 mismatches; ~5.2–5.6× concurrent speedup independently reproduced on a 10-core machine.', p:'The faster engine was checked against the original over 100,000 times with zero differences, and the 5× speed-up was independently re-measured. This is gold-standard verification.', ev:'rust/parity/* · concurrency_benchmark.py · 792 cargo tests'},
+    {h:'Append-only storage is physically enforced', t:'DB-level BEFORE UPDATE/DELETE triggers RAISE(ABORT) on protected tables — mutation is blocked at the SQLite layer, not just in app code, and the blocking is tested.', p:'The logbooks can’t be secretly edited because the database itself refuses — and tests confirm it.', ev:'engine.py:212–249 · test_mutation_*_blocked'},
+    {h:'The governance compiler is a standout', t:'A restricted condition DSL over a whitelisted field set, explicit regex rejection, fail-closed default-DENY, priority-ordered with a terminal DENY — a genuinely safe, deterministic policy engine.', p:'The rule that decides "allow or block" is built the safe way: if anything is unclear, it blocks. No loopholes.', ev:'pi_event_fabric/governance/compiler.py:148–379'},
+    {h:'Fail-closed safety primitives where wired', t:'Real, tested defenses in the interceptor & production layers: SSRF host-allowlist, AST screening of proposed code, prompt-injection regex, constant-time JWT/HMAC, secret-file permission enforcement that refuses world-readable files.', p:'The actual security guards — blocking sketchy network calls, dangerous code, and tampered requests — are real and tested, where they’re actually connected.', ev:'pi_agent_interceptor/proxy.py:62–193, 384–430 · pi_production/security/auth.py'},
+    {h:'Disciplined typed boundaries & a strong test floor', t:'Frozen Pydantic models with Literal-constrained fields and schema-validated I/O envelopes throughout; ~1,192 of 1,196 Python tests pass locally, plus 792 Rust and 60 conformance tests. The functional core is not untested scaffolding.', p:'Data crossing between parts is strictly type-checked, and almost all of the ~1,200 automated tests pass. The working core really is tested.', ev:'models.py (frozen) · 1192/1196 pytest · 792 cargo'},
+  ];
+  document.getElementById('strengths').innerHTML = strengths.map(s=>`
+    <div class="card reveal">
+      <h3>${s.h}</h3>
+      <p class="blockswap"><span class="t">${s.t}</span><span class="p">${s.p}</span></p>
+      <span class="ev">${s.ev}</span>
+    </div>`).join('');
+
+  /* ---- WEAKNESSES ---- */
+  const weaknesses = [
+    {sev:'hi', h:'"Deterministic" is false almost everywhere', t:'The platform’s headline guarantee is unmet outside the Rust core: wall-clock + uuid4 are folded into the SHA-256 hashes sold as reproducibility proof, in pi_event_fabric, pi_agent_chain, pi_interoperability_layer, pi_console, pi_semantic_diff/radius/validator, pi_connector_fabric, pi_extension_governor and more. No determinism regression test guards the central claim.', p:'The #1 selling point — "same input, same answer, provably" — isn’t true except in the Rust engine. The fingerprints that are supposed to prove it secretly change every run.'},
+    {sev:'hi', h:'The "consensus" gate is theater', t:'run_with_consensus runs the SAME deterministic agent 3× on inputs perturbed by a leading space or ×1.0001, so verdicts are always identical and the 2-of-3 majority adds zero signal. A mock_consensus_runs context backdoor lets callers inject canned outputs that bypass agent execution — and many integration tests rely on it, so they validate fixtures, not behavior.', p:'The "three independent opinions" safety check asks one checker the same thing three times — of course it always agrees. Worse, there’s a back door to feed in fake answers, and a lot of the tests use it, so they’re testing make-believe.'},
+    {sev:'hi', h:'~51 source files are SyntaxError-corrupted', t:'~17–19% of the micro-agent files are stored as a single escaped string literal and cannot be imported. Five orchestrator modules advertised as features — planner, replay, stream_bus, telemetry, chain_cache — are dead-broken. They also poison the coverage gate and the mypy CI job.', p:'Roughly one in six checker files is garbled and won’t run at all, including five named "features" of the brain. They also break the automated quality gates.'},
+    {sev:'hi', h:'Large amounts of good code are unwired', t:'Polished, tested code that does nothing in the running system: pi_production’s v1 REST API, RBAC, and telemetry are never mounted/called; the orchestrator’s retry/circuit-breaker, checkpoint/resume, and governance kernel are never invoked; pi_semantic_diff/radius/validator and pi_connector_fabric are imported by nothing but their own tests.', p:'A lot of nicely-built features are sitting in a drawer — written, tested, but never actually plugged in. Access control, the production API, retry logic, and several whole modules do nothing in the live system.'},
+    {sev:'hi', h:'Fake integrations masquerade as live', t:'The entire GCP/Vertex/BigQuery category is both SyntaxError-broken and mock; the "Needle" 26M-param local LLM is an 11.6MB file of repeating "MOCK_NEEDLE_SAN_WEIGHTS_INT4" text (engine=None); pi_connector_fabric’s 7 "connectors" make zero external calls (dict transformers); the interceptor’s command/file-edit endpoints only print success strings.', p:'Several "connects to X" features connect to nothing. The cloud integrations are broken placeholders, the "local AI model" file is just the words MOCK repeated, the infrastructure connectors don’t reach out anywhere, and the "run this command safely" endpoints just print "done."'},
+    {sev:'hi', h:'WARN-mode lies-as-safe <span style="color:var(--m-prod);font-family:var(--mono);font-size:11px">✓ Track B — reassessed + centralized</span>', t:'~170 scanners set is_secure = True after detecting a vulnerability (keeping the findings) whenever strict mode is off. Track B finding: strict mode DEFAULTS to True (fail-closed) and findings are always populated regardless of mode, so this is an opt-in advisory mode, not insecure-by-default — less severe than first read. The ~205 duplicated resolvers (each independently reading ~/.antigravitycli/config.json) were centralized into one documented safe-default module; is_secure was deliberately NOT flipped (it would break the advisory feature + ~dozens of tests).', p:'On closer look this is less dangerous than it seemed: by default the scanners are strict (fail-closed), and the flaw is always listed in the findings — only an explicit opt-in "advisory" mode relabels it. We consolidated the 205 copies of the mode-resolver into one safe place rather than risk breaking the feature.'},
+    {sev:'med', h:'CI is largely red or decorative <span style="color:var(--m-prod);font-family:var(--mono);font-size:11px">✓ Track B — green</span>', t:'Was: mypy died on the first broken file; the coverage gate (60%) was unmeetable (41%, scoping --cov=src to tests/unit only); 3 committed integration tests failed. Track B: integration suite green (499 — the 3 failures were real detector bugs from scrubbed fixtures); coverage now measured across the full suite (78.6%); mypy config-fixed (no longer crashes) and run advisory with ruff as the enforced gate. The 404 pi-semantic-governance.yml is untracked → never ran on remote. Remaining: 8 "assert True" stub tests (cosmetic).', p:'The guard checks are now passing honestly: the test suites are green, coverage is measured properly (~78%), and the type-checker no longer crashes. The "broken workflow" was never actually live. A few placeholder "tests" remain but they don’t block anything.'},
+    {sev:'med', h:'Console data-plane is silently disconnected', t:'Routers each construct their own adapter/ledger at import with mismatched default DB paths (PI_LEDGER_DB_PATH vs PI_STATE_LEDGER_PATH; :memory: per-connection), so replay, quota, ledger reads, and transparency endpoints don’t see the data that submit writes — features look built but return empty/zero by default.', p:'Different parts of the website quietly look at different (or empty) databases, so replay, quotas, and logs appear to work but show nothing real out of the box.'},
+    {sev:'med', h:'Frontend assurance theater', t:'AST-Shield "PASSED" badges are hardcoded markup; the "Consensus Cluster" is Math.random() animation on a timer; the touted AbortController fetch-cancellation never threads its signal into any fetch; the "Security Copilot" calls a backend that ignores the message and returns a fixed demo node. Zero frontend tests.', p:'The UI shows fake reassurance: green "PASSED" security badges that read no data, blinking "cluster" lights that are just random, and a "security chatbot" that ignores what you type. None of it is tested.'},
+    {sev:'med', h:'Security boundaries are softer than advertised', t:'The extension-governor "sandbox" is a restricted-builtins exec() trivially escapable to the host filesystem; its "CPU limit" is a whole-second wall-clock alarm; "cryptographic chains" are computed but never verified; chain-integrity verification skips the genesis event, so a tampered first event still passes.', p:'The "safe sandbox" for running untrusted code can be broken out of; the tamper-seals are never actually inspected; and the integrity check has a blind spot on the very first entry.'},
+    {sev:'lo', h:'Portability & hygiene rot', t:'Hardcoded absolute /Users/clubpenguin/… paths in core.py and pi_agent_registry break on any other checkout; an 800-line if/elif consensus ladder must be hand-edited per agent; O(n²) provenance scans; magic-number scoring weights with no rationale; stale in-code counts (router comment says 36 agents; file has 243).', p:'Smaller rough edges: paths hard-coded to one laptop, copy-paste sprawl that’s painful to extend, and a few performance and documentation potholes.'},
+  ];
+  document.getElementById('weaknesses').innerHTML = weaknesses.map(w=>`
+    <div class="card reveal">
+      <h3>${w.h} <span class="chip ${w.sev}" style="vertical-align:middle;margin-left:4px">${({hi:'High',med:'Medium',lo:'Low'})[w.sev]}</span></h3>
+      <p class="blockswap"><span class="t">${w.t}</span><span class="p">${w.p}</span></p>
+    </div>`).join('');
+
+  /* ---- CLAIMS VS REALITY ---- */
+  const cvr = [
+    {c:'"Deterministic Semantic Execution Kernel"', r:'Hashes fold in wall-clock + uuid4; output is non-reproducible across runs everywhere except the Rust core.'},
+    {c:'"Triplicate consensus — 3 independent runs"', r:'Same deterministic agent, input perturbed by a space or ×1.0001; all 3 verdicts always identical.'},
+    {c:'DeterministicClock', r:'Returns datetime.now(); the inverse of its name — and it’s the one clock wired into the live event fabric.'},
+    {c:'"Needle SAN — 26M-param int4 local LLM, ~1.5ms"', r:'An 11.6 MB file of repeating "MOCK_NEEDLE_SAN_WEIGHTS_INT4" ASCII; the engine is set to None and never invoked.'},
+    {c:'"Connectors to K8s / AWS IAM / Docker / Postgres"', r:'Dict transformers — zero external SDK calls; nothing ever contacts an external system.'},
+    {c:'"Production hardening" (RBAC, v1 API, TLS, deploy)', r:'RBAC never called; v1 API never mounted; TLS is a docstring line; deployment is a 55-byte empty file.'},
+    {c:'"Tamper-proof cryptographically-chained ledger"', r:'The hash chain is computed but never verified; tamper-evidence rests entirely on SQLite triggers.'},
+    {c:'"Autonomous Research Director" / "ethical-drift" / "swarm-health"', r:'5-line regex keyword matchers; the research director returns canned strings with a non-deterministic id.'},
+    {c:'IDE_RE_Skill "orchestrates discovery + agent execution"', r:'run() executes zero agents (a swallowed TypeError); risk_score is hardcoded to 42.0; findings are [].'},
+    {c:'Frontend "AST Shield PASSED" / "Live Consensus Cluster"', r:'Hardcoded green markup / Math.random() animation; neither reads any backend data.'},
+    {c:'Rust core — "parity-verified, ~5× concurrent"', r:'✓ True. 100K+ fuzz comparisons, 0 mismatches; 5.2–5.6× reproduced. The one claim that matches reality.'},
+  ];
+  document.getElementById('cvr').insertAdjacentHTML('beforeend', cvr.map(x=>`
+    <div class="r"><div class="claim"><span class="q">${x.c}</span></div><div class="real">${x.r}</div></div>`).join(''));
+
+  /* ---- SUBSYSTEMS ---- */
+  const M = (d)=>{const tot=d.pr+d.f+d.p+d.s+d.b||1;const seg=(n,c)=>n?`<i style="flex:${n};background:${c}"></i>`:'';
+    return `<div class="minibar" title="prod ${d.pr} / func ${d.f} / partial ${d.p} / stub ${d.s} / broken ${d.b}">${seg(d.pr,'var(--m-prod)')}${seg(d.f,'var(--m-func)')}${seg(d.p,'var(--m-part)')}${seg(d.s,'var(--m-stub)')}${seg(d.b,'var(--m-broke)')}</div>`};
+  const subs = [
+    {id:'pi_micro_agents/orchestrator', tag:'~6K LOC · 30 tests', d:{pr:0,f:9,p:2,s:2,b:2},
+      v1t:'A working single/multi-agent happy path wrapped around theater.', v1p:'The brain works — wrapped in fake safety checks and dead modules.',
+      pur:'The execution brain: safety-screen a goal, route it to a chain of micro-agents, run each through the "consensus" gate, log to the ledger.',
+      s:'Real end-to-end goal→route→chain→ledger pipeline (30 tests); careful inter-step parameter mapping; shields applied at every step.',
+      w:'Consensus is no-op theater; the Needle LLM is fake; 5 modules are SyntaxError-dead; 33 "playbook" agents crash on route ("Unknown agent").',
+      vf:'A genuinely-working, tested core surrounded by fake Needle LLM, no-op consensus, wall-clock "determinism," 5 dead modules, and ~34 crash-on-route stubs.'},
+    {id:'pi_micro_agents (agent library)', tag:'~34K LOC · ~296 files', d:{pr:1,f:3,p:2,s:2,b:1},
+      v1t:'A real Solidity-analysis library inside a large dead zone.', v1p:'The genuine product — surrounded by broken and fake files.',
+      pur:'~296 single-purpose micro-agents — overwhelmingly Solidity/Web3 scanners, plus linters, validators, and (broken) GCP shims.',
+      s:'~90 real smart-contract analyzers with genuine logic; 203 modules import cleanly; consistent typed Input/Output envelopes; 58 test files.',
+      w:'51 SyntaxError-broken files; the whole GCP category is broken + mock; ~170 scanners flip is_secure=True after finding a flaw; 42 functional agents orphaned.',
+      vf:'A genuinely-working Solidity-static-analysis library wrapped around a large dead zone of corrupted files, mock GCP shims, and an is_secure footgun that lies-as-safe off strict mode.'},
+    {id:'pi_agent_chain', tag:'~9K LOC · 80 tests', d:{pr:1,f:13,p:3,s:1,b:0},
+      v1t:'Substantial real verification machinery; the two headline claims are false.', v1p:'A serious, well-tested engine — but its big promises don’t hold.',
+      pur:'A governed DAG turning captured HTTP traffic into a verified OpenAPI spec, recording every node boundary in an append-only ledger.',
+      s:'~9K coherent lines, 80 passing tests; real provenance/replay/auth/quorum/entropy validators; honest under-claims in places; fail-closed posture is real.',
+      w:'The "deterministic" state/replay hashes change every run (utcnow); two central gates (objective-scope, schema content) are effectively no-ops; the hook bus & property verifier are stubs.',
+      vf:'A substantial, well-tested governed DAG with real verification machinery — but "deterministic" replay hashes change every run and two central gates are no-ops.'},
+    {id:'pi_interoperability_layer', tag:'~11K LOC · 194 tests', d:{pr:3,f:9,p:2,s:0,b:0},
+      v1t:'Real, broad, fully-tested — but "deterministic" branding is provably false.', v1p:'Big and well-tested, with solid pieces — and a false "deterministic" label.',
+      pur:'Governed extension/capability interoperability: artifact contracts, a capability registry + compatibility graph, a replay ledger, a worker mesh, a marketplace.',
+      s:'194 passing tests; ToolSchemaStore is genuinely production-grade (WAL SQLite, thread-safe); defensive workers, blast-radius graph, and Notte client are real; many docstrings honestly disclaim "not AI".',
+      w:'Wall-clock baked into "deterministic" ledger/clock hashes; the mesh kernel silently passes empty data between phases; "anti-spawn" guards are inert; chain-integrity check doesn’t verify the chain.',
+      vf:'Real, broad, fully-tested code with genuinely solid pieces — but the "deterministic" branding is false, the headline mesh passes empty data, and the misnamed DeterministicClock is the one wired into the live fabric.'},
+    {id:'pi_event_fabric', tag:'~3K LOC · 66 tests', d:{pr:0,f:8,p:2,s:0,b:1},
+      v1t:'Deterministic islands bolted onto a non-deterministic core.', v1p:'Some genuinely solid parts — around a core whose name is a lie.',
+      pur:'The namesake "event bus": a SQLite append-only hash-chained event store plus schema evolution, cross-version replay, shard ordering, and a governance compiler.',
+      s:'Governance compiler, schema-migration BFS, and shard-merge ordering are real and well-tested (66 tests); the append path is transactional + thread-safe.',
+      w:'"DeterministicEventBus" hashes are wall-clock-derived; default :memory: wiring is dead-on-arrival; chain-integrity skips the genesis event; "distributed" is single-process.',
+      vf:'A handful of genuinely-deterministic, tested islands (governance compiler, schema BFS, shard ordering) bolted onto an event-bus core whose headline determinism is false and whose default wiring crashes on first write.'},
+    {id:'pi_console (backend)', tag:'~3.7K LOC', d:{pr:1,f:5,p:4,s:2,b:0},
+      v1t:'A solid, security-conscious boundary; most read features are decorative by default.', v1p:'A well-built front door — but most of its readouts show nothing out of the box.',
+      pur:'A FastAPI backend: accepts typed composition DAGs, simulates/submits them to the orchestrator, tracks tenant quotas, writes audit logs, exposes read endpoints.',
+      s:'Excellent reverse-chunked JSONL audit reader; real DFS cycle-detection & bounds in simulate; disciplined frozen-Pydantic typing; tenant-id validation, IDOR checks, parameterized SQL.',
+      w:'report_hash is uuid-salted; the depth-bound check follows only the first child; replay/quota/ledger/transparency point at different default DBs and silently see no data; translate-chat does no NLP.',
+      vf:'A well-typed, security-conscious boundary with one genuinely solid piece (the audit store) — but its "deterministic" hashes are false and most read features are broken/decorative by default due to instance fragmentation and mismatched DB paths.'},
+    {id:'pi_production', tag:'~1.6K LOC · 60 tests', d:{pr:0,f:4,p:4,s:4,b:0},
+      v1t:'Real isolated primitives; only JWT + signing are actually wired in.', v1p:'Good building blocks — but most "hardening" isn’t plugged into the live app.',
+      pur:'A "production hardening" layer: JWT auth, request signing, RBAC, rate limiting, append-only storage, audit logging, telemetry, and a v1 REST API.',
+      s:'JWT/HMAC crypto is correct & constant-time; storage triggers genuinely block mutation; secret-file permission enforcement is real fail-closed; 60 conformance tests pass.',
+      w:'RBAC is dead code; the entire v1 API is never mounted; JWT is off by default; the audit chain has no verifier; TLS & deployment are vapor (a docstring and an empty file).',
+      vf:'A well-tested library of isolated security/storage/telemetry primitives, of which only JWT and request-signing are actually wired into the running app — the heavily-praised storage, telemetry, and v1 API are disconnected; deployment/TLS are vapor.'},
+    {id:'pi_semantic_validator', tag:'~2.4K LOC · 36 tests', d:{pr:1,f:8,p:1,s:0,b:1},
+      v1t:'A clean rule-matching CI gate that markedly overstates determinism.', v1p:'A tidy, working policy checker — with a false "reproducible" claim and a dead branch.',
+      pur:'A deterministic policy-driven governance gate: runs five rule-matching passes over recon/diff artifacts to emit PASS/FAIL for CI/CD gating.',
+      s:'Pure rule-matching, no LLM; genuinely fail-closed in many places; custom bounded glob matcher; per-pass exception isolation; 36 tests pass.',
+      w:'The FSM blast-radius branch is dead (calls methods that don’t exist → AttributeError → spurious FAIL); full-report determinism is broken (uuid4 + now, even policy_hash); replay-prohibition over-fires on safe GETs.',
+      vf:'A clean, dependency-free rule-matching gate whose core passes mostly work, but it overstates determinism (even policy_hash is wall-clock-contaminated), its FSM branch is dead, and several rules are unreachable.'},
+    {id:'pi_semantic_diff', tag:'~1K LOC · 11 tests', d:{pr:0,f:5,p:3,s:1,b:0},
+      v1t:'A small real diff engine whose determinism & evidence branding are aspirational.', v1p:'A genuine little comparison tool — plugged into nothing, with a false "reproducible" label.',
+      pur:'A pure-Python diff engine comparing two semantic snapshots (endpoints, dependency graph, auth invariants) into a structured change report.',
+      s:'Genuinely inference-free dict/set comparison; frozen immutable models; bounded traversal consistently threaded; 11 tests pass incl. a cross-runtime integration test.',
+      w:'report_hash changes every run (random id + unsorted iteration); the entire violations framework is dead; several advertised delta types/fields are never emitted; wired into nothing but its own tests.',
+      vf:'A small, real, well-tested set/dict diff engine whose determinism, evidence-binding, and "contract-drift" branding are aspirational — report_hash changes every run and the violations framework is 100% unused.'},
+    {id:'pi_semantic_radius', tag:'~1.1K LOC · 14 tests', d:{pr:3,f:3,p:2,s:0,b:0},
+      v1t:'A real, deterministic core math engine under an overstated top-level runtime.', v1p:'The core calculation is solid; the wrapper around it oversells and discards results.',
+      pur:'A toolkit bounding the "blast radius" of changes to a service-topology graph, plus a bolted-on LLM consensus-divergence scorer and a spec-fuzzer.',
+      s:'Topology primitives (fanout/depth/reachability) are deterministic, cycle-safe, and verified byte-identical across runs; PiConsensusBreaker is the live scorer behind the orchestrator’s consensus gate.',
+      w:'Top-level RiskReport.report_hash is non-deterministic (uuid4 + now); the 5 passes’ results are computed then discarded; 4 of 9 limits are inert; the "chaos" fuzzer never fires; the consensus scorer is lexical, not semantic.',
+      vf:'The core blast-radius engine is real, deterministic, cycle-safe and tested — but the top-level report hash is non-deterministic, the 5 passes are computed then discarded, and the bolted-on fuzzer/consensus pieces are inert or lexical.'},
+    {id:'pi_runtime', tag:'~2.1K LOC · 25 tests', d:{pr:3,f:5,p:5,s:2,b:1},
+      v1t:'A real ledger/router core; the entire stealth-browser stack is unwired.', v1p:'Half of it is solid and tested; the flashy browser-automation half doesn’t run.',
+      pur:'A grab-bag "runtime layer": a tested append-only ledger + deterministic model-router, plus a largely-unwired stealth-browser automation stack.',
+      s:'The ledger/router/registry/tracker core is genuinely real and tested (25 tests); rare candor in docstrings ("thresholds unmeasured"); real path-traversal guard; a real snapshot-pruning algorithm.',
+      w:'The whole stealth-browser stack is unwired & dependency-missing; "Camoufox" just launches plain Firefox; evidence_hash never hashes a real artifact; undeclared deps (requests, playwright, browser_use).',
+      vf:'The ledger/router/registry/tracker core is genuinely real and 25 tests pass, while the entire stealth-browser stack is unwired, dependency-missing, and partly dead code.'},
+    {id:'pi_connector_fabric', tag:'~2.8K LOC · 55 tests', d:{pr:1,f:7,p:1,s:1,b:0},
+      v1t:'Honest-at-the-artifact-level normalization; NOT a live connector fabric.', v1p:'A real data-tidying & mapping library — but it doesn’t actually connect to anything.',
+      pur:'Normalizes pre-fetched infra data (K8s/Terraform/Docker/AWS-IAM/…) into hashed artifacts, builds a cross-system topology graph, with a connector marketplace.',
+      s:'Artifact hashing is honestly deterministic (excludes wall-clock); 55 passing tests; topology BFS/shortest-path algorithms are real; governance is genuinely fail-closed.',
+      w:'The 7 "connectors" make zero external calls (dict transformers); receipt_hash is non-reproducible (timestamps); the read-only fence is dead code; "signatures" are keyless hashes; unwired into the platform.',
+      vf:'A well-tested, honestly-deterministic-at-the-artifact-level normalization/topology library — but it is NOT a live connector fabric (zero external integrations), its receipts/signatures are theater, and it is essentially unwired.'},
+    {id:'pi_extension_governor', tag:'~1.6K LOC · 36 tests', d:{pr:3,f:4,p:2,s:0,b:0},
+      v1t:'A real, wired admission pipeline whose "sandbox" is trivially escapable.', v1p:'A genuinely-connected gatekeeper — but its "safe sandbox" isn’t actually safe.',
+      pur:'A deterministic admission gate that inspects, sandbox-executes, policy-checks, and trust-zones external Python extensions before they enter the mesh.',
+      s:'Genuinely wired (used by the interop catalog pipeline); 36 tests pass; hashing/policy/trust-zone logic is correct; the trust-zone invariant (experimental can never gain authority) is real.',
+      w:'The "sandbox" is restricted-builtins exec(), trivially escapable to the host FS; the "CPU limit" is a whole-second wall-clock alarm; determinism/replay scores are computed but never gate admission; now()-seeded manifest hashes.',
+      vf:'A real, fully-wired, 36-test deterministic admission pipeline whose hashing/policy/trust-zone pieces work — but whose central "sandbox" is trivially escapable and whose determinism story is undermined by now()-seeded hashes.'},
+    {id:'pi_agent_interceptor', tag:'~1K LOC · 4 tests', d:{pr:2,f:7,p:3,s:2,b:0},
+      v1t:'A real safety-gate core that gates actions it only simulates.', v1p:'The guards are real — but it guards actions it never actually performs.',
+      pur:'A reverse-proxy between CLI coding agents and LLM endpoints: risk-scores traffic, gates with human-in-the-loop, logs to an append-only ledger.',
+      s:'Fail-closed operator auth, SSRF host-allowlist, substantive AST screen, real injection shield, and SQLite immutability triggers — all tested (4/4 green); the approval race is genuinely guarded.',
+      w:'Both "execution" endpoints are stubs (print success, never run/write anything); the "cryptographic chain" is computed but never verified; surplus-token minting is broken by a key-format mismatch; in-memory state breaks under multi-worker.',
+      vf:'The safety-gate core (auth, SSRF, AST, immutability, injection) is genuinely real and tested — but the subsystem gates actions it only simulates, its "cryptographic chain" is never verified, and its surplus marketplace is broken end-to-end.'},
+    {id:'pi_ide_re', tag:'~1.5K LOC · 0 tests', d:{pr:0,f:4,p:2,s:0,b:2},
+      v1t:'A real discovery + export layer around a flagship that runs zero agents.', v1p:'Finding IDEs and writing notes works; the headline "analysis" does nothing.',
+      pur:'A "reverse-engineering skill": discovers running AI IDEs on macOS, picks micro-agents to run against them, emits Obsidian notes + a knowledge graph.',
+      s:'Discovery is genuinely real (parses live ps aux, validates paths, extracts ports); the Obsidian/graph export pipeline is solid and runs; referenced agent classes all exist.',
+      w:'The flagship run() executes zero agents (a guaranteed-swallowed TypeError); risk_score is hardcoded 42.0 and findings are []; the query REPL is import-broken; no tests; wall-clock "determinism".',
+      vf:'A genuinely-real discovery layer plus a solid Obsidian/graph pipeline wrapped around a flagship run() that executes zero agents, fabricates risk_score=42.0, and ships a broken REPL.'},
+    {id:'misc (registry, contract-validator)', tag:'~0.2K LOC · 0 tests', d:{pr:0,f:1,p:2,s:2,b:1},
+      v1t:'Peripheral leftovers — import-broken, duplicated, wired to nothing.', v1p:'Small abandoned bits: one won’t even load, the other is a copy-paste.',
+      pur:'Two small leftovers: a "governed" agent registry, and a duplicated OpenAPI "contract validator".',
+      s:'The AgentMetadata schema itself is a reasonable governance data model; correctly identified as leftovers next to the real pi_semantic_validator.',
+      w:'The registry is import-broken on the declared Python 3.9 floor (PEP 604 syntax); the validator is a naive substring matcher (“paths” matches “footpaths”); a byte-identical duplicate; hardcoded absolute path; zero integration.',
+      vf:'The registry is import-broken on the declared Python floor, both validator copies are byte-identical dead code, and the "validator" is a false-positive-prone substring matcher wired to nothing.'},
+    {id:'rust-core', tag:'205 agents · 792 tests', d:{pr:6,f:3,p:0,s:0,b:0},
+      v1t:'Unusually honest: a rigorously parity-verified, genuinely faster sidecar.', v1p:'The standout — a faster engine that’s provably identical to the original.',
+      pur:'A Rust re-implementation of the deterministic compute core (205 agents + event bus + governance/schema cores), exposed to Python via PyO3, gated by a byte-equivalence harness.',
+      s:'Equivalence is the gate: 2,145 curated + 100K+ fuzz comparisons, 0 mismatches; ~5× concurrent speedup independently reproduced; canonical-JSON byte-matches CPython; zero stubs; honest, specific scoping.',
+      w:'Partial coverage (205 of 299 files; excludes the 51 broken + niche non-deterministic ones); pyutil::strip & NaN/Inf float repr are simplifications; CI runs cargo test but not the cross-language parity harness (the .so isn’t rebuilt in CI).',
+      vf:'An unusually honest subsystem: a rigorously parity-verified, genuinely faster (multi-core ~5×) Rust sidecar whose strong claims independently reproduced — still a sidecar, not yet load-bearing, with a few documented scope gaps.'},
+    {id:'frontend (Next.js console)', tag:'7 components · 0 tests', d:{pr:0,f:5,p:4,s:3,b:0},
+      v1t:'A solid data-display shell wrapped in overstated assurance theater.', v1p:'The real screens work; the "security" widgets are decoration.',
+      pur:'A Next.js console: build/simulate/submit compositions, chat-to-compose, browse the registry, inspect quota, drill into the ledger.',
+      s:'Core read flows are genuinely wired to real FastAPI routes; ledger KPIs are honest server-side SQL aggregations; real nonce-based CSP + hardening headers; user-safe error handling.',
+      w:'AST-Shield "PASSED" badges & the "Consensus Cluster" are hardcoded/Math.random() theater; the touted AbortController cancellation never threads its signal into fetch; the "Security Copilot" is a no-NLP stub; zero tests.',
+      vf:'The core read flows are genuinely wired with honest SQL aggregation — but the UI inflates its security/intelligence story: the fetch-cancellation does nothing, the copilot is a stub, and the shield gates & consensus cluster are cosmetic. Zero tests.'},
+    {id:'tests + CI', tag:'1,196 tests · 7 workflows', d:{pr:3,f:2,p:2,s:0,b:3},
+      v1t:'The local suite is substantive; the CI config is partly red, partly decorative.', v1p:'Most tests genuinely pass; the automated gates are mostly broken or fake.',
+      pur:'The Python test suite + GitHub Actions workflows meant to verify behavior and gate merges.',
+      s:'1,192/1,196 local tests pass and mostly exercise real code; the production-hardening conformance suite (60 tests) and console boundary tests are genuinely strong; Rust CI is real and green; mocks used narrowly & legitimately.',
+      w:'The mypy job dies on the first broken file; the coverage gate (60%) is unmeetable (41%); the semantic-governance workflow installs PyPI packages that all 404; 3 committed integration tests fail; 8 "assert True" stub tests.',
+      vf:'The local suite is mostly green and substantive, but the CI config is partly red (mypy dies on broken files; coverage gate unmeetable; a whole merge-gate workflow 404s) and partly decorative (8 assert-True stubs).'},
+  ];
+  document.getElementById('subs').innerHTML = subs.map(x=>`
+    <details class="sub reveal">
+      <summary>
+        <div>
+          <div class="name"><code>${x.id}</code><span class="tiny">${x.tag}</span></div>
+          <div class="verdict-1 blockswap"><span class="t">${x.v1t}</span><span class="p">${x.v1p}</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:14px">${M(x.d)}<span class="arrow">▸</span></div>
+      </summary>
+      <div class="body">
+        <div class="purpose blockswap"><span class="t">${x.pur}</span><span class="p">${x.pur}</span></div>
+        <div class="sw">
+          <div class="col s"><div class="h">▲ Strongest</div><p>${x.s}</p></div>
+          <div class="col w"><div class="h">▼ Weakest</div><p>${x.w}</p></div>
+        </div>
+        <div class="verdict-full"><span class="k">Verified verdict</span>${x.vf}</div>
+      </div>
+    </details>`).join('');
+
+  /* ---- NEXT STEPS ---- */
+  const steps = [
+    {lev:'high', h:'Make determinism actually true', t:'Inject the clock and hash content only (exclude timestamps/uuids) across the ~10 subsystems that claim determinism, then add a CI regression test: run twice, assert identical hash. This single change converts the platform’s headline claim from false to true and unlocks genuine replay — and the Rust core already proves the canonical-hash approach works.', why:'Turns the #1 selling point from theater into fact; everything "deterministic/replayable" depends on it.'},
+    {lev:'high', h:'Make consensus carry signal — or rename it', t:'Replace space/×1.0001 perturbations with semantically meaningful variants, or run genuinely different agents/models, so the 2-of-3 vote means something. Remove the mock_consensus_runs backdoor from non-test paths so tests stop validating fixtures.', why:'A safety gate that always agrees with itself provides false assurance and corrupts the test suite.'},
+    {lev:'high', h:'Repair or delete the ~51 corrupted files', t:'Each is a single escaped string literal. Decide per file: recover from clean source, or remove. This unblocks the mypy CI job, makes the 60% coverage gate achievable, and stops the integration suite from being permanently red.', why:'~1 in 6 agent files is dead weight that poisons coverage, type-checking, and CI green.'},
+    {lev:'high', h:'Plug in the code that’s already written', t:'Mount the pi_production v1 API, enforce RBAC (read the jwt_claims already set in middleware), wire the orchestrator’s retry/circuit-breaker + checkpoint/resume into execute_chain. High-quality, tested code is sitting unused — connecting it is far cheaper than rebuilding.', why:'Large capability gains for small effort; the work is done, just unplugged.'},
+    {lev:'high', h:'Promote the Rust core from sidecar to load-bearing', t:'Commit the consensus integration properly, add the maturin .so build + the cross-language parity harness to CI (today CI only runs cargo test), and flip PI_USE_RUST_AGENTS on for the hot path. It’s the most trustworthy subsystem you have.', why:'~5× real speedup and the only proven-deterministic core — currently doing nothing in production.'},
+    {lev:'med', h:'Fix the WARN-mode "lies-as-safe" footgun', t:'Never set is_secure=True when findings exist; separate "secure" from "advisory mode," and stop resolving strict-mode from a hardcoded ~/.antigravitycli path. A vulnerable contract should never be reportable as secure.', why:'A security scanner that can stamp a real flaw "secure" is worse than no scanner.'},
+    {lev:'med', h:'Replace fake integrations — or label them honestly', t:'The GCP category, the connectors, and the "Needle" LLM either become real or get clearly fenced as fixtures that cannot masquerade as live. Same for the frontend AST-Shield gates and consensus cluster — wire to real data or remove.', why:'Fake-but-confident features are a credibility and trust liability the moment anyone relies on them.'},
+    {lev:'med', h:'Heal the console data-plane', t:'Unify the default DB paths and share adapter/ledger instances so submit→replay→quota→ledger→transparency see the same data. Today they silently diverge and most read views return empty by default.', why:'Several "finished" features are invisible to each other out of the box — a small fix makes them real.'},
+  ];
+  document.getElementById('steps').innerHTML = steps.map(s=>`
+    <div class="step reveal">
+      <span class="lev ${s.lev}">${s.lev==='high'?'High leverage':'Medium'}</span>
+      <div>
+        <h3>${s.h}</h3>
+        <p>${s.t} <span class="why">— ${s.why}</span></p>
+      </div>
+    </div>`).join('');
+
+  /* reveal on scroll, with rootMargin so it triggers just before entering view */
+  const revealAll = ()=>document.querySelectorAll('.reveal').forEach(el=>el.classList.add('in'));
+  if('IntersectionObserver' in window){
+    const io = new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.05,rootMargin:'0px 0px -8% 0px'});
+    document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+    /* safety net: guarantee everything is visible even if the observer never fires (print, no-scroll, screenshot) */
+    setTimeout(revealAll, 1600);
+  } else { revealAll(); }
+</script>
+</body>
+</html>

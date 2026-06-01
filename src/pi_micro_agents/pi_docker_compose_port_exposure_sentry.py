@@ -1,18 +1,14 @@
 from __future__ import annotations
 
-import json
-import os
-import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_DOCKER_COMPOSE_PORT_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_DOCKER_COMPOSE_PORT_STRICT_MODE")
 
 
 class DockerComposePortExposureInput(BaseModel):
@@ -35,7 +31,9 @@ class PiDockerComposePortExposureSentry:
     def __init__(self) -> None:
         self.agent_name = "PiDockerComposePortExposureSentry"
 
-    def audit_docker_compose_ports(self, input_envelope: DockerComposePortExposureInput) -> DockerComposePortExposureOutput:
+    def audit_docker_compose_ports(
+        self, input_envelope: DockerComposePortExposureInput
+    ) -> DockerComposePortExposureOutput:
         code = input_envelope.compose_code
         vulnerable_services = []
         flagged_findings = []
@@ -66,7 +64,18 @@ class PiDockerComposePortExposureSentry:
 
                 if clean_line.endswith(":"):
                     key = clean_line[:-1].strip()
-                    if key not in ["image", "ports", "volumes", "environment", "build", "deploy", "networks", "depends_on", "command", "restart"]:
+                    if key not in [
+                        "image",
+                        "ports",
+                        "volumes",
+                        "environment",
+                        "build",
+                        "deploy",
+                        "networks",
+                        "depends_on",
+                        "command",
+                        "restart",
+                    ]:
                         if service_indent is None:
                             service_indent = indent
                             current_service = key
@@ -78,8 +87,10 @@ class PiDockerComposePortExposureSentry:
                     if clean_line.startswith("-") and (":" in clean_line):
                         # Wildcard ip or default binding of sensitive admin/db ports: 3306, 5432, 27017, 6379, 8080, 9200
                         sensitive_ports = ["3306", "5432", "27017", "6379", "8080", "9200", "22", "23", "9000"]
-                        exposed_wildcard = "0.0.0.0" in clean_line or not any(ip in clean_line for ip in ["127.0.0.1", "localhost"])
-                        
+                        exposed_wildcard = "0.0.0.0" in clean_line or not any(
+                            ip in clean_line for ip in ["127.0.0.1", "localhost"]
+                        )
+
                         has_sensitive_port = any(port in clean_line for port in sensitive_ports)
 
                         if exposed_wildcard and has_sensitive_port:
@@ -106,5 +117,5 @@ class PiDockerComposePortExposureSentry:
             vulnerable_services=vulnerable_services,
             flagged_findings=flagged_findings,
             risk_score=risk_score,
-            status=status
+            status=status,
         )
