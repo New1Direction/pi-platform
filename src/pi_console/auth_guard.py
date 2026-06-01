@@ -22,7 +22,7 @@ unless an admin role) plus RBAC enforcement on these routes.
 from __future__ import annotations
 
 import os
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import HTTPException, Request
 
@@ -52,3 +52,29 @@ async def require_reader(request: Request) -> Dict[str, Any]:
             f"(Local dev only: set {_ALLOW_UNAUTH_ENV}=1 to bypass — never in production.)"
         ),
     )
+
+
+async def tenant_scope(request: Request) -> Optional[str]:
+    """Tenant filter for ledger reads, derived from the authenticated principal.
+
+    Returns:
+      * ``None``  -> unrestricted read (an ``admin`` role, or the explicit dev
+        opt-out) — caller may see all tenants;
+      * ``<tenant_id>`` -> reads MUST be filtered to this tenant only.
+
+    Raises 401 (no principal) or 403 (authenticated but no ``tenant_id`` claim,
+    so the request cannot be safely scoped).
+    """
+    claims = await require_reader(request)
+    if not claims:
+        # Dev opt-out (require_reader allowed an unauthenticated request).
+        return None
+    if claims.get("role") == "admin":
+        return None
+    tenant = claims.get("tenant_id")
+    if not tenant:
+        raise HTTPException(
+            status_code=403,
+            detail="token has no tenant_id claim; cannot scope ledger access",
+        )
+    return str(tenant)

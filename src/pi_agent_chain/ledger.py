@@ -53,12 +53,19 @@ class StateLedger:
                     is_valid_type INTEGER NOT NULL,
                     is_finding INTEGER NOT NULL DEFAULT 0,
                     timestamp TEXT NOT NULL,
-                    error_message TEXT
+                    error_message TEXT,
+                    tenant_id TEXT NOT NULL DEFAULT 'default'
                 )
                 """
             )
+            # In-place migration for ledgers created before tenant scoping: add the
+            # tenant_id column if it's missing (existing rows default to 'default').
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(execution_trace)").fetchall()}
+            if "tenant_id" not in cols:
+                conn.execute("ALTER TABLE execution_trace ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_trace_id ON execution_trace(trace_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_node_name ON execution_trace(node_name)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_tenant_id ON execution_trace(tenant_id)")
 
     def append(self, trace: ExecutionTrace) -> None:
         with self._conn() as conn:
@@ -66,8 +73,8 @@ class StateLedger:
                 """
                 INSERT INTO execution_trace
                 (trace_id, node_name, input_payload_hash, llm_seed,
-                 llm_temperature, raw_output, is_valid_type, is_finding, timestamp, error_message)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 llm_temperature, raw_output, is_valid_type, is_finding, timestamp, error_message, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     trace.trace_id,
@@ -80,6 +87,7 @@ class StateLedger:
                     int(trace.is_finding),
                     trace.timestamp.isoformat(),
                     trace.error_message,
+                    getattr(trace, "tenant_id", "default") or "default",
                 ),
             )
 
@@ -167,4 +175,5 @@ class StateLedger:
             is_finding=bool(row["is_finding"]) if "is_finding" in row.keys() else False,
             timestamp=datetime.fromisoformat(row["timestamp"]),
             error_message=row["error_message"],
+            tenant_id=(row["tenant_id"] if "tenant_id" in row.keys() and row["tenant_id"] else "default"),
         )

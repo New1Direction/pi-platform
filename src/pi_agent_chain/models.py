@@ -385,6 +385,11 @@ class ExecutionTrace(BaseModel):
     is_finding: bool = False
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     error_message: Optional[str] = None
+    # Owning tenant, for access scoping on the ledger read API. Orchestrator-internal
+    # writes with no request context default to "default" (threading the real tenant
+    # through the execution path is a follow-up). Metadata only — excluded from the
+    # content-addressed state hash.
+    tenant_id: str = "default"
 
 
 class GovernanceConfig(BaseModel):
