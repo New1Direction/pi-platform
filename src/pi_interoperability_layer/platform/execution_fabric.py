@@ -1,9 +1,15 @@
 """Shard-Coordinated Deterministic Execution Fabric.
 
-Compiler-style distributed execution with global barriers.
-No swarm semantics. No autonomous behavior.
-Deterministic partitioning, phase-locked orchestration,
-ephemeral worker leasing, and replay recovery.
+⚠️  SIMULATION / REFERENCE SCAFFOLD — NOT a live execution path.
+
+This models the *shape* of a compiler-style distributed fabric (deterministic
+partitioning, phase-locked orchestration, worker leasing, replay recovery), but
+``execute_phase`` does NOT distribute or run anything: it resolves every step to
+a hash of the input via ``_simulate_execution`` (see the "# simulated" markers).
+It has no production caller — only its own unit/integration tests import it. Do
+not treat it as evidence that real distributed/barrier execution exists. Wire it
+to a real dispatcher, or move it under an examples/ namespace, before relying on
+it as a platform capability.
 """
 
 from __future__ import annotations
