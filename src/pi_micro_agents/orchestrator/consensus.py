@@ -161,15 +161,26 @@ def _find_output_model(agent_class, result_keys):
     if mod is None:
         return None
     want = set(result_keys)
-    for v in vars(mod).values():
+    matches = [
+        v
+        for v in vars(mod).values()
         if (
             isinstance(v, type)
             and issubclass(v, BaseModel)
             and v is not BaseModel
             and set(v.model_fields.keys()) == want
-        ):
-            return v
-    return None
+        )
+    ]
+    if len(matches) > 1:
+        # Ambiguous: ≥2 models share this exact field set, so reconstructing by
+        # field-set match would arbitrarily pick one (vars() iteration order) and
+        # could build the WRONG type. Refuse — the caller (_try_rust_agent) catches
+        # this and falls back to the Python agent rather than risk a wrong result.
+        raise ValueError(
+            f"ambiguous Rust output reconstruction in {getattr(mod, '__name__', '?')}: "
+            f"{[m.__name__ for m in matches]} all match field set {sorted(want)}"
+        )
+    return matches[0] if matches else None
 
 
 def _try_rust_agent(agent_name, agent_class, perturbed):
