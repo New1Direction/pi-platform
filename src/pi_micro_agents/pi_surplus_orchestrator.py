@@ -124,12 +124,11 @@ class PiTokenSurplusOrchestrator:
 
             ledger.log_event("SURPLUS_BUNDLE_SALE", bundle, 0.0, "PASSED")
         except Exception:
-            try:
-                from src.pi_agent_interceptor.proxy import ledger
-
-                ledger.log_event("SURPLUS_BUNDLE_SALE", bundle, 0.0, "PASSED")
-            except Exception:
-                pass  # Fallback if proxy ledger is not fully loaded/stubbed
+            # Previously fell back to `from src.pi_agent_interceptor.proxy import
+            # ledger`, which only resolved when run from the repo root and broke
+            # mypy module resolution ("found twice"). The line above is the correct
+            # installed package path; drop the broken `src.`-prefixed fallback.
+            pass  # proxy ledger not loaded/stubbed
 
         return bundle
 

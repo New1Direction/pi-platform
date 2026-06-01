@@ -108,12 +108,22 @@ jobs:
         run: ruff check src tests
       - name: Ruff format check
         run: ruff format --check src tests
-      - name: Mypy type check (advisory)
-        # Ruff + the compileall parse-check are the enforced gates. mypy runs
-        # advisory: the tree still carries a large --strict backlog, so making it
-        # blocking today would keep the job permanently red. Bringing the tree to
-        # strict-clean (then flipping continue-on-error to false) is tracked as its
-        # own effort; this surfaces type findings without blocking merges.
+      - name: Mypy strict (ENFORCED — curated strict-clean allowlist)
+        # The full tree has a --strict backlog (advisory below), but these modules
+        # ARE strict-clean and are ENFORCED: a type regression in them fails the
+        # build. Grow this list as modules are brought to strict-clean — this is
+        # how mypy enforcement ratchets up without an all-or-nothing flip.
+        run: >
+          mypy --strict --follow-imports=skip --ignore-missing-imports
+          src/pi_console/auth_guard.py
+          src/pi_extension_governor/sandbox.py
+          src/pi_extension_governor/inspector.py
+          src/pi_agent_chain/governance/objective_tracker.py
+      - name: Mypy type check (advisory — whole tree)
+        # The rest of the tree still carries a --strict backlog, so a blocking
+        # whole-tree run would be permanently red. This surfaces type findings
+        # without blocking; modules graduate into the enforced allowlist above as
+        # they're cleaned up.
         continue-on-error: true
         run: mypy src --ignore-missing-imports
 
