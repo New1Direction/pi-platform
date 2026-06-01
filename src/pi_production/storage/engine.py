@@ -372,15 +372,19 @@ class AuditLogger:
         timestamp = datetime.now(timezone.utc).isoformat()
         prev_hash = self._last_audit_hash.get(tenant_id, "")
 
+        # The chained audit_hash must be reproducible: it covers only the LOGICAL
+        # event + the chain link (prev_hash), NOT the wall-clock audit_id or
+        # timestamp. Those are still STORED as columns (for humans / uniqueness),
+        # but folding them in made replaying the same logical sequence produce a
+        # different chain, breaking the "immutable, replayable audit ledger" claim.
         payload = json.dumps(
             {
-                "audit_id": audit_id,
                 "tenant_id": tenant_id,
                 "actor_id": actor_id,
+                "actor_type": actor_type,
                 "action": action,
                 "resource_type": resource_type,
                 "resource_id": resource_id,
-                "timestamp": timestamp,
                 "correlation_id": correlation_id,
             },
             sort_keys=True,
