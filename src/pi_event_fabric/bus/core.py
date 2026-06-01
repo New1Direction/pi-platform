@@ -23,6 +23,30 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from pi_interoperability_layer.snapshot.clock import DeterministicClock, canonical_timestamp
 
 
+def _canonical(obj: Any) -> Any:
+    """Recursively make a payload canonically serializable.
+
+    ``json.dumps(..., sort_keys=True)`` only orders dict KEYS. A ``set`` value is
+    not JSON-native, so it falls through to ``default=str`` -> ``str(set)``, whose
+    element order depends on PYTHONHASHSEED and therefore varies across processes —
+    silently breaking the content-addressed hash / replay for any set-bearing
+    payload. Converting sets to a deterministically-sorted list fixes that. This is
+    a no-op for set-free payloads, so existing hashes are unchanged.
+    """
+    if isinstance(obj, dict):
+        return {k: _canonical(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_canonical(v) for v in obj]
+    if isinstance(obj, (set, frozenset)):
+        # Sort by canonical JSON of each element so heterogeneous sets are still
+        # deterministically ordered (plain sorted() raises on mixed types).
+        return [
+            _canonical(v)
+            for v in sorted(obj, key=lambda x: json.dumps(x, sort_keys=True, default=str))
+        ]
+    return obj
+
+
 class EventType(str, Enum):
     ARTIFACT_CREATED = "artifact:created"
     ARTIFACT_MUTATED = "artifact:mutated"  # Only permitted in DRIFT logs — never in event history
@@ -149,7 +173,7 @@ class DomainEvent:
             "payload_hash": self.header.payload_hash,
         }
         header_json = json.dumps(identity, sort_keys=True, separators=(",", ":"))
-        payload_json = json.dumps(self.payload, sort_keys=True, default=str, separators=(",", ":"))
+        payload_json = json.dumps(_canonical(self.payload), sort_keys=True, default=str, separators=(",", ":"))
         return hashlib.sha256((header_json + payload_json).encode()).hexdigest()
 
     def serialize(self) -> Dict[str, Any]:
@@ -337,7 +361,7 @@ class EventBusStorage:
         clk = clock or DeterministicClock(clock_id="eventbus")
         marker = clk.ordered_now()
 
-        payload_json = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
+        payload_json = json.dumps(_canonical(payload), sort_keys=True, default=str, separators=(",", ":"))
         payload_hash = hashlib.sha256(payload_json.encode()).hexdigest()
 
         # isolation_level="IMMEDIATE" makes every implicit transaction acquire
@@ -589,12 +613,14 @@ class EventBusStorage:
         clk = DeterministicClock(clock_id="eventbus")
         marker = clk.ordered_now()
         coord_data = json.dumps(
-            {
-                "epoch_number": epoch_number,
-                "established_at": canonical_timestamp(marker.wall_time),
-                "established_by": established_by,
-                "metadata": metadata or {},
-            },
+            _canonical(
+                {
+                    "epoch_number": epoch_number,
+                    "established_at": canonical_timestamp(marker.wall_time),
+                    "established_by": established_by,
+                    "metadata": metadata or {},
+                }
+            ),
             sort_keys=True,
             default=str,
         )
