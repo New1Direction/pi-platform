@@ -40,10 +40,7 @@ def _canonical(obj: Any) -> Any:
     if isinstance(obj, (set, frozenset)):
         # Sort by canonical JSON of each element so heterogeneous sets are still
         # deterministically ordered (plain sorted() raises on mixed types).
-        return [
-            _canonical(v)
-            for v in sorted(obj, key=lambda x: json.dumps(x, sort_keys=True, default=str))
-        ]
+        return [_canonical(v) for v in sorted(obj, key=lambda x: json.dumps(x, sort_keys=True, default=str))]
     return obj
 
 
