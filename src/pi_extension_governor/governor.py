@@ -107,10 +107,12 @@ class ExtensionGovernor:
 
         # Scan source code for shadow/hidden parameters using the standalone PiSchemaGhost micro-agent
         from pi_micro_agents.pi_schema_ghost import detect_shadow_parameters
-        from pi_micro_agents.pi_schema_ghost import is_strict_mode as is_ghost_strict_mode
 
         ghost_risk, ghost_violations = detect_shadow_parameters(entrypoint_source)
-        if ghost_risk >= 71.0 and is_ghost_strict_mode():
+        # Reject high risk unconditionally (like detect_prompt_injection). Gating
+        # this on a strict-mode toggle made it an env-reachable per-detector kill
+        # switch that silently admitted high-risk extensions.
+        if ghost_risk >= 71.0:
             return ExtensionAdmissionResult(
                 manifest_id=manifest.extension_id,
                 admitted=False,
@@ -126,10 +128,9 @@ class ExtensionGovernor:
 
         # Scan source code for invisible guardrail evasions using the standalone PiCoTShadow micro-agent
         from pi_micro_agents.pi_cot_shadow import detect_invisible_guardrails
-        from pi_micro_agents.pi_cot_shadow import is_strict_mode as is_cot_strict_mode
 
         cot_risk, cot_violations = detect_invisible_guardrails(entrypoint_source)
-        if cot_risk >= 71.0 and is_cot_strict_mode():
+        if cot_risk >= 71.0:
             return ExtensionAdmissionResult(
                 manifest_id=manifest.extension_id,
                 admitted=False,
@@ -145,10 +146,9 @@ class ExtensionGovernor:
 
         # Scan source code for illegal surplus sub-key leakage using the standalone PiTokenSurplusOrchestrator micro-agent
         from pi_micro_agents.pi_surplus_orchestrator import detect_surplus_violations
-        from pi_micro_agents.pi_surplus_orchestrator import is_strict_mode as is_surplus_strict_mode
 
         surplus_risk, surplus_violations = detect_surplus_violations(entrypoint_source)
-        if surplus_risk >= 71.0 and is_surplus_strict_mode():
+        if surplus_risk >= 71.0:
             return ExtensionAdmissionResult(
                 manifest_id=manifest.extension_id,
                 admitted=False,
@@ -164,10 +164,9 @@ class ExtensionGovernor:
 
         # Scan source code for spend/cost anomalies using the standalone SpendAnomalyHunter micro-agent
         from pi_micro_agents.pi_spend_hunter import detect_spend_anomalies
-        from pi_micro_agents.pi_spend_hunter import is_strict_mode as is_spend_strict_mode
 
         spend_risk, spend_violations = detect_spend_anomalies(entrypoint_source)
-        if spend_risk >= 71.0 and is_spend_strict_mode():
+        if spend_risk >= 71.0:
             return ExtensionAdmissionResult(
                 manifest_id=manifest.extension_id,
                 admitted=False,
