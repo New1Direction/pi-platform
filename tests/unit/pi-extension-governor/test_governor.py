@@ -11,6 +11,9 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
+from pydantic import ValidationError
+
 from pi_extension_governor.governor import ExtensionGovernor
 from pi_extension_governor.inspector import (
     CapabilityClassification,
@@ -58,11 +61,10 @@ def test_manifest_frozen_immutable() -> None:
         package_hash="abc123",
         capability_class=CapabilityClass.OPENAPI_TOOLING,
     )
-    try:
+    # Must raise on mutation. The old try/except form passed even when the model
+    # was NOT frozen (the AssertionError was swallowed by the same `except`).
+    with pytest.raises(ValidationError):
         m.package_name = "modified"
-        raise AssertionError("Manifest should be frozen")
-    except Exception:
-        pass
 
 
 def test_bundle_compute_hash() -> None:
