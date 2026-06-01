@@ -201,6 +201,7 @@ class ExtensionGovernor:
                 temp_inspector._check_eval_exec(node, Path("entrypoint.py"))
                 temp_inspector._check_file_operations(node, Path("entrypoint.py"))
                 temp_inspector._check_threading(node, Path("entrypoint.py"))
+                temp_inspector._check_indirect_access(node, Path("entrypoint.py"))
             temp_inspector._apply_classification_rules()
             inspection_report = InspectionReport(
                 package_hash=manifest.package_hash,

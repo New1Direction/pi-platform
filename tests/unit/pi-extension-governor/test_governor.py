@@ -158,7 +158,7 @@ def test_inspector_package_hash_deterministic() -> None:
 
 
 def test_sandbox_successful_execution() -> None:
-    sandbox = SandboxedExtensionRuntime()
+    sandbox = SandboxedExtensionRuntime(allow_execution=True)
     source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'endpoints': 3}}"
     result = sandbox.execute(source, {})
     assert result.status == "SUCCESS"
@@ -167,7 +167,7 @@ def test_sandbox_successful_execution() -> None:
 
 
 def test_sandbox_timeout() -> None:
-    sandbox = SandboxedExtensionRuntime(cpu_ms_max=50)
+    sandbox = SandboxedExtensionRuntime(cpu_ms_max=50, allow_execution=True)
     source = """
 n = 0
 while True:
@@ -179,21 +179,21 @@ OUTPUT = {}
 
 
 def test_sandbox_output_size_rejected() -> None:
-    sandbox = SandboxedExtensionRuntime(output_size_max=10)
+    sandbox = SandboxedExtensionRuntime(output_size_max=10, allow_execution=True)
     source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'x': 'a' * 1000}}"
     result = sandbox.execute(source, {})
     assert result.status == "REJECTED"
 
 
 def test_sandbox_verify_determinism_pass() -> None:
-    sandbox = SandboxedExtensionRuntime()
+    sandbox = SandboxedExtensionRuntime(allow_execution=True)
     source = "OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'n': INPUTS.get('n', 0) + 1}}"
     result = sandbox.verify_determinism(source, {"n": 5}, runs=3)
     assert result is True
 
 
 def test_sandbox_verify_determinism_fail() -> None:
-    sandbox = SandboxedExtensionRuntime()
+    sandbox = SandboxedExtensionRuntime(allow_execution=True)
     source = """
 import random
 OUTPUT = {'artifact_type': 'SemanticIRTrace', 'payload': {'n': random.randint(1, 100)}}
@@ -458,7 +458,7 @@ def test_governor_admits_safe_extension() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="safe_ext",
@@ -488,7 +488,7 @@ def test_governor_rejects_eval_extension() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="evil_ext",
@@ -517,7 +517,7 @@ def test_governor_rejects_non_deterministic_extension() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="rand_ext",
@@ -544,7 +544,7 @@ def test_governor_rejects_policy_violation() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="net_ext",
@@ -570,7 +570,7 @@ def test_governor_rejects_unknown_artifact_type() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="type_ext",
@@ -594,7 +594,7 @@ def test_governor_experimental_no_governance_authority() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="exp_ext",
@@ -621,7 +621,7 @@ def test_governor_provenance_receipt_on_admission() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         manifest = ExtensionManifest(
             extension_id="prov_ext",
@@ -647,7 +647,7 @@ def test_governor_receipt_chain_integrity() -> None:
         policy = ExtensionGovernancePolicy()
         ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
         trust = TrustZoneEnforcer()
-        governor = ExtensionGovernor(policy, ledger, trust)
+        governor = ExtensionGovernor(policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True))
 
         for i in range(3):
             manifest = ExtensionManifest(
@@ -791,7 +791,9 @@ class TestExtensionGovernorReproducibility:
                 policy = ExtensionGovernancePolicy()
                 ledger = ExtensionProvenanceLedger(ledger_dir=Path(td) / "ledger")
                 trust = TrustZoneEnforcer()
-                governor = ExtensionGovernor(policy, ledger, trust)
+                governor = ExtensionGovernor(
+                    policy, ledger, trust, sandbox=SandboxedExtensionRuntime(allow_execution=True)
+                )
                 manifest = ExtensionManifest(
                     extension_id="receipt_repro_ext",
                     package_name="receipt-repro",

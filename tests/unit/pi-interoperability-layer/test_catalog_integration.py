@@ -55,6 +55,7 @@ from pi_interoperability_layer.catalog.pipeline import (
 from pi_interoperability_layer.catalog.policy_gate_worker import (
     PackagePolicyGateWorker,
 )
+from pi_extension_governor.sandbox import SandboxedExtensionRuntime
 from pi_interoperability_layer.catalog.sandbox_worker import (
     SandboxValidationWorker,
 )
@@ -280,7 +281,7 @@ def test_policy_gate_fails_zone_restriction() -> None:
 
 def test_sandbox_validates_deterministic_code() -> None:
     manifest = _mock_manifest("det-pkg")
-    worker = SandboxValidationWorker()
+    worker = SandboxValidationWorker(sandbox=SandboxedExtensionRuntime(allow_execution=True))
     source = "OUTPUT = {'result': 42}"
     receipt = worker.validate(manifest, source, {})
     assert receipt.executed is True
@@ -292,7 +293,7 @@ def test_sandbox_validates_deterministic_code() -> None:
 
 def test_sandbox_fails_non_deterministic() -> None:
     manifest = _mock_manifest("non-det-pkg")
-    worker = SandboxValidationWorker()
+    worker = SandboxValidationWorker(sandbox=SandboxedExtensionRuntime(allow_execution=True))
     source = "import random\nOUTPUT = {'result': random.randint(1, 100)}"
     receipt = worker.validate(manifest, source, {})
     assert receipt.executed is True
@@ -538,7 +539,7 @@ def test_catalog_mock_ingest_classify_gate() -> None:
     assert gate_result.passed is True
 
     # Sandbox
-    sandbox = SandboxValidationWorker()
+    sandbox = SandboxValidationWorker(sandbox=SandboxedExtensionRuntime(allow_execution=True))
     source = "OUTPUT = {'findings': []}"
     sandbox_result = sandbox.validate(manifest, source, {})
     assert sandbox_result.determinism_verified is True
