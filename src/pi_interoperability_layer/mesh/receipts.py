@@ -38,11 +38,14 @@ class ExecutionReceipt(BaseModel):
     model_config = {"frozen": False}
 
     def compute_hash(self) -> str:
-        # Content-addressed identity hash. Excludes the random receipt_id
-        # (uuid4-derived) and the wall-clock timestamp so the same logical
-        # receipt reproduces the same hash across runs. Causal position is
-        # captured by previous_receipt_hash (chain link). receipt_id and
-        # timestamp remain STORED as receipt metadata.
+        # Content-addressed identity hash over the LOGICAL receipt only. Excludes:
+        #   - receipt_id (random uuid4) and timestamp (wall-clock) — as before;
+        #   - resource_usage (e.g. cpu_ms) — wall-clock telemetry that varies with
+        #     host load and would otherwise make the same logical run hash
+        #     differently and poison the chained ledger;
+        #   - status_detail — free-text that, for TIMEOUT, embeds the wall-clock
+        #     "Elapsed {ms}ms > max ..." string. The logical outcome is captured by
+        #     `status`; the detail/usage remain STORED as receipt metadata.
         payload = {
             "worker_class": self.worker_class,
             "worker_id": self.worker_id,
@@ -50,9 +53,7 @@ class ExecutionReceipt(BaseModel):
             "input_slot_ids": sorted(self.input_slot_ids),
             "output_slot_ids": sorted(self.output_slot_ids),
             "status": self.status,
-            "status_detail": self.status_detail,
             "determinism_proof": self.determinism_proof,
-            "resource_usage": self.resource_usage,
             "previous_receipt_hash": self.previous_receipt_hash,
         }
         payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
