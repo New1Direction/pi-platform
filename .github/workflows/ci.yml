@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
 
+# Pin the hash seed so set/dict iteration order is reproducible across runs —
+# the platform's byte-identical-output / replay guarantee assumes this, and it
+# makes determinism regressions deterministically catchable in CI.
+env:
+  PYTHONHASHSEED: "0"
+
 # Cancel superseded runs on the same ref so a fast follow-up push doesn't
 # burn doubled minutes.
 concurrency:

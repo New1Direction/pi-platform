@@ -1,24 +1,17 @@
 name: Rust Core — build & test
 
-# Runs only when the Rust core changes, so it stays independent of the Python
-# platform CI. Tests the pure-Rust crates (the agent core + event fabric); the
-# pi-py PyO3 cdylib is intentionally excluded here — it needs Python linkage and
-# is exercised by the parity harness, not by `cargo test`.
+# Tests the pure-Rust crates (the agent core + event fabric) AND the Rust<->Python
+# byte-equivalence parity gate. The path filter was removed deliberately: the
+# determinism/parity guarantee must hold for EVERY change, not only ones touching
+# rust/** or three src dirs — a Python-side change elsewhere (e.g. a shared
+# serialization helper) can break byte-equivalence, and a path-filtered gate would
+# let it merge green. Runs on every push/PR to the same branches as the main CI.
 on:
   push:
-    paths:
-      - "rust/**"
-      - "src/pi_micro_agents/**"
-      - "src/pi_event_fabric/**"
-      - "src/pi_agent_chain/**"
-      - ".github/workflows/rust-core.yml"
+    branches: [main, develop]
+    tags: ["v*"]
   pull_request:
-    paths:
-      - "rust/**"
-      - "src/pi_micro_agents/**"
-      - "src/pi_event_fabric/**"
-      - "src/pi_agent_chain/**"
-      - ".github/workflows/rust-core.yml"
+    branches: [main, develop]
 
 jobs:
   rust-core:
