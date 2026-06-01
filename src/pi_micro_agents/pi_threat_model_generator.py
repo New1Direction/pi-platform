@@ -65,8 +65,9 @@ class PiThreatModelGenerator:
             categories.append("Spoofing")
             risk_score = max(risk_score, 50.0)
 
-        # Ensure categories are unique
-        categories = list(set(categories))
+        # Ensure categories are unique — order-preserving dedup so output bytes are
+        # deterministic across processes (list(set(...)) order depends on PYTHONHASHSEED).
+        categories = list(dict.fromkeys(categories))
 
         is_sec = True
         if risk_score > 30.0 and is_strict_mode():

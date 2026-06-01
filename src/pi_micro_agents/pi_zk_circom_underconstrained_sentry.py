@@ -45,7 +45,9 @@ class PiZKCircomUnderconstrainedSentry:
             left_assigns = re.findall(r"([a-zA-Z0-9_]+)\s*<--", body)
             right_assigns = re.findall(r"-->\s*([a-zA-Z0-9_]+)", body)
 
-            assigned_signals = set(left_assigns + right_assigns)
+            # Order-preserving dedup: iterating a set here made finding order depend
+            # on PYTHONHASHSEED (nondeterministic output across processes).
+            assigned_signals = list(dict.fromkeys(left_assigns + right_assigns))
 
             for sig in assigned_signals:
                 # Check if this signal is constrained in the same body using ===
