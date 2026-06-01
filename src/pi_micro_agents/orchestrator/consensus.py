@@ -183,7 +183,15 @@ def _try_rust_agent(agent_name, agent_class, perturbed):
         result = json.loads(_rust_core().run_agent(agent_name, perturbed.model_dump_json()))
         model = _find_output_model(agent_class, result.keys())
         return model(**result) if model is not None else None
-    except Exception:
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException:
+        # Defence in depth: an escaped Rust panic surfaces as
+        # pyo3_runtime.PanicException, a BaseException subclass that a plain
+        # `except Exception` would miss (the Rust core also now converts panics
+        # to Err — see run_agent_safe). Fall back to the Python agent for ANY
+        # such failure rather than aborting the request. KeyboardInterrupt /
+        # SystemExit are deliberately re-raised above.
         return None
 
 

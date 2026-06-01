@@ -227,7 +227,67 @@ pub fn run_agent(name: &str, input_json: &str) -> Result<String, String> {
     }
 }
 
+/// Run a registered agent, converting an escaped panic into an `Err`.
+///
+/// An agent that panics (e.g. an `unwrap()` on attacker-supplied input) would,
+/// across the PyO3 boundary, surface as `pyo3_runtime.PanicException` — a
+/// `BaseException` subclass that the orchestrator's `except Exception` fail-safe
+/// cannot catch, aborting the in-flight request instead of falling back to the
+/// Python agent. Catching the unwind here and returning an ordinary `Err` keeps
+/// the boundary's contract (`Result` -> `PyValueError`, an `Exception`) intact,
+/// so the documented "any problem falls back to Python" invariant holds.
+pub fn run_agent_safe(name: &str, input_json: &str) -> Result<String, String> {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    match catch_unwind(AssertUnwindSafe(|| run_agent(name, input_json))) {
+        Ok(result) => result,
+        Err(payload) => {
+            let detail = payload
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| payload.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "unknown panic".to_string());
+            Err(format!("rust agent '{name}' panicked: {detail}"))
+        }
+    }
+}
+
 /// Sorted list of every registered agent name.
 pub fn list_agents() -> Vec<String> {
     REGISTRY.keys().map(|s| s.to_string()).collect()
+}
+
+#[cfg(test)]
+mod panic_safety_tests {
+    use super::*;
+
+    // A 20-digit major version overflows i64 in solidity_compiler_bugs_sentry's
+    // `parse::<i64>().unwrap()` — a real, attacker-reachable panic. Across the
+    // PyO3 boundary an escaped panic becomes PanicException (a BaseException
+    // subclass) that the Python `except Exception` fail-safe cannot catch. The
+    // safe wrapper must convert it to an Err so the fallback works.
+    const OVERFLOW_INPUT: &str =
+        r#"{"file_path":"x.sol","solidity_code":"pragma solidity 99999999999999999999.8.13;"}"#;
+    const BENIGN_INPUT: &str =
+        r#"{"file_path":"x.sol","solidity_code":"pragma solidity 0.8.20;"}"#;
+
+    #[test]
+    fn run_agent_safe_converts_panic_to_err() {
+        let res = run_agent_safe("PiSolidityCompilerBugsSentry", OVERFLOW_INPUT);
+        assert!(res.is_err(), "panicking agent must return Err, not unwind; got {res:?}");
+        assert!(res.unwrap_err().to_lowercase().contains("panic"));
+    }
+
+    #[test]
+    fn run_agent_safe_passes_ok_through_unchanged() {
+        let safe = run_agent_safe("PiSolidityCompilerBugsSentry", BENIGN_INPUT);
+        let raw = run_agent("PiSolidityCompilerBugsSentry", BENIGN_INPUT);
+        assert!(safe.is_ok(), "benign input must succeed; got {safe:?}");
+        assert_eq!(safe, raw, "safe wrapper must not alter non-panicking results");
+    }
+
+    #[test]
+    fn run_agent_safe_unknown_agent_still_errs() {
+        assert!(run_agent_safe("NoSuchAgent", "{}").is_err());
+    }
 }
