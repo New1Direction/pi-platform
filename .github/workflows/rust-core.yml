@@ -49,7 +49,10 @@ jobs:
         with:
           workspaces: rust
       - name: Install maturin + Python deps
-        run: pip install maturin pytest pydantic
+        # The parity harness imports the real Python agents, whose import chain pulls
+        # in the full runtime deps (fastapi/uvicorn/httpx/rich), not just pydantic.
+        # Installing only pydantic made collection fail with ModuleNotFoundError.
+        run: pip install maturin pytest pydantic "fastapi>=0.110.0,<1.0.0" "uvicorn>=0.27.0,<1.0.0" "httpx>=0.27.0,<1.0.0" "rich>=13.0.0"
       - name: Build pi_core (release) and install
         run: |
           maturin build --release --manifest-path rust/crates/pi-py/Cargo.toml --out dist

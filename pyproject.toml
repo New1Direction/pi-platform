@@ -29,6 +29,9 @@ classifiers = [
 
 dependencies = [
     "pydantic>=2.0.0",
+    # Used for console/CLI output and the consensus warning path; was imported
+    # but never declared, so a clean install (CI) failed with ModuleNotFoundError.
+    "rich>=13.0.0",
 ]
 
 [project.optional-dependencies]
