@@ -17,11 +17,15 @@ _REPO = Path(__file__).resolve().parents[2]
 
 
 def test_all_committed_python_sources_parse():
-    tracked = subprocess.run(
-        ["git", "ls-files", "src/"], cwd=_REPO, capture_output=True, text=True, check=True
-    ).stdout.split()
-    py_files = [f for f in tracked if f.endswith(".py")]
-    assert py_files, "expected tracked Python sources under src/"
+    # Prefer git-tracked files (so local untracked scratch can't trip the gate).
+    # Fall back to globbing when not in a git work tree (e.g. an exported tarball
+    # or `git archive` extract), where every present .py is by definition shipped.
+    git = subprocess.run(["git", "ls-files", "src/"], cwd=_REPO, capture_output=True, text=True)
+    if git.returncode == 0 and git.stdout.strip():
+        py_files = [f for f in git.stdout.split() if f.endswith(".py")]
+    else:
+        py_files = [str(p.relative_to(_REPO)) for p in (_REPO / "src").rglob("*.py")]
+    assert py_files, "expected Python sources under src/"
 
     broken = []
     for rel in py_files:
