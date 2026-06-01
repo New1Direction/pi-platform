@@ -46,13 +46,13 @@ jobs:
       - name: Install dependencies
         run: uv pip install --system -e ".[dev,all]"
       - name: Run tests with coverage gate
-        # Coverage is measured across the full functional suite (not tests/unit alone):
-        # most of src/ is exercised by integration/conformance/console tests, so scoping
-        # --cov=src to unit-only made the 60% gate unreachable (41%) despite real coverage.
-        # Full-suite coverage is ~78%.
+        # Coverage is measured across the committed functional suite (not tests/unit
+        # alone): most of src/ is exercised by integration/conformance/console tests.
+        # (tests/ledger and tests/pipeline are not committed, so they are not run on a
+        # clean checkout.) Committed-suite coverage is ~82%, above the 60% gate.
         run: |
           PYTHONPATH=src python -m pytest \
-            tests/unit tests/integration tests/conformance tests/console tests/ledger tests/pipeline \
+            tests/unit tests/integration tests/conformance tests/console \
             -q --tb=short --cov=src --cov-report=term-missing --cov-fail-under=60
 
   test-conformance:
