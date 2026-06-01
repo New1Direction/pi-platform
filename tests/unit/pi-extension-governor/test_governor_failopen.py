@@ -12,8 +12,6 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
-import pytest
-
 from pi_extension_governor.governor import ExtensionGovernor
 from pi_extension_governor.manifest import CapabilityClass, ExtensionBundle, ExtensionManifest, TrustZone
 from pi_extension_governor.policy import ExtensionGovernancePolicy
@@ -44,7 +42,9 @@ def _bundle():
 def test_high_shadow_risk_rejected_even_with_strict_mode_off(monkeypatch):
     # Force the shadow-parameter scanner to report high risk, and turn its
     # strict-mode toggle OFF. The bundle must still be rejected.
-    monkeypatch.setattr("pi_micro_agents.pi_schema_ghost.detect_shadow_parameters", lambda src: (95.0, ["shadow_param"]))
+    monkeypatch.setattr(
+        "pi_micro_agents.pi_schema_ghost.detect_shadow_parameters", lambda src: (95.0, ["shadow_param"])
+    )
     monkeypatch.setattr("pi_micro_agents.pi_schema_ghost.is_strict_mode", lambda: False)
 
     with tempfile.TemporaryDirectory() as td:
