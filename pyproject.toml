@@ -138,6 +138,29 @@ extend-exclude = [
 select = ["E", "F", "W", "I", "N", "B", "C4"]
 ignore = ["E501", "E402", "N801", "N818"]  # legacy: import-position + naming (renames risk breaking refs)
 
+[tool.ruff.lint.isort]
+# Declare the platform's first-party namespaces explicitly. Otherwise ruff infers
+# first-party from whichever packages happen to be present, so import-sort (I001)
+# results differ between a full working tree and a clean checkout/CI — making the
+# lint gate non-deterministic.
+known-first-party = [
+    "pi_agent_chain",
+    "pi_agent_interceptor",
+    "pi_agent_registry",
+    "pi_connector_fabric",
+    "pi_console",
+    "pi_event_fabric",
+    "pi_extension_governor",
+    "pi_ide_re",
+    "pi_interoperability_layer",
+    "pi_micro_agents",
+    "pi_production",
+    "pi_runtime",
+    "pi_semantic_diff",
+    "pi_semantic_radius",
+    "pi_semantic_validator",
+]
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "tests/**" = ["B017"]
