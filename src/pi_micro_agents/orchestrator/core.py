@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 
 from pi_agent_chain.ledger import StateLedger
 from pi_agent_chain.models import ExecutionTrace
+from pi_agent_chain.tenant_context import current_tenant
 from pi_micro_agents.orchestrator.consensus import run_with_consensus
 from pi_micro_agents.orchestrator.router import AgentRouter
 
@@ -544,6 +545,7 @@ class PiOrchestrator:
                 raw_output=res_output.model_dump_json(),
                 is_valid_type=success,
                 error_message=", ".join(anomalies) if anomalies else None,
+                tenant_id=current_tenant(),
             )
             self.ledger.append(trace)
         except Exception:
