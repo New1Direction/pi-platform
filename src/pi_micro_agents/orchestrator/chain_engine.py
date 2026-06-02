@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from pi_agent_chain.ledger import StateLedger
 from pi_agent_chain.models import ExecutionTrace
+from pi_agent_chain.tenant_context import current_tenant
 from pi_micro_agents.orchestrator.consensus import run_with_consensus
 from pi_micro_agents.orchestrator.router import AgentRoute, AgentRouter
 from pi_micro_agents.orchestrator.shield import PiOrchestratorShield
@@ -668,6 +669,7 @@ class ChainExecutionEngine:
                 raw_output=json.dumps(details),
                 is_valid_type=success,
                 error_message=", ".join(alerts) if alerts else None,
+                tenant_id=current_tenant(),
             )
             self.ledger.append(trace)
 

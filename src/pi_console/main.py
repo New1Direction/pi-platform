@@ -16,6 +16,7 @@ from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from pi_agent_chain.tenant_context import reset_tenant, set_tenant, tenant_from_claims
 from pi_console.auth_guard import require_reader
 from pi_console.routers import (
     audit_router,
@@ -205,7 +206,14 @@ def create_app() -> FastAPI:
             request.state.jwt_claims = jwt_codec.decode(token)
         except AuthenticationError as e:
             return JSONResponse(status_code=401, content={"detail": str(e)})
-        return await call_next(request)
+        # Bind the AUTHENTICATED tenant (from the JWT claim, not the forgeable
+        # X-Tenant-ID header) for the duration of this request, so any
+        # ExecutionTrace written downstream is attributed to the right tenant.
+        ctx_token = set_tenant(tenant_from_claims(request.state.jwt_claims))
+        try:
+            return await call_next(request)
+        finally:
+            reset_tenant(ctx_token)
 
     @app.middleware("http")
     async def tenant_injection_middleware(request: Request, call_next):

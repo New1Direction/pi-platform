@@ -12,11 +12,14 @@ reach the server.
 (fail closed) unless an operator *explicitly* opts out for local development via
 ``PI_CONSOLE_ALLOW_UNAUTHENTICATED=1``.
 
-NOTE (follow-up, not closed here): the ``execution_trace`` ledger has no
-``tenant_id`` column, so reads cannot yet be scoped per-tenant. This gate closes
-the unauthenticated-access hole; row-level tenant isolation requires a schema
-migration (add ``tenant_id``, populate on write, filter by the caller's claim
-unless an admin role) plus RBAC enforcement on these routes.
+Row-level tenant isolation is now in place on both sides:
+  * READ: ``execution_trace`` has a ``tenant_id`` column (with in-place legacy
+    migration), and the ledger/transparency routes filter every query by the
+    caller's ``tenant_id`` JWT claim via ``tenant_scope`` below (admins see all).
+  * WRITE: the orchestrator write paths stamp the authenticated tenant onto each
+    trace via ``pi_agent_chain.tenant_context`` (bound from the JWT claim in
+    ``jwt_validation_middleware`` - never from the forgeable ``X-Tenant-ID``
+    header), so audit rows carry their real tenant rather than defaulting.
 """
 
 from __future__ import annotations

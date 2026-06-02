@@ -49,6 +49,7 @@ from pi_agent_chain.nodes.semantic_typer import SemanticTyperNode
 from pi_agent_chain.nodes.spec_synthesizer import SpecSynthesizerNode
 from pi_agent_chain.nodes.structural_extractor import StructuralExtractorNode
 from pi_agent_chain.nodes.verifier import DifferentialVerifierNode
+from pi_agent_chain.tenant_context import current_tenant
 from pi_agent_chain.verification.auth_consistency import AuthConsistencyValidator
 from pi_agent_chain.verification.entropy_analysis import EntropyAnalysisValidator
 from pi_agent_chain.verification.provenance_validator import ProvenanceValidator
@@ -683,6 +684,7 @@ class PipelineDriver:
             raw_output=raw_output,
             is_valid_type=is_valid,
             error_message=error,
+            tenant_id=current_tenant(),
         )
         self.ledger.append(trace)
 
