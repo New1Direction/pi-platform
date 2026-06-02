@@ -54,9 +54,7 @@ class TestChainEngineWritePath:
         monkeypatch.setattr(ce, "run_with_consensus", lambda *a, **k: (True, 0.0, "ok", {}, []))
         led = StateLedger(str(tmp_path / "c.db"))
         engine = ChainExecutionEngine(orchestrator=object(), ledger=led)
-        route = AgentRoute(
-            agent_name="PiX", keywords=[], agent_class=BaseModel, input_factory=lambda g, c: _In(goal=g)
-        )
+        route = AgentRoute(agent_name="PiX", keywords=[], agent_class=BaseModel, input_factory=lambda g, c: _In(goal=g))
         with tenant_scope("tenant-c"):
             engine.execute_chain([route], goal="g", context={})
         traces = led.get_all()
