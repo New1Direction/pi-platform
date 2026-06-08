@@ -1,0 +1,24 @@
+{
+  "JWTAuthWeaknessMonitor": {
+    "name": "JWTAuthWeaknessMonitor",
+    "description": "Detects JWT algorithm weaknesses (none alg), missing/expired claims, role confusion, BOLA/IDOR patterns, OAuth flaws, and API key leaks via token analysis or HAR traffic scanning.",
+    "version": "0.1.0",
+    "input_contract": "JWT token string or .har traffic file path",
+    "output_contract": "Structured report with severity (Critical/High/Medium) and specific weakness flags",
+    "governance_requirements": [
+      "deterministic-analysis",
+      "no-llm-inference",
+      "provenance-logging"
+    ],
+    "provenance_required": true,
+    "registered_at": "2026-05-23 22:31:01.277703",
+    "tags": [
+      "security",
+      "jwt",
+      "auth",
+      "redteam",
+      "monitoring"
+    ],
+    "owner": "PI-Platform"
+  }
+}

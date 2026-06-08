@@ -1,0 +1,10 @@
+[
+  [
+    "GET /api/v1/users/550e8400-e29b-41d4-a716-446655440000 HTTP/1.1\nHost: api.example.com\nAuthorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3a9w4z0j3V\nAccept: application/json\n\n",
+    "HTTP/1.1 200 OK\nContent-Type: application/json\n\n{\"id\": \"550e8400-e29b-41d4-a716-446655440000\", \"created_at\": \"2024-05-18T12:34:56Z\", \"name\": \"Alice\", \"age\": 30}\n"
+  ],
+  [
+    "POST /api/v1/auth/login HTTP/1.1\nHost: api.example.com\nContent-Type: application/json\n\n{\"email\": \"alice@example.com\", \"password\": \"supersecret\"}",
+    "HTTP/1.1 200 OK\nContent-Type: application/json\n\n{\"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3a9w4z0j3V\", \"expires_at\": 1716040000}\n"
+  ]
+]

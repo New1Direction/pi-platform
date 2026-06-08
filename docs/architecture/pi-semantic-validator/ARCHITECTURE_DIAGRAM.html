@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>pi-semantic-validator Architecture</title>
+<style>
+  body { background: #0d1117; color: #c9d1d9; font-family: "SF Mono", Monaco, monospace; margin: 0; padding: 40px; }
+  h1 { color: #58a6ff; text-align: center; }
+  .subtitle { text-align: center; color: #8b949e; margin-bottom: 40px; }
+  svg { display: block; margin: 0 auto; }
+  .legend { max-width: 800px; margin: 40px auto; font-size: 14px; line-height: 1.6; }
+  .legend h2 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 8px; }
+  .pass-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pass-item { background: #161b22; border: 1px solid #30363d; border-radius: 6px; padding: 12px; }
+  .pass-item strong { color: #7ee787; }
+  .invariant { color: #ffa657; }
+</style>
+</head>
+<body>
+<h1>pi-semantic-validator</h1>
+<div class="subtitle">Deterministic Semantic Governance Runtime — Architecture Diagram</div>
+
+<svg width="960" height="640" viewBox="0 0 960 640" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8b949e"/>
+    </marker>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- Pipeline Stages -->
+  <rect x="40" y="40" width="180" height="60" rx="8" fill="#21262d" stroke="#30363d" stroke-width="2"/>
+  <text x="130" y="75" text-anchor="middle" fill="#8b949e" font-size="14" font-weight="bold">pi-semantic-recon</text>
+  <text x="130" y="92" text-anchor="middle" fill="#6e7681" font-size="11">Observe</text>
+
+  <rect x="280" y="40" width="180" height="60" rx="8" fill="#21262d" stroke="#30363d" stroke-width="2"/>
+  <text x="370" y="75" text-anchor="middle" fill="#8b949e" font-size="14" font-weight="bold">pi-semantic-diff</text>
+  <text x="370" y="92" text-anchor="middle" fill="#6e7681" font-size="11">Compare</text>
+
+  <rect x="520" y="40" width="180" height="60" rx="8" fill="#238636" stroke="#2ea043" stroke-width="2" filter="url(#shadow)"/>
+  <text x="610" y="75" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="bold">pi-semantic-validator</text>
+  <text x="610" y="92" text-anchor="middle" fill="#aff5b4" font-size="11">Govern</text>
+
+  <rect x="760" y="40" width="180" height="60" rx="8" fill="#21262d" stroke="#30363d" stroke-width="2"/>
+  <text x="850" y="75" text-anchor="middle" fill="#8b949e" font-size="14" font-weight="bold">pi-blast-radius</text>
+  <text x="850" y="92" text-anchor="middle" fill="#6e7681" font-size="11">Estimate Risk</text>
+
+  <line x1="220" y1="70" x2="280" y2="70" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="460" y1="70" x2="520" y2="70" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="700" y1="70" x2="760" y2="70" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Inputs -->
+  <rect x="40" y="160" width="200" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="140" y="190" text-anchor="middle" fill="#c9d1d9" font-size="13">SemanticIRTrace</text>
+
+  <rect x="280" y="160" width="200" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="380" y="190" text-anchor="middle" fill="#c9d1d9" font-size="13">DependencyGraph</text>
+
+  <rect x="520" y="160" width="200" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="620" y="190" text-anchor="middle" fill="#c9d1d9" font-size="13">SemanticDiff</text>
+
+  <rect x="760" y="160" width="180" height="50" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="850" y="190" text-anchor="middle" fill="#c9d1d9" font-size="13">architecture-policy.json</text>
+
+  <!-- Arrows into Validator -->
+  <line x1="140" y1="210" x2="560" y2="280" stroke="#8b949e" stroke-width="1" stroke-dasharray="4" marker-end="url(#arrow)"/>
+  <line x1="380" y1="210" x2="580" y2="280" stroke="#8b949e" stroke-width="1" stroke-dasharray="4" marker-end="url(#arrow)"/>
+  <line x1="620" y1="210" x2="600" y2="280" stroke="#8b949e" stroke-width="1" stroke-dasharray="4" marker-end="url(#arrow)"/>
+  <line x1="850" y1="210" x2="640" y2="280" stroke="#8b949e" stroke-width="1" stroke-dasharray="4" marker-end="url(#arrow)"/>
+
+  <!-- Validator Runtime Box -->
+  <rect x="120" y="280" width="720" height="260" rx="12" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
+  <text x="480" y="305" text-anchor="middle" fill="#58a6ff" font-size="16" font-weight="bold">ValidatorRuntime</text>
+  <text x="480" y="322" text-anchor="middle" fill="#8b949e" font-size="11">Deterministic, Bounded, Fail-Closed</text>
+
+  <!-- Pass Boxes -->
+  <rect x="160" y="350" width="120" height="40" rx="6" fill="#21262d" stroke="#7ee787" stroke-width="1"/>
+  <text x="220" y="375" text-anchor="middle" fill="#c9d1d9" font-size="12">1. Boundary</text>
+
+  <rect x="300" y="350" width="120" height="40" rx="6" fill="#21262d" stroke="#7ee787" stroke-width="1"/>
+  <text x="360" y="375" text-anchor="middle" fill="#c9d1d9" font-size="12">2. Layer</text>
+
+  <rect x="440" y="350" width="120" height="40" rx="6" fill="#21262d" stroke="#7ee787" stroke-width="1"/>
+  <text x="500" y="375" text-anchor="middle" fill="#c9d1d9" font-size="12">3. MutationDrift</text>
+
+  <rect x="580" y="350" width="120" height="40" rx="6" fill="#21262d" stroke="#7ee787" stroke-width="1"/>
+  <text x="640" y="375" text-anchor="middle" fill="#c9d1d9" font-size="12">4. ReplaySafety</text>
+
+  <rect x="720" y="350" width="120" height="40" rx="6" fill="#21262d" stroke="#7ee787" stroke-width="1"/>
+  <text x="780" y="375" text-anchor="middle" fill="#c9d1d9" font-size="12">5. BlastRadius</text>
+
+  <!-- Sequential arrows between passes -->
+  <line x1="280" y1="370" x2="300" y2="370" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="420" y1="370" x2="440" y2="370" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="560" y1="370" x2="580" y2="370" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="700" y1="370" x2="720" y2="370" stroke="#8b949e" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Violation Collector -->
+  <rect x="300" y="420" width="360" height="50" rx="6" fill="#3d0d0d" stroke="#da3633" stroke-width="1"/>
+  <text x="480" y="440" text-anchor="middle" fill="#ff7b72" font-size="12" font-weight="bold">ViolationCollector</text>
+  <text x="480" y="458" text-anchor="middle" fill="#ff7b72" font-size="11">Bounded truncation at max_violations_per_pass</text>
+
+  <!-- Arrows from passes to collector -->
+  <line x1="220" y1="390" x2="400" y2="420" stroke="#da3633" stroke-width="1" stroke-dasharray="3" opacity="0.6"/>
+  <line x1="360" y1="390" x2="440" y2="420" stroke="#da3633" stroke-width="1" stroke-dasharray="3" opacity="0.6"/>
+  <line x1="500" y1="390" x2="480" y2="420" stroke="#da3633" stroke-width="1" stroke-dasharray="3" opacity="0.6"/>
+  <line x1="640" y1="390" x2="520" y2="420" stroke="#da3633" stroke-width="1" stroke-dasharray="3" opacity="0.6"/>
+  <line x1="780" y1="390" x2="560" y2="420" stroke="#da3633" stroke-width="1" stroke-dasharray="3" opacity="0.6"/>
+
+  <!-- Report Output -->
+  <rect x="360" y="500" width="240" height="50" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="2"/>
+  <text x="480" y="520" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="bold">ValidationReport</text>
+  <text x="480" y="538" text-anchor="middle" fill="#8b949e" font-size="11">PASS / FAIL / INDETERMINATE</text>
+
+  <line x1="480" y1="470" x2="480" y2="500" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Invariants Banner -->
+  <rect x="40" y="580" width="880" height="44" rx="6" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="480" y="600" text-anchor="middle" fill="#ffa657" font-size="12">Deterministic  •  Bounded  •  Replayable  •  Evidence-linked  •  Schema-validated  •  Append-only  •  Fail-closed</text>
+  <text x="480" y="616" text-anchor="middle" fill="#8b949e" font-size="10">No inference  •  No LLM calls  •  No probabilistic scoring  •  No auto-remediation  •  No self-modification</text>
+</svg>
+
+<div class="legend">
+  <h2>Validation Passes</h2>
+  <div class="pass-list">
+    <div class="pass-item">
+      <strong>1. Boundary Validation</strong><br/>
+      Forbidden trust boundary crossings, isolated database enforcement, unauthorized state writers.
+    </div>
+    <div class="pass-item">
+      <strong>2. Layer Validation</strong><br/>
+      Forbidden imports, runtime layering violations, backend/frontend inversion detection.
+    </div>
+    <div class="pass-item">
+      <strong>3. Mutation Drift Validation</strong><br/>
+      READ_ONLY→STATEFUL drift, destructive mutation escalation, auth requirement drift.
+    </div>
+    <div class="pass-item">
+      <strong>4. Replay Safety Validation</strong><br/>
+      Production replay prohibitions, sandbox-required routes, replay mutation classifications.
+    </div>
+    <div class="pass-item">
+      <strong>5. Blast Radius Validation</strong><br/>
+      Dependency expansion limits, topology complexity growth, auth surface expansion, replay propagation scope.
+    </div>
+    <div class="pass-item">
+      <strong>Runtime Guarantees</strong><br/>
+      Fixed pass order, bounded iteration, deterministic hashing, violation truncation, immutable reports.
+    </div>
+  </div>
+
+  <h2 style="margin-top:24px">Governing Invariants</h2>
+  <p>
+    The validator <span class="invariant">preserves all existing invariants</span> from pi-semantic-recon:
+    deterministic execution, bounded semantics, replay-governed authority, evidence-bound claims,
+    centralized governance, fail-closed behavior, append-only epistemic promotion, non-self-modifying
+    workers, no recursive autonomy, no probabilistic quorum, no speculative promotion, and validation
+    before mutation.
+  </p>
+</div>
+
+</body>
+</html>

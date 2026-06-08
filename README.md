@@ -5,7 +5,9 @@
 [![License](https://img.shields.io/badge/license-Apache%202.0-lightgrey)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11%20%7C%203.12-blue)](pyproject.toml)
 [![Spec](https://img.shields.io/badge/spec-v1.4.0-blue)](docs/PI-RUNTIME-SPEC-v1.4.md)
-[![Frontend](https://img.shields.io/badge/console-Next.js%2015-black)](pi-console-frontend/package.json)
+[![Web console](https://img.shields.io/badge/web-Next.js%2015-black)](pi-console-frontend/package.json)
+[![Desktop console](https://img.shields.io/badge/desktop-Tauri%202-24c8db)](pi-tauri/package.json)
+[![Docs](https://img.shields.io/badge/docs-MkDocs%20Material-526cfe)](https://new1direction.github.io/pi-platform/)
 
 > A 4-layer execution platform for structured semantic workloads. No LLM inference in
 > the core. No probabilistic decision-making in execution paths. Every operation is
@@ -16,9 +18,10 @@
 ## What This Is
 
 PI Platform routes natural-language intent through a deterministic kernel of
-specialized micro-agents (~296 of them). Each agent is a pure function with a
-typed Pydantic input / output, runs under a perturbation-based consensus engine,
-emits a hash-chained execution receipt, and is replay-safe across versions.
+specialized micro-agents — **248 registered** in the live `AgentRouter`. Each agent
+is a pure function with a typed Pydantic input / output, runs under a
+perturbation-based consensus engine, emits a hash-chained execution receipt, and is
+replay-safe across versions.
 
 The architecture is formalized in the [PI Runtime Specification v1.4](docs/PI-RUNTIME-SPEC-v1.4.md).
 
@@ -40,7 +43,7 @@ The architecture is formalized in the [PI Runtime Specification v1.4](docs/PI-RU
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │  LAYER 4 — PI CONSOLE                                                │
-│  FastAPI + Next.js 15. Natural language permitted ONLY here.         │
+│  FastAPI + Tauri desktop / Next.js web. NL permitted ONLY here.      │
 │  Outputs frozen, SHA-256-hashed ExplicitCompositionRequest.          │
 └──────────────────┬───────────────────────────────────────────────────┘
                    ▼  ExplicitCompositionRequest
@@ -52,7 +55,7 @@ The architecture is formalized in the [PI Runtime Specification v1.4](docs/PI-RU
                    ▼  Validated Composition DAG
 ┌──────────────────────────────────────────────────────────────────────┐
 │  LAYER 2 — DETERMINISTIC EXECUTION FABRIC                            │
-│  Orchestrator → Router → Chain Engine → Consensus → ~296 agents.     │
+│  Orchestrator → Router → Chain Engine → Consensus → 248 agents.      │
 │  Append-only ledger, immutable artifact bus, bounded worker mesh,    │
 │  scheduler with circuit breakers + chain timeouts.                   │
 └──────────────────┬───────────────────────────────────────────────────┘
@@ -114,22 +117,25 @@ them at compile time.
 
 ## Documentation Site
 
-Full interactive docs live in [`docs-site/`](docs-site/) — built with [Fumadocs](https://fumadocs.dev) (Next.js 15 + MDX):
+Published docs (MkDocs Material) → **<https://new1direction.github.io/pi-platform/>**
+
+Source lives in [`docs/`](docs/) and deploys to GitHub Pages on every push to `main`
+(`.github/workflows/docs.yml`). Build it locally with:
 
 ```bash
-cd docs-site
-npm install
-npm run dev
-# → http://localhost:3001
+pip install -r docs/requirements.txt
+mkdocs serve            # → http://localhost:8000
 ```
 
 | Section | What's covered |
 |---------|---------------|
-| [Getting Started](docs-site/content/docs/getting-started.mdx) | Install, smoke suite, first composition |
-| [Architecture](docs-site/content/docs/architecture/) | System layers, request sequence, StateLedger, WASM sandbox |
-| [Agent Catalog](docs-site/content/docs/agents/) | 248 agents by domain, building your own, AgentRouter |
-| [API Reference](docs-site/content/docs/api/) | Sessions, compositions, replay, capabilities, audit |
-| [Roadmap](docs-site/content/docs/roadmap.mdx) | Tier 2 agents, Rust GA, Docker hardening, marketplace |
+| [Getting Started](docs/getting-started.md) | Install, run backend + console, smoke suite |
+| [Desktop Console](docs/console/index.md) | Builder, Agents, Ledger, Agent Forge |
+| [Architecture](docs/architecture/orchestrator-routing.md) | Routing, trust tiers, ledger & replay |
+| [API Reference](docs/api-reference.md) | Live endpoint reference (methods/paths/schemas) |
+
+> A richer local Next.js docs experience also exists in [`docs-site/`](docs-site/)
+> (Fumadocs + MDX); the MkDocs site above is the published/canonical source.
 
 ---
 
@@ -192,7 +198,8 @@ All runtime config flows through environment variables. See
 | `PI_SECRET_JWT` | ✅ prod | — | HMAC secret for JWT signing |
 | `PI_SECRET_REQUEST_SIGNING` | ✅ prod | — | HMAC secret for request anti-replay |
 | `PI_STORAGE_PATH` | | `/data/pi_production.db` | Append-only state ledger |
-| `PI_LEDGER_DB_PATH` | | `pi_audit_ledger.db` | Audit ledger |
+| `PI_STATE_LEDGER_PATH` | | `:memory:` | Execution-trace store (`StateLedger`). **Set this** so the Ledger reader and writer share one file. |
+| `PI_LEDGER_DB_PATH` | | falls back to `PI_STATE_LEDGER_PATH` | Ledger reader path; honors an explicit override, else follows the writer's store. |
 | `PI_MEMORY_PATH` | | `~/.pi_platform/memory.db` | Cross-chain memory store |
 | `PI_LLM_GATEWAY_URL` | | — | Optional LLM gateway (simulation mode if unset) |
 | `FREE_LLM_API_KEY` | | — | API key for LLM gateway |
@@ -214,7 +221,7 @@ pi-platform/
 │   ├── pi_console/               # Layer 4 — FastAPI proxy, 10 routers, middleware
 │   ├── pi_extension_governor/    # Layer 3 — Manifests, policy, trust zones
 │   ├── pi_interoperability_layer/# Layer 2 — Execution fabric, mesh, receipts
-│   ├── pi_micro_agents/          # Layer 2 — ~296 deterministic agents + orchestrator/
+│   ├── pi_micro_agents/          # Layer 2 — 248 registered agents + orchestrator/ + pending/ (Forge quarantine)
 │   │   └── orchestrator/         #   Chain engine, consensus, scheduler, memory,
 │   │                             #   checkpoint, recovery (circuit breaker), router,
 │   │                             #   shield, planner, replay, stream bus, telemetry
@@ -233,7 +240,8 @@ pi-platform/
 │   ├── crates/pi-event-fabric/   #   SQLite-backed, SHA-256-chained event bus + schema/governance cores
 │   ├── crates/pi-py/             #   PyO3 bindings -> `import pi_core`
 │   └── parity/                   #   Rust<->Python equivalence harnesses + benchmarks
-├── pi-console-frontend/          # Next.js 15 + React 19 + React Flow dashboard
+├── pi-tauri/                     # Tauri 2 + React 19 + Vite desktop console (Win98 theme)
+├── pi-console-frontend/          # Next.js 15 + React 19 + React Flow web dashboard
 ├── tests/                        # 113+ test modules: unit / integration / conformance / console
 ├── docker/                       # Compose, Dockerfiles, K8s manifests, Prometheus config
 ├── docs/

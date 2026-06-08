@@ -1,0 +1,9 @@
+# Quarantine for AI-generated micro-agents (Agent Forge → trust_tier=UNVERIFIED).
+#
+# Generated agents are intentionally NOT version-controlled. They must be
+# human-reviewed and promoted out of pending/ (step 1 of the Forge wiring
+# recipe: `mv` into ../) before they can enter git or run in the orchestrator.
+# This makes it impossible for a careless `git add .` to commit unverified code.
+*
+!.gitignore
+!__init__.py

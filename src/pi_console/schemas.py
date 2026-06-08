@@ -258,6 +258,7 @@ class MarketplaceCapability(BaseModel):
     """A capability available in the marketplace."""
 
     capability_id: str
+    agent_name: str = ""
     runtime: str
     operation: str
     description: str

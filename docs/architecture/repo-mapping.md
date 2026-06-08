@@ -1,6 +1,6 @@
 # Repository-to-Specification Mapping
 
-This document shows how the `pi-platform` repository maps to the formal [PI Runtime Specification v1.0](PI-RUNTIME-SPEC-v1.0.md).
+This document shows how the `pi-platform` repository maps to the formal [PI Runtime Specification v1.4](../PI-RUNTIME-SPEC-v1.4.md).
 
 ## Directory → Layer Mapping
 

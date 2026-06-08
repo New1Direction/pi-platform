@@ -567,7 +567,14 @@ class CoreAdapter:
         anomalies: List[str] = []
         all_success = True
         for node in request.nodes:
-            goal = f"{node.operation} on {node.runtime} for {node.node_id}"
+            artifact = node.artifacts[0] if node.artifacts else {}
+            if not isinstance(artifact, dict):
+                artifact = {}
+            # Route on the artifact's goal (the keyword the Builder/Compose UI
+            # set) so the chosen micro-agent actually runs. Without this the
+            # orchestrator routes on a synthetic descriptor and always falls back
+            # to PiMasterGeneralistFallback.
+            goal = artifact.get("goal") or f"{node.operation} on {node.runtime} for {node.node_id}"
             ctx: Dict[str, Any] = {
                 "node_id": node.node_id,
                 "runtime": node.runtime,
@@ -576,6 +583,12 @@ class CoreAdapter:
                 "tenant_id": request.tenant_id,
                 "schema_version": node.required_schema_version,
             }
+            # Lift artifact fields (content, filename, solidity_code, …) to the
+            # top level so each agent's input_factory (ctx.get("content"), etc.)
+            # receives them. Reserved keys above are not overwritten.
+            for _k, _v in artifact.items():
+                if _k != "goal":
+                    ctx.setdefault(_k, _v)
             try:
                 envelope = OrchestratorInput(goal=goal, context=ctx)
                 result = self._orchestrator.execute_goal(envelope)
@@ -713,15 +726,20 @@ class CoreAdapter:
 
         all_caps: List[MarketplaceCapability] = []
         for route in AgentRouter.routes:
+            # Prefer the agent class's docstring as a human-readable description
+            # (e.g. "CI/CD dependency and security patch scanner") over the raw
+            # "AgentName — keywords:" dump. Strip "Agent N:" prefixes and take the
+            # first sentence/line; fall back to the keywords if there's no doc.
+            doc = (getattr(route.agent_class, "__doc__", "") or "").strip()
+            first_line = doc.split("\n", 1)[0].strip()
+            first_line = re.sub(r"^Agent\s+\d+[:\-]\s*", "", first_line)
+            description = first_line or ("Checks: " + ", ".join(route.keywords[:4]))
             cap = MarketplaceCapability(
                 capability_id=f"cap_{route.agent_name.lower()}",
+                agent_name=route.agent_name,
                 runtime="pi-extension-governor",
                 operation="SANDBOX",
-                description=(
-                    f"{route.agent_name} — keywords: "
-                    + ", ".join(route.keywords[:6])
-                    + ("…" if len(route.keywords) > 6 else "")
-                ),
+                description=description,
                 schema_version="1.0.0",
                 trust_tier="GOVERNED",
                 compatibility_tags=route.keywords,
