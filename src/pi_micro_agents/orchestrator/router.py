@@ -48,8 +48,10 @@ from pi_micro_agents.pi_cross_chain_bridge_auditor import BridgeAuditInput, PiCr
 from pi_micro_agents.pi_cross_chain_message_replay_sentry import BridgeReplayInput, PiCrossChainMessageReplaySentry
 from pi_micro_agents.pi_data_flow_privacy_mapper import PiDataFlowPrivacyMapper, PrivacyMapperInput
 from pi_micro_agents.pi_data_retention_policy_enforcer import PiDataRetentionPolicyEnforcer, RetentionInput
+from pi_micro_agents.pi_bot_detection_evasion_sentry import BotEvasionInput, PiBotDetectionEvasionSentry
 from pi_micro_agents.pi_hipaa_compliance_auditor import HipaaAuditInput, PiHipaaComplianceAuditor
 from pi_micro_agents.pi_mobile_security_auditor import MobileAuditInput, PiMobileSecurityAuditor
+from pi_micro_agents.pi_ssh_certificate_security_auditor import PiSshCertificateSecurityAuditor, SshCertInput
 from pi_micro_agents.pi_pci_dss_auditor import PciDssInput, PiPciDssAuditor
 from pi_micro_agents.pi_database_migration_unindexed_sentry import (
     DatabaseMigrationUnindexedInput,
@@ -3999,5 +4001,42 @@ AgentRouter.register(
         code_content=ctx.get("code_content", ctx.get("content", goal)),
         file_path=ctx.get("file_path", ""),
         platform=ctx.get("platform", "unknown"),
+    ),
+)
+AgentRouter.register(
+    agent_name="PiBotDetectionEvasionSentry",
+    keywords=[
+        "bot detection evasion sentry",
+        "waf bypass pattern scan",
+        "canvas fingerprint synthesis",
+        "gpu string pool detection",
+        "tls fingerprint spoofing",
+        "proof of work solver detection",
+        "cloudflare jsd bypass pattern",
+        "datadome vm pattern",
+    ],
+    agent_class=PiBotDetectionEvasionSentry,
+    input_factory=lambda goal, ctx: BotEvasionInput(
+        code_content=ctx.get("code_content", ctx.get("content", goal)),
+        file_path=ctx.get("file_path", ""),
+        context=ctx.get("context", "unknown"),
+    ),
+)
+AgentRouter.register(
+    agent_name="PiSshCertificateSecurityAuditor",
+    keywords=[
+        "ssh certificate security audit",
+        "ssh cert expiry validation",
+        "ssh cert principal check",
+        "sshcerts security gap",
+        "ssh-rsa sha1 deprecated",
+        "webhook secret plaintext",
+        "module signing cert audit",
+    ],
+    agent_class=PiSshCertificateSecurityAuditor,
+    input_factory=lambda goal, ctx: SshCertInput(
+        code_content=ctx.get("code_content", ctx.get("content", goal)),
+        file_path=ctx.get("file_path", ""),
+        has_cert_parsing=bool(ctx.get("has_cert_parsing", False)),
     ),
 )
