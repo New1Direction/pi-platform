@@ -475,6 +475,13 @@ def get_verdict(agent_name: str, d: Dict[str, Any]) -> Any:
     elif agent_name == "PiAutomatedRotationEngine":
         return d.get("rotation_completed")
 
+    # Generic fallback for agents not explicitly mapped (e.g. newly promoted Forge
+    # agents): use the standard verdict field so consensus can be reached instead
+    # of defaulting to None (which forces a false divergence + risk 0).
+    if "is_secure" in d:
+        return d.get("is_secure")
+    if "success" in d:
+        return d.get("success")
     return None
 
 
@@ -878,6 +885,8 @@ def run_with_consensus(
                 return agent_inst.enforce_retention(perturbed)
             elif agent_name == "PiRuntimeAnomalySentry":
                 return agent_inst.audit_runtime(perturbed)
+            elif agent_name == "PiOpenRedirectDetector":
+                return agent_inst.scan(perturbed)
             raise ValueError(f"Unknown agent: {agent_name}")
 
         from pathlib import Path
@@ -1284,6 +1293,21 @@ def run_with_consensus(
             alerts.extend(majority_dict.get("anomalies_detected", []))
             risk_score = majority_dict.get("risk_score", 0.0)
             summary = f"Completed runtime container metrics anomaly audit (Consensus Passed). Status: {majority_dict.get('status')}"
+        else:
+            # Generic handling for agents not explicitly mapped above — e.g. newly
+            # promoted Forge agents. The standard micro-agent output exposes a
+            # risk_score, a status, and a list of findings under one of the common
+            # field names, so surface them generically instead of defaulting to 0.
+            risk_score = majority_dict.get("risk_score", risk_score)
+            for _field in (
+                "flagged_issues", "flagged_findings", "flagged_vulnerabilities",
+                "flagged_anomalies", "flagged_secrets", "flagged_lines", "violations",
+                "anomalies_detected", "anomalies", "issues", "alerts", "detected_leaks",
+            ):
+                _vals = majority_dict.get(_field)
+                if isinstance(_vals, list):
+                    alerts.extend(_vals)
+            summary = f"{agent_name} completed (Consensus Passed). Status: {majority_dict.get('status', 'COMPLETED')}"
 
         if risk_score >= 80.0 and os.getenv("PI_ORCHESTRATOR_STRICT_MODE") == "true":
             success = False
