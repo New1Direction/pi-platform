@@ -94,14 +94,18 @@ def _render_index(target: str, generated_at: Optional[str]) -> str:
         lines = [f"# RE Campaign — {target}", "", f"_Generated: {generated_at}_", "", "## Phases", ""]
     for p in CANONICAL_PHASES:
         lines.append(f"{p.number}. [{p.title}]({_filename(p)})")
-    lines += ["", "## Threat Model", "", "- [Attack Tree](../threat-model/attack_tree.md)",
-              "- [Dual-Use Matrix](../threat-model/dual_use_matrix.md)", ""]
+    lines += [
+        "",
+        "## Threat Model",
+        "",
+        "- [Attack Tree](../threat-model/attack_tree.md)",
+        "- [Dual-Use Matrix](../threat-model/dual_use_matrix.md)",
+        "",
+    ]
     return "\n".join(lines)
 
 
-def generate_phase_docs(
-    target: str, graph: KnowledgeGraph, generated_at: Optional[str] = None
-) -> Dict[str, str]:
+def generate_phase_docs(target: str, graph: KnowledgeGraph, generated_at: Optional[str] = None) -> Dict[str, str]:
     docs: Dict[str, str] = {"00_index.md": _render_index(target, generated_at)}
     for phase in CANONICAL_PHASES:
         docs[_filename(phase)] = _render_phase(target, phase, graph, generated_at)

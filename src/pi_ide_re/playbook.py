@@ -81,7 +81,12 @@ class Campaign:
     # ---- phase 1: acquisition ------------------------------------------
 
     def acquire(
-        self, *, binary_path: Optional[str] = None, sha256: Optional[str] = None, size: Optional[int] = None, version: str = ""
+        self,
+        *,
+        binary_path: Optional[str] = None,
+        sha256: Optional[str] = None,
+        size: Optional[int] = None,
+        version: str = "",
     ) -> PhaseRecord:
         identity = {"sha256": sha256} if sha256 else {"path": binary_path or self.target}
         node = GraphNode(
@@ -101,7 +106,11 @@ class Campaign:
     # ---- phase 2: static -----------------------------------------------
 
     def static(
-        self, *, strings_text: Optional[str] = None, dump: Optional[Dict[str, Any]] = None, keywords: Optional[List[str]] = None
+        self,
+        *,
+        strings_text: Optional[str] = None,
+        dump: Optional[Dict[str, Any]] = None,
+        keywords: Optional[List[str]] = None,
     ) -> StageResult:
         stage = GhidraStaticStage()
         if dump is not None:

@@ -25,10 +25,16 @@ from pi_ide_re.det.checkpoint_codec import (
 )
 from pi_ide_re.playbook import Campaign
 
-HAR = {"log": {"entries": [
-    {"request": {"method": "POST", "url": "https://api.example.com/v1/chat", "headers": []},
-     "response": {"status": 200, "content": {"mimeType": "application/json"}}}
-]}}
+HAR = {
+    "log": {
+        "entries": [
+            {
+                "request": {"method": "POST", "url": "https://api.example.com/v1/chat", "headers": []},
+                "response": {"status": 200, "content": {"mimeType": "application/json"}},
+            }
+        ]
+    }
+}
 
 
 def _campaign(root):

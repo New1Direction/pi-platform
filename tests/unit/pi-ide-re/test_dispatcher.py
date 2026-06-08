@@ -12,11 +12,20 @@ from __future__ import annotations
 
 from pi_ide_re.playbook import PHASES, Campaign
 
-HAR = {"log": {"entries": [
-    {"request": {"method": "POST", "url": "https://api.example.com/v1/chat", "headers": []},
-     "response": {"status": 200, "content": {"mimeType": "application/json"}}}
-]}}
-TRACE = {"target": "Acme IDE", "messages": [{"type": "send", "payload": {"hook": "objc_msgSend", "selector": "toolCall:"}}]}
+HAR = {
+    "log": {
+        "entries": [
+            {
+                "request": {"method": "POST", "url": "https://api.example.com/v1/chat", "headers": []},
+                "response": {"status": 200, "content": {"mimeType": "application/json"}},
+            }
+        ]
+    }
+}
+TRACE = {
+    "target": "Acme IDE",
+    "messages": [{"type": "send", "payload": {"hook": "objc_msgSend", "selector": "toolCall:"}}],
+}
 
 
 def _run(root):

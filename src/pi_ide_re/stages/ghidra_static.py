@@ -37,15 +37,39 @@ from .base import StageError, StageResult
 DEFAULT_KEYWORDS: List[str] = sorted(
     {
         # sandbox / isolation
-        "sandbox", "seatbelt", "bubblewrap", "workspace_read", "policy", "insecure",
+        "sandbox",
+        "seatbelt",
+        "bubblewrap",
+        "workspace_read",
+        "policy",
+        "insecure",
         # agent / tool / model surfaces
-        "agent", "tool", "composer", "mcp", "plugin", "model", "prompt", "gemini",
+        "agent",
+        "tool",
+        "composer",
+        "mcp",
+        "plugin",
+        "model",
+        "prompt",
+        "gemini",
         # auth / secrets
-        "token", "secret", "api_key", "apikey", "auth", "credential", "oauth", "session",
+        "token",
+        "secret",
+        "api_key",
+        "apikey",
+        "auth",
+        "credential",
+        "oauth",
+        "session",
         # process / exec
-        "spawn", "exec", "subprocess",
+        "spawn",
+        "exec",
+        "subprocess",
         # network
-        "endpoint", "grpc", "websocket", "cloudcode",
+        "endpoint",
+        "grpc",
+        "websocket",
+        "cloudcode",
     }
 )
 
