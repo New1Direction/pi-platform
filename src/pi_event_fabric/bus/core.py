@@ -23,6 +23,27 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple
 from pi_interoperability_layer.snapshot.clock import DeterministicClock, canonical_timestamp
 
 
+def _canonical(obj: Any) -> Any:
+    """Recursively make a payload canonically serializable.
+
+    ``json.dumps(..., sort_keys=True)`` only orders dict KEYS. A ``set`` value is
+    not JSON-native, so it falls through to ``default=str`` -> ``str(set)``, whose
+    element order depends on PYTHONHASHSEED and therefore varies across processes —
+    silently breaking the content-addressed hash / replay for any set-bearing
+    payload. Converting sets to a deterministically-sorted list fixes that. This is
+    a no-op for set-free payloads, so existing hashes are unchanged.
+    """
+    if isinstance(obj, dict):
+        return {k: _canonical(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_canonical(v) for v in obj]
+    if isinstance(obj, (set, frozenset)):
+        # Sort by canonical JSON of each element so heterogeneous sets are still
+        # deterministically ordered (plain sorted() raises on mixed types).
+        return [_canonical(v) for v in sorted(obj, key=lambda x: json.dumps(x, sort_keys=True, default=str))]
+    return obj
+
+
 class EventType(str, Enum):
     ARTIFACT_CREATED = "artifact:created"
     ARTIFACT_MUTATED = "artifact:mutated"  # Only permitted in DRIFT logs — never in event history
@@ -121,7 +142,7 @@ class EventHeader:
 class DomainEvent:
     header: EventHeader
     payload: Dict[str, Any]
-    event_hash: str = ""  # SHA-256(header.canonical || payload.canonical)
+    event_hash: str = ""  # content-addressed: SHA-256 over identity fields + payload (no wall-clock)
 
     def __post_init__(self, _: Any = None) -> None:
         if not self.event_hash:
@@ -132,10 +153,25 @@ class DomainEvent:
             )
 
     def _compute_hash(self) -> str:
-        header_json = json.dumps(self.header.serialize(), sort_keys=True, separators=(",", ":"))
-        payload_json = json.dumps(self.payload, sort_keys=True, default=str, separators=(",", ":"))
-        combined = header_json + payload_json
-        return hashlib.sha256(combined.encode()).hexdigest()
+        # Content-addressed identity hash. Covers the logical event and its causal
+        # position (partition, offset, previous_event_hash, payload) but DELIBERATELY
+        # excludes the wall-clock fields — timestamp, ordering_key, and event_id (which
+        # used to embed the ordering_key). Those are recorded as metadata but kept out of
+        # the hash so the same logical event reproduces the same hash across runs: genuine
+        # deterministic replay, not a wall-clock-salted hash that changes every run.
+        identity = {
+            "event_type": self.header.event_type.value,
+            "partition_key": self.header.partition_key,
+            "partition_offset": self.header.partition_offset,
+            "author_tenant_id": self.header.author_tenant_id,
+            "author_actor_id": self.header.author_actor_id,
+            "correlation_id": self.header.correlation_id,
+            "previous_event_hash": self.header.previous_event_hash,
+            "payload_hash": self.header.payload_hash,
+        }
+        header_json = json.dumps(identity, sort_keys=True, separators=(",", ":"))
+        payload_json = json.dumps(_canonical(self.payload), sort_keys=True, default=str, separators=(",", ":"))
+        return hashlib.sha256((header_json + payload_json).encode()).hexdigest()
 
     def serialize(self) -> Dict[str, Any]:
         return {
@@ -168,13 +204,15 @@ class ConsumerCheckpoint:
     checkpointed_at: str
 
     def _compute_hash(self) -> str:
+        # Deterministic: covers the consumer's logical position only. checkpointed_at
+        # (wall-clock) is stored as metadata but excluded so re-consuming the same
+        # offsets yields the same checkpoint hash across runs.
         data = json.dumps(
             {
                 "consumer_id": self.consumer_id,
                 "partition_key": self.partition_key,
                 "last_consumed_offset": self.last_consumed_offset,
                 "last_event_id": self.last_event_id,
-                "checkpointed_at": self.checkpointed_at,
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -320,7 +358,7 @@ class EventBusStorage:
         clk = clock or DeterministicClock(clock_id="eventbus")
         marker = clk.ordered_now()
 
-        payload_json = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":"))
+        payload_json = json.dumps(_canonical(payload), sort_keys=True, default=str, separators=(",", ":"))
         payload_hash = hashlib.sha256(payload_json.encode()).hexdigest()
 
         # isolation_level="IMMEDIATE" makes every implicit transaction acquire
@@ -351,7 +389,10 @@ class EventBusStorage:
 
                 new_partition_offset = current_offset + 1
 
-                event_id = f"evt_{tenant_id}_{partition_key}_{new_partition_offset}_{marker.ordering_key}"
+                # Deterministic id: (tenant, partition, offset) is already unique
+                # (UNIQUE(partition_key, partition_offset) + monotonic offset), so the
+                # wall-clock ordering_key suffix is dropped to keep ids reproducible.
+                event_id = f"evt_{tenant_id}_{partition_key}_{new_partition_offset}"
 
                 header = EventHeader(
                     event_id=event_id,
@@ -542,8 +583,11 @@ class EventBusStorage:
         errors: List[str] = []
         for i, event in enumerate(events):
             expected = event.event_hash
-            # Verify event hash correctness
-            recomputed = event._compute_hash() if i > 0 else event.event_hash  # First event has no prev
+            # Recompute every event including the genesis (i == 0). This is now possible
+            # because the hash is content-addressed (wall-clock-free); previously the
+            # genesis was skipped, leaving a hole where a tampered first-event payload
+            # still passed chain verification.
+            recomputed = event._compute_hash()
             if expected != recomputed:
                 errors.append(
                     f"hash_mismatch at offset {event.header.partition_offset}: expected={expected}, got={recomputed}"
@@ -566,12 +610,14 @@ class EventBusStorage:
         clk = DeterministicClock(clock_id="eventbus")
         marker = clk.ordered_now()
         coord_data = json.dumps(
-            {
-                "epoch_number": epoch_number,
-                "established_at": canonical_timestamp(marker.wall_time),
-                "established_by": established_by,
-                "metadata": metadata or {},
-            },
+            _canonical(
+                {
+                    "epoch_number": epoch_number,
+                    "established_at": canonical_timestamp(marker.wall_time),
+                    "established_by": established_by,
+                    "metadata": metadata or {},
+                }
+            ),
             sort_keys=True,
             default=str,
         )

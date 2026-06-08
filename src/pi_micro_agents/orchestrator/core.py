@@ -96,9 +96,13 @@ class PiOrchestrator:
         """Auto-enrich execution context by matching natural-language goals against the local Obsidian Wiki vault using cosine similarity."""
         rag_context: Dict[str, Any] = {}
 
-        # 1. Locate Obsidian Wiki directories (PI-Platform + the new dedicated vault/)
+        # 1. Locate Obsidian Wiki directories (PI-Platform + the dedicated vault/).
+        # Resolved relative to the package or CWD — NOT a hardcoded developer home
+        # path (the old "/Users/clubpenguin/..." entry only existed on one machine,
+        # so RAG enrichment silently no-op'd everywhere else). Override with
+        # PI_RAG_VAULT_DIR.
         candidate_vaults = [
-            "/Users/clubpenguin/Documents/pi-platform/PI-Platform",
+            os.environ.get("PI_RAG_VAULT_DIR", ""),
             os.path.abspath(os.path.join(os.path.dirname(__file__), "../../PI-Platform")),
             os.path.abspath(os.path.join(os.path.dirname(__file__), "../../vault")),
             "vault",

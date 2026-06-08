@@ -32,7 +32,17 @@ class ExtensionExecutionReceipt(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
-        payload = self.model_dump(exclude={"receipt_hash"})
+        """Deterministic, content-addressed chain hash.
+
+        Excludes the self-referential ``receipt_hash``, the wall-clock
+        ``execution_timestamp`` (defaults to datetime.now), and the
+        wall-clock-derived ``execution_duration_ms`` (a measured time.time()
+        delta that varies run-to-run for identical logical input). With those
+        removed, the same logical receipt and ``previous_receipt_hash``
+        reproduce the same hash across runs. All excluded fields are still
+        stored/returned as metadata.
+        """
+        payload = self.model_dump(exclude={"receipt_hash", "execution_timestamp", "execution_duration_ms"})
         canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
         return hashlib.sha256(canonical.encode()).hexdigest()
 

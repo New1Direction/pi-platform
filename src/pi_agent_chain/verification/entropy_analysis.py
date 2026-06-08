@@ -17,7 +17,6 @@ from __future__ import annotations
 import hashlib
 import math
 from collections import defaultdict
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from pi_agent_chain.models import (
@@ -138,7 +137,10 @@ class EntropyAnalysisValidator:
         violations = self._build_violations(snapshot, delta, drift_signatures, execution_id)
 
         return EntropyAnalysisReport(
-            report_id=self._hash(f"entropy:{execution_id}:{datetime.utcnow().isoformat()}"),
+            # Content-addressed report id: derived from the deterministic input
+            # fingerprint, NOT wall-clock time, so identical inputs reproduce
+            # the same id across runs. (generated_at still records wall-clock.)
+            report_id=self._hash(f"entropy:{execution_id}:{input_hash}"),
             execution_id=execution_id,
             snapshot=snapshot,
             delta=delta,

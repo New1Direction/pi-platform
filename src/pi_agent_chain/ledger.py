@@ -53,12 +53,19 @@ class StateLedger:
                     is_valid_type INTEGER NOT NULL,
                     is_finding INTEGER NOT NULL DEFAULT 0,
                     timestamp TEXT NOT NULL,
-                    error_message TEXT
+                    error_message TEXT,
+                    tenant_id TEXT NOT NULL DEFAULT 'default'
                 )
                 """
             )
+            # In-place migration for ledgers created before tenant scoping: add the
+            # tenant_id column if it's missing (existing rows default to 'default').
+            cols = {row[1] for row in conn.execute("PRAGMA table_info(execution_trace)").fetchall()}
+            if "tenant_id" not in cols:
+                conn.execute("ALTER TABLE execution_trace ADD COLUMN tenant_id TEXT NOT NULL DEFAULT 'default'")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_trace_id ON execution_trace(trace_id)")
             conn.execute("CREATE INDEX IF NOT EXISTS idx_node_name ON execution_trace(node_name)")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_tenant_id ON execution_trace(tenant_id)")
 
     def append(self, trace: ExecutionTrace) -> None:
         with self._conn() as conn:
@@ -66,8 +73,8 @@ class StateLedger:
                 """
                 INSERT INTO execution_trace
                 (trace_id, node_name, input_payload_hash, llm_seed,
-                 llm_temperature, raw_output, is_valid_type, is_finding, timestamp, error_message)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 llm_temperature, raw_output, is_valid_type, is_finding, timestamp, error_message, tenant_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     trace.trace_id,
@@ -80,6 +87,7 @@ class StateLedger:
                     int(trace.is_finding),
                     trace.timestamp.isoformat(),
                     trace.error_message,
+                    getattr(trace, "tenant_id", "default") or "default",
                 ),
             )
 
@@ -132,9 +140,60 @@ class StateLedger:
             ],
         }
 
+    @staticmethod
+    def _canonical_output(output: Any) -> str:
+        """Strip volatile telemetry from a step's ``output`` JSON before hashing.
+
+        ``raw_output`` embeds perf_counter-derived fields (``_latency_metrics``,
+        ``_cache_hit``, ``*_ms``) that vary every run. Drop them recursively so the
+        state hash reflects logical content only. Non-JSON output is returned as-is.
+        """
+        if not isinstance(output, str):
+            return output
+        try:
+            parsed = json.loads(output)
+        except (ValueError, TypeError):
+            return output
+
+        def _strip(obj: Any) -> Any:
+            if isinstance(obj, dict):
+                return {
+                    k: _strip(v)
+                    for k, v in obj.items()
+                    if k not in ("_latency_metrics", "_cache_hit") and not k.endswith("_ms")
+                }
+            if isinstance(obj, list):
+                return [_strip(v) for v in obj]
+            return obj
+
+        return json.dumps(_strip(parsed), sort_keys=True, separators=(",", ":"))
+
     def compute_state_hash(self, trace_id: str) -> str:
+        """Content-addressed deterministic state hash.
+
+        The hash is a pure function of the LOGICAL execution content (node
+        names, input hashes, outputs, seeds, etc.) plus causal/structural
+        ordering. The following are recorded as metadata in
+        :meth:`get_state_packet` but are intentionally EXCLUDED from the
+        hashed input so that the same logical trace reproduces the same state
+        hash across runs:
+
+        - per-row wall-clock ``timestamp`` values (volatile clock),
+        - the ``trace_id`` itself, which is a random ``uuid4`` correlation id
+          (a non-logical identifier; folding it in salts every run), and
+        - volatile telemetry embedded INSIDE each step's ``output`` JSON
+          (``_latency_metrics``, ``_cache_hit``, any ``*_ms`` field), which is
+          perf_counter-derived and changes every run.
+        """
         packet = self.get_state_packet(trace_id)
-        canonical = json.dumps(packet, sort_keys=True, separators=(",", ":"))
+        canonical_packet = {
+            "total_steps": packet["total_steps"],
+            "steps": [
+                {k: (self._canonical_output(v) if k == "output" else v) for k, v in step.items() if k != "timestamp"}
+                for step in packet["steps"]
+            ],
+        }
+        canonical = json.dumps(canonical_packet, sort_keys=True, separators=(",", ":"))
         return hashlib.sha256(canonical.encode()).hexdigest()
 
     @staticmethod
@@ -150,4 +209,5 @@ class StateLedger:
             is_finding=bool(row["is_finding"]) if "is_finding" in row.keys() else False,
             timestamp=datetime.fromisoformat(row["timestamp"]),
             error_message=row["error_message"],
+            tenant_id=(row["tenant_id"] if "tenant_id" in row.keys() and row["tenant_id"] else "default"),
         )

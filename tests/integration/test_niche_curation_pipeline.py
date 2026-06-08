@@ -138,7 +138,7 @@ def test_publisher_agent_normal_and_anomalous(monkeypatch):
     # Case B: Credential/Secret leak detected
     from pi_micro_agents.pi_publisher_dispatch import detect_publisher_anomalies
 
-    bad_content = "Here is my secret token: STRIPE_LIVE_KEY_SCRUBBED"
+    bad_content = "Here is my secret token: sk_live_" + "x" * 24  # synthetic; matches detector, no scannable literal
     risk, violations = detect_publisher_anomalies(bad_content)
     assert risk >= 90.0
     assert any("openai key leakage" in v.lower() for v in violations)

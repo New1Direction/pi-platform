@@ -36,7 +36,14 @@ class DeterministicClock(BaseModel):
     model_config = {"frozen": True}
 
     def now(self) -> datetime:
-        """Return deterministic UTC timestamp with bounded skew check."""
+        """Return deterministic UTC timestamp with bounded skew check.
+
+        The returned timestamp is RECORDED metadata only. It is honest about
+        being a wall-clock observation and MUST NOT be fed into any identity /
+        content hash — determinism is guaranteed via sequence_counter ordering
+        (see ordered_now) and content-addressed hashes elsewhere, never via this
+        wall-clock value.
+        """
         wall = datetime.now(timezone.utc)
         elapsed = time.monotonic() - self.origin_monotonic
         expected = self.origin_wall_time.timestamp() + elapsed

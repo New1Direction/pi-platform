@@ -223,14 +223,14 @@ def compute_dependency_deltas(
             if len(deltas) >= max_deltas:
                 return deltas
 
-    # Removed nodes
-    for node in base_nodes - mod_nodes:
+    # Removed nodes (sorted for deterministic ordering across runs)
+    for node in sorted(base_nodes - mod_nodes):
         deltas.append(DependencyDelta(delta_type="NODE_REMOVED", node=node))
         if len(deltas) >= max_deltas:
             return deltas
 
-    # Added nodes
-    for node in mod_nodes - base_nodes:
+    # Added nodes (sorted for deterministic ordering across runs)
+    for node in sorted(mod_nodes - base_nodes):
         deltas.append(DependencyDelta(delta_type="NODE_ADDED", node=node))
         if len(deltas) >= max_deltas:
             return deltas

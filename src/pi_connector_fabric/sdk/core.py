@@ -138,6 +138,10 @@ class IngestionReceipt:
 
     def __post_init__(self) -> None:
         if not self.receipt_hash:
+            # Content-addressed receipt hash. Wall-clock timestamps
+            # (ingestion_start / ingestion_end) are deliberately EXCLUDED so the
+            # same logical ingestion reproduces an identical hash across runs.
+            # They are still stored and returned as provenance metadata.
             canonical = {
                 "receipt_id": self.receipt_id,
                 "connector_id": self.connector_id,
@@ -148,8 +152,6 @@ class IngestionReceipt:
                 "fence_used": self.fence_used.name,
                 "error_count": self.error_count,
                 "errors": list(self.errors),
-                "ingestion_start": self.ingestion_start,
-                "ingestion_end": self.ingestion_end,
             }
             h = hashlib.sha256(
                 json.dumps(canonical, sort_keys=True, separators=(",", ":"), default=str).encode()

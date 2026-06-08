@@ -22,6 +22,7 @@ from pi_extension_governor.manifest import (
     TrustZone,
 )
 from pi_extension_governor.policy import ExtensionGovernancePolicy
+from pi_extension_governor.sandbox import SandboxedExtensionRuntime
 from pi_interoperability_layer.capability.graph import (
     ExtensionCompatibilityGraph,
 )
@@ -174,11 +175,15 @@ def test_ingest_receipt_hash_determinism() -> None:
     )
     r1 = worker.ingest_page("", "all", 1, 10)
     r2 = worker.ingest_page("", "all", 1, 10)
-    # Receipt hashes differ due to timestamp, but structure is identical
+    # Receipt hashes are content-addressed: the wall-clock timestamp is excluded
+    # from the hash, so the same logical page reproduces an identical hash.
     assert r1.receipt_hash != ""
     assert r2.receipt_hash != ""
+    assert r1.receipt_hash == r2.receipt_hash
     assert r1.ingest_id == r2.ingest_id
     assert r1.packages_ingested == r2.packages_ingested
+    # The wall-clock timestamp is still recorded as metadata on each receipt.
+    assert r1.timestamp != ""
 
 
 # ── Classifier Worker Tests ────────────────────────────────────────
@@ -276,7 +281,7 @@ def test_policy_gate_fails_zone_restriction() -> None:
 
 def test_sandbox_validates_deterministic_code() -> None:
     manifest = _mock_manifest("det-pkg")
-    worker = SandboxValidationWorker()
+    worker = SandboxValidationWorker(sandbox=SandboxedExtensionRuntime(allow_execution=True))
     source = "OUTPUT = {'result': 42}"
     receipt = worker.validate(manifest, source, {})
     assert receipt.executed is True
@@ -288,7 +293,7 @@ def test_sandbox_validates_deterministic_code() -> None:
 
 def test_sandbox_fails_non_deterministic() -> None:
     manifest = _mock_manifest("non-det-pkg")
-    worker = SandboxValidationWorker()
+    worker = SandboxValidationWorker(sandbox=SandboxedExtensionRuntime(allow_execution=True))
     source = "import random\nOUTPUT = {'result': random.randint(1, 100)}"
     receipt = worker.validate(manifest, source, {})
     assert receipt.executed is True
@@ -534,7 +539,7 @@ def test_catalog_mock_ingest_classify_gate() -> None:
     assert gate_result.passed is True
 
     # Sandbox
-    sandbox = SandboxValidationWorker()
+    sandbox = SandboxValidationWorker(sandbox=SandboxedExtensionRuntime(allow_execution=True))
     source = "OUTPUT = {'findings': []}"
     sandbox_result = sandbox.validate(manifest, source, {})
     assert sandbox_result.determinism_verified is True

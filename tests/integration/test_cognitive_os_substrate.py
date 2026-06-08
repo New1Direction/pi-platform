@@ -350,7 +350,13 @@ def test_governance_kernel_boundaries() -> None:
 # ────────────────────────────────────────────────────────
 
 
-def test_transparency_api_endpoints(tmp_path) -> None:
+def test_transparency_api_endpoints(tmp_path, monkeypatch) -> None:
+    # The transparency router is now fail-closed (requires an authenticated
+    # principal). This test exercises transparency *functionality*, not auth, so
+    # it uses the explicit local-dev bypass. monkeypatch auto-restores it so the
+    # opt-out can't leak into the auth-gate tests.
+    monkeypatch.setenv("PI_CONSOLE_ALLOW_UNAUTHENTICATED", "1")
+
     # Use standard FastAPI TestClient on mounted router app
     client = TestClient(app)
 

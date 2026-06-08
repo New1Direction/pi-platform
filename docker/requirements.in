@@ -1,0 +1,10 @@
+# Direct production runtime deps for the Docker image. Compile to a hash-pinned
+# lock with:
+#   uv pip compile docker/requirements.in --python-version 3.11 \
+#       --python-platform x86_64-unknown-linux-gnu --generate-hashes \
+#       -o docker/requirements.txt
+# Constraints mirror pyproject.toml's [all] extra.
+pydantic>=2.0.0
+fastapi>=0.110.0,<1.0.0
+uvicorn>=0.27.0,<1.0.0
+httpx>=0.27.0

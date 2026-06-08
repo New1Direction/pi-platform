@@ -6,13 +6,14 @@ FROM python:3.11-slim as builder
 WORKDIR /build
 COPY pyproject.toml ./
 COPY src/ ./src/
+COPY docker/requirements.txt ./requirements.txt
 
-# Install only production deps
-RUN pip install --no-cache-dir \
-    pydantic>=2.0.0 \
-    fastapi>=0.110.0 \
-    uvicorn>=0.27.0 \
-    httpx>=0.27.0 \
+# Install only production deps from a hash-pinned, fully-resolved lockfile.
+# --require-hashes makes the build reproducible (exact versions every time) and
+# supply-chain safe (a tampered/yanked release fails the hash check instead of
+# being installed). Regenerate the lock with the command documented in
+# docker/requirements.in after changing a dependency.
+RUN pip install --no-cache-dir --require-hashes -r requirements.txt \
     && find /usr/local/lib/python3.11/site-packages -name "*.pyc" -delete \
     && find /usr/local/lib/python3.11/site-packages -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 

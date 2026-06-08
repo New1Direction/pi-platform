@@ -9,4 +9,4 @@ pub mod agents;
 pub mod pyutil;
 pub mod registry;
 
-pub use registry::{list_agents, run_agent};
+pub use registry::{list_agents, run_agent, run_agent_safe};

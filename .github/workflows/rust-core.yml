@@ -1,18 +1,17 @@
 name: Rust Core — build & test
 
-# Runs only when the Rust core changes, so it stays independent of the Python
-# platform CI. Tests the pure-Rust crates (the agent core + event fabric); the
-# pi-py PyO3 cdylib is intentionally excluded here — it needs Python linkage and
-# is exercised by the parity harness, not by `cargo test`.
+# Tests the pure-Rust crates (the agent core + event fabric) AND the Rust<->Python
+# byte-equivalence parity gate. The path filter was removed deliberately: the
+# determinism/parity guarantee must hold for EVERY change, not only ones touching
+# rust/** or three src dirs — a Python-side change elsewhere (e.g. a shared
+# serialization helper) can break byte-equivalence, and a path-filtered gate would
+# let it merge green. Runs on every push/PR to the same branches as the main CI.
 on:
   push:
-    paths:
-      - "rust/**"
-      - ".github/workflows/rust-core.yml"
+    branches: [main, develop]
+    tags: ["v*"]
   pull_request:
-    paths:
-      - "rust/**"
-      - ".github/workflows/rust-core.yml"
+    branches: [main, develop]
 
 jobs:
   rust-core:
@@ -31,3 +30,39 @@ jobs:
         run: cargo build -p pi-agents -p pi-event-fabric --release
       - name: Test pure-Rust cores
         run: cargo test -p pi-agents -p pi-event-fabric
+
+  parity:
+    name: Rust↔Python byte-equivalence (cdylib + parity harness)
+    # The whole point of the Rust core is that it is byte-for-byte equivalent to
+    # the Python it replaces. cargo test alone never builds the pi_core cdylib or
+    # compares against Python, so a port bug (or a Python-side change like the
+    # determinism fix) could silently diverge. This job builds pi_core via maturin
+    # and runs the cross-language parity harness as an enforced gate.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+      - name: Install maturin + Python deps
+        # The parity harness imports the real Python agents, whose import chain pulls
+        # in the full runtime deps (fastapi/uvicorn/httpx/rich), not just pydantic.
+        # Installing only pydantic made collection fail with ModuleNotFoundError.
+        run: pip install maturin pytest pydantic "fastapi>=0.110.0,<1.0.0" "uvicorn>=0.27.0,<1.0.0" "httpx>=0.27.0,<1.0.0" "rich>=13.0.0"
+      - name: Build pi_core (release) and install
+        run: |
+          maturin build --release --manifest-path rust/crates/pi-py/Cargo.toml --out dist
+          pip install dist/*.whl
+      - name: Curated agent byte-equivalence (gate)
+        run: pytest rust/parity/test_parity.py -q
+      - name: Event-fabric / schema / governance / gates parity (gate)
+        run: |
+          PYTHONPATH=src python rust/parity/event_fabric_parity.py
+          PYTHONPATH=src python rust/parity/schema_governance_parity.py
+          PYTHONPATH=src python rust/parity/governance_gates_parity.py
+      - name: Differential fuzz parity — bounded (gate)
+        run: PYTHONPATH=src python rust/parity/fuzz_parity.py 300

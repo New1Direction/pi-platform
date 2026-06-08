@@ -126,7 +126,14 @@ from pi_semantic_radius.consensus_breaker import PiConsensusBreaker as BaseConse
 
 
 def _rust_enabled() -> bool:
-    return os.getenv("PI_USE_RUST_AGENTS", "").strip().lower() in ("1", "true", "yes", "on")
+    # Default ON: the Rust core is parity-gated in CI (rust-core.yml), and
+    # _try_rust_agent fails safe to the Python agent whenever pi_core is unavailable
+    # or an agent is unported — so an environment without the built cdylib transparently
+    # uses pure Python. Set PI_USE_RUST_AGENTS=0 (or false/no/off, or "") to force Python.
+    val = os.getenv("PI_USE_RUST_AGENTS")
+    if val is None:
+        return True
+    return val.strip().lower() in ("1", "true", "yes", "on")
 
 
 @_functools.lru_cache(maxsize=1)
@@ -154,15 +161,26 @@ def _find_output_model(agent_class, result_keys):
     if mod is None:
         return None
     want = set(result_keys)
-    for v in vars(mod).values():
+    matches = [
+        v
+        for v in vars(mod).values()
         if (
             isinstance(v, type)
             and issubclass(v, BaseModel)
             and v is not BaseModel
             and set(v.model_fields.keys()) == want
-        ):
-            return v
-    return None
+        )
+    ]
+    if len(matches) > 1:
+        # Ambiguous: ≥2 models share this exact field set, so reconstructing by
+        # field-set match would arbitrarily pick one (vars() iteration order) and
+        # could build the WRONG type. Refuse — the caller (_try_rust_agent) catches
+        # this and falls back to the Python agent rather than risk a wrong result.
+        raise ValueError(
+            f"ambiguous Rust output reconstruction in {getattr(mod, '__name__', '?')}: "
+            f"{[m.__name__ for m in matches]} all match field set {sorted(want)}"
+        )
+    return matches[0] if matches else None
 
 
 def _try_rust_agent(agent_name, agent_class, perturbed):
@@ -176,7 +194,15 @@ def _try_rust_agent(agent_name, agent_class, perturbed):
         result = json.loads(_rust_core().run_agent(agent_name, perturbed.model_dump_json()))
         model = _find_output_model(agent_class, result.keys())
         return model(**result) if model is not None else None
-    except Exception:
+    except (KeyboardInterrupt, SystemExit):
+        raise
+    except BaseException:
+        # Defence in depth: an escaped Rust panic surfaces as
+        # pyo3_runtime.PanicException, a BaseException subclass that a plain
+        # `except Exception` would miss (the Rust core also now converts panics
+        # to Err — see run_agent_safe). Fall back to the Python agent for ANY
+        # such failure rather than aborting the request. KeyboardInterrupt /
+        # SystemExit are deliberately re-raised above.
         return None
 
 

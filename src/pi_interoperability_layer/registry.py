@@ -49,7 +49,11 @@ class ReplayBundle(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
-        payload = self.model_dump(exclude={"bundle_hash"})
+        # Content-addressed identity hash over the bundle's logical references.
+        # Excludes the random bundle_id (uuid4-derived) and the wall-clock
+        # created_at so the same logical bundle reproduces the same hash across
+        # runs. Both fields remain STORED as bundle metadata.
+        payload = self.model_dump(exclude={"bundle_hash", "bundle_id", "created_at"})
         payload_bytes = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
         return hashlib.sha256(payload_bytes).hexdigest()
 

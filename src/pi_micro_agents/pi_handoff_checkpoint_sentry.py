@@ -1,16 +1,14 @@
 from __future__ import annotations
 
-import os
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_HANDOFF_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_HANDOFF_STRICT_MODE")
 
 
 class HandoffInput(BaseModel):

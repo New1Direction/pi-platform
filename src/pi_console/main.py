@@ -12,10 +12,11 @@ import os
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
+from pi_console.auth_guard import require_reader
 from pi_console.routers import (
     audit_router,
     capabilities_router,
@@ -230,8 +231,20 @@ def create_app() -> FastAPI:
     app.include_router(capabilities_router.router, prefix="/api/v1/capabilities", tags=["Capabilities"])
     app.include_router(tenant_router.router, prefix="/api/v1/tenant", tags=["Tenant"])
     app.include_router(audit_router.router, prefix="/api/v1/audit", tags=["Audit"])
-    app.include_router(ledger_router.router, prefix="/api/v1/ledger", tags=["Ledger"])
-    app.include_router(transparency_router.router, prefix="/api/v1/transparency", tags=["Transparency"])
+    # Ledger + transparency expose cross-tenant execution audit data. Gate them
+    # fail-closed: a valid authenticated principal is required (see auth_guard).
+    app.include_router(
+        ledger_router.router,
+        prefix="/api/v1/ledger",
+        tags=["Ledger"],
+        dependencies=[Depends(require_reader)],
+    )
+    app.include_router(
+        transparency_router.router,
+        prefix="/api/v1/transparency",
+        tags=["Transparency"],
+        dependencies=[Depends(require_reader)],
+    )
 
     @app.get("/health", response_model=ConsoleHealth)
     async def health() -> ConsoleHealth:

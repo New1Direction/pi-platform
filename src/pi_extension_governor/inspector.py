@@ -129,6 +129,42 @@ class StaticCapabilityInspector:
         "beacon",
     }
 
+    # Indirect-access / sandbox-escape patterns. A restricted-exec sandbox is
+    # escapable by reaching the real, unrestricted builtins through the object
+    # graph WITHOUT naming `import os`/eval/subprocess — e.g.
+    #   type("").__mro__[-1].__subclasses__() ... ._module.__builtins__["__import__"]
+    #   json.dumps.__globals__["__builtins__"]["__import__"]
+    # A name/attribute blocklist that only looks for the obvious calls misses
+    # these. Treat any of these dunder pivots / reflective primitives as REJECTED.
+    SANDBOX_ESCAPE_ATTRS: Set[str] = {
+        "__subclasses__",
+        "__mro__",
+        "__bases__",
+        "__base__",
+        "__globals__",
+        "__builtins__",
+        "__import__",
+        "__getattribute__",
+        "__subclasshook__",
+        "__code__",
+        "__closure__",
+        "func_globals",
+        "f_globals",
+        "f_builtins",
+        "gi_frame",
+        "cr_frame",
+        "_module",
+    }
+    SANDBOX_ESCAPE_NAMES: Set[str] = {
+        "__import__",
+        "__builtins__",
+        "globals",
+        "vars",
+        "eval",
+        "exec",
+        "compile",
+    }
+
     def __init__(self, policy_banned_imports: Optional[Set[str]] = None) -> None:
         self.policy_banned_imports = policy_banned_imports or set()
         self.findings: List[InspectionFinding] = []
@@ -207,6 +243,28 @@ class StaticCapabilityInspector:
             self._check_eval_exec(node, file_path)
             self._check_file_operations(node, file_path)
             self._check_threading(node, file_path)
+            self._check_indirect_access(node, file_path)
+
+    def _check_indirect_access(self, node: ast.AST, file_path: Path) -> None:
+        """Reject reflective/dunder pivots used to escape a restricted sandbox."""
+        if isinstance(node, ast.Attribute) and node.attr in self.SANDBOX_ESCAPE_ATTRS:
+            self._add_finding(
+                "sandbox_escape_attribute",
+                "CRITICAL",
+                f"Indirect-access escape attribute: {node.attr}",
+                str(file_path),
+                getattr(node, "lineno", 0),
+            )
+            self.classifications.add(CapabilityClassification.REJECTED)
+        elif isinstance(node, ast.Name) and node.id in self.SANDBOX_ESCAPE_NAMES:
+            self._add_finding(
+                "sandbox_escape_name",
+                "CRITICAL",
+                f"Indirect-access escape primitive: {node.id}",
+                str(file_path),
+                getattr(node, "lineno", 0),
+            )
+            self.classifications.add(CapabilityClassification.REJECTED)
 
     def _check_imports(self, node: ast.AST, file_path: Path) -> None:
         if isinstance(node, ast.Import):

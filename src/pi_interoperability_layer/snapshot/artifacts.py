@@ -98,10 +98,18 @@ class SnapshotArtifact(BaseModel):
         return hashlib.sha256(payload_bytes).hexdigest()
 
     def _compute_artifact_hash(self) -> str:
+        # Content-addressed identity hash.
+        # The timestamp_marker's ordering_key/wall_time embed a wall-clock
+        # observation and MUST NOT enter the hash (it would salt identity per
+        # run, breaking reproducibility). Causal/structural position is captured
+        # by the deterministic ordering identity (clock_id + sequence_number)
+        # plus the previous_snapshot_hash chain link. The wall-clock marker is
+        # still STORED on the artifact as ordering metadata.
         data = {
             "snapshot_id": self.snapshot_id,
             "base_snapshot_id": self.base_snapshot_id,
-            "timestamp_marker": self.timestamp_marker.ordering_key,
+            "ordering_clock_id": self.timestamp_marker.clock_id,
+            "ordering_sequence": self.timestamp_marker.sequence_number,
             "payload_hash": self.payload_hash,
             "previous_snapshot_hash": self.previous_snapshot_hash,
         }

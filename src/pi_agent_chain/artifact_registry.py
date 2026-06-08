@@ -15,6 +15,7 @@ from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 
 from pi_agent_chain.models import (
+    _VOLATILE_HASH_FIELDS,
     EpistemicState,
 )
 
@@ -233,8 +234,20 @@ class ArtifactRegistry:
         evidence_refs: Optional[List[str]] = None,
         schema_version: str = "1.0.0",
     ) -> SemanticArtifact:
-        """Factory: wrap any Pydantic object into a SemanticArtifact with full provenance."""
-        payload = json.dumps(obj.model_dump(), sort_keys=True, default=str)
+        """Factory: wrap any Pydantic object into a SemanticArtifact with full provenance.
+
+        The serialized ``payload_json`` and the derived ``semantic_hash`` /
+        ``artifact_id`` are content-addressed: wall-clock timestamps and random
+        ids (e.g. ``synthesized_at``, ``frozen_at``, ``verified_at``,
+        ``generated_at``, ``session_window_id``) are excluded so that the same
+        logical artifact reproduces the same hash across runs. The wall-clock
+        capture time is still recorded separately on ``SemanticArtifact`` via
+        ``captured_at``.
+        """
+        dump = obj.model_dump()
+        if isinstance(dump, dict):
+            dump = {k: v for k, v in dump.items() if k not in _VOLATILE_HASH_FIELDS}
+        payload = json.dumps(dump, sort_keys=True, default=str)
         sem_hash = hashlib.sha256(payload.encode()).hexdigest()
         return SemanticArtifact(
             artifact_id=hashlib.sha256((sem_hash + generated_by).encode()).hexdigest()[:16],

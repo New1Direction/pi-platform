@@ -227,7 +227,87 @@ pub fn run_agent(name: &str, input_json: &str) -> Result<String, String> {
     }
 }
 
+/// Run a registered agent, converting an escaped panic into an `Err`.
+///
+/// An agent that panics (e.g. an `unwrap()` on attacker-supplied input) would,
+/// across the PyO3 boundary, surface as `pyo3_runtime.PanicException` — a
+/// `BaseException` subclass that the orchestrator's `except Exception` fail-safe
+/// cannot catch, aborting the in-flight request instead of falling back to the
+/// Python agent. Catching the unwind here and returning an ordinary `Err` keeps
+/// the boundary's contract (`Result` -> `PyValueError`, an `Exception`) intact,
+/// so the documented "any problem falls back to Python" invariant holds.
+pub fn run_agent_safe(name: &str, input_json: &str) -> Result<String, String> {
+    catch_panic(name, || run_agent(name, input_json))
+}
+
+/// Run `f`, converting an escaped panic into an `Err` (agent-independent).
+fn catch_panic<F: FnOnce() -> Result<String, String>>(name: &str, f: F) -> Result<String, String> {
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)) {
+        Ok(result) => result,
+        Err(payload) => {
+            let detail = payload
+                .downcast_ref::<&str>()
+                .map(|s| s.to_string())
+                .or_else(|| payload.downcast_ref::<String>().cloned())
+                .unwrap_or_else(|| "unknown panic".to_string());
+            Err(format!("rust agent '{name}' panicked: {detail}"))
+        }
+    }
+}
+
 /// Sorted list of every registered agent name.
 pub fn list_agents() -> Vec<String> {
     REGISTRY.keys().map(|s| s.to_string()).collect()
+}
+
+#[cfg(test)]
+mod panic_safety_tests {
+    use super::*;
+
+    // A 20-digit major version USED to overflow i64 in solidity_compiler_bugs_sentry
+    // and panic (now fixed — see solidity_oversized_version_* below).
+    const OVERSIZED_INPUT: &str =
+        r#"{"file_path":"x.sol","solidity_code":"pragma solidity 99999999999999999999.8.13;"}"#;
+    const BENIGN_INPUT: &str =
+        r#"{"file_path":"x.sol","solidity_code":"pragma solidity 0.8.20;"}"#;
+
+    #[test]
+    fn catch_panic_converts_panic_to_err() {
+        // Agent-independent: any escaped panic must become an Err (-> PyValueError,
+        // an Exception the Python fail-safe can catch), never an unwind.
+        let res = catch_panic("boom_agent", || -> Result<String, String> { panic!("index out of bounds") });
+        assert!(res.is_err(), "a panic must be converted to Err, not unwind; got {res:?}");
+        let msg = res.unwrap_err().to_lowercase();
+        assert!(msg.contains("panic") && msg.contains("boom_agent"), "got: {msg}");
+    }
+
+    #[test]
+    fn catch_panic_passes_ok_through() {
+        assert_eq!(catch_panic("x", || Ok("ok".to_string())), Ok("ok".to_string()));
+    }
+
+    #[test]
+    fn run_agent_safe_passes_ok_through_unchanged() {
+        let safe = run_agent_safe("PiSolidityCompilerBugsSentry", BENIGN_INPUT);
+        let raw = run_agent("PiSolidityCompilerBugsSentry", BENIGN_INPUT);
+        assert!(safe.is_ok(), "benign input must succeed; got {safe:?}");
+        assert_eq!(safe, raw, "safe wrapper must not alter non-panicking results");
+    }
+
+    #[test]
+    fn run_agent_safe_unknown_agent_still_errs() {
+        assert!(run_agent_safe("NoSuchAgent", "{}").is_err());
+    }
+
+    #[test]
+    fn solidity_oversized_version_no_longer_panics_and_is_not_flagged() {
+        // Python's int() is arbitrary-precision and never errors; the Rust port now
+        // matches (no panic) and, since a huge major can't equal the small buggy
+        // release constants (0.8.13/14/15), the contract is NOT flagged.
+        let res = run_agent("PiSolidityCompilerBugsSentry", OVERSIZED_INPUT);
+        assert!(res.is_ok(), "oversized version must not panic; got {res:?}");
+        let out = res.unwrap();
+        assert!(out.contains("\"is_secure\":true"), "should not be flagged; got {out}");
+        assert!(!out.contains("Yul Optimizer"), "must not match a buggy-release finding; got {out}");
+    }
 }

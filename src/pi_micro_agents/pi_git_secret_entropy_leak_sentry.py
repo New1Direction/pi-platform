@@ -1,18 +1,16 @@
 from __future__ import annotations
 
 import math
-import os
 import re
 from typing import List
 
 from pydantic import BaseModel, Field
 
+from pi_micro_agents.strict_mode import resolve_strict_mode
+
 
 def is_strict_mode() -> bool:
-    env_val = os.getenv("PI_GIT_SECRET_ENTROPY_LEAK_STRICT_MODE")
-    if env_val is not None:
-        return env_val.lower() == "true"
-    return True
+    return resolve_strict_mode("PI_GIT_SECRET_ENTROPY_LEAK_STRICT_MODE")
 
 
 class GitSecretEntropyLeakInput(BaseModel):

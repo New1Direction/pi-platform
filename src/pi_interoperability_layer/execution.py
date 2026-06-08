@@ -59,7 +59,13 @@ class EventRecord(BaseModel):
     model_config = {"frozen": True}
 
     def compute_hash(self) -> str:
-        """Deterministic identity hash for this event."""
+        """Deterministic identity hash for this event.
+
+        Content-addressed: hashes only the logical content + causal/structural
+        position (sequence_number + previous_hash chain). The wall-clock
+        `emitted_at` is excluded so the same logical event reproduces the same
+        hash across runs; it is still STORED/RETURNED as event metadata.
+        """
         payload_bytes = canonical_event_payload(self.payload)
         data = {
             "event_type": self.event_type,
@@ -67,7 +73,6 @@ class EventRecord(BaseModel):
             "previous_hash": self.previous_hash,
             "payload": payload_bytes,
             "emitted_by": self.emitted_by,
-            "emitted_at": self.emitted_at.isoformat(),
         }
         return hashlib.sha256(json.dumps(data, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 

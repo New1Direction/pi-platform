@@ -187,3 +187,69 @@ def test_get_layer_for_endpoint():
     layer = policy.get_layer_for_endpoint("/api/users")
     assert layer is not None
     assert layer.layer_id == "backend"
+
+
+class TestPolicyHashReproducibility:
+    """Regression: policy_hash must be a pure function of policy CONTENT.
+
+    The hash must NOT fold in wall-clock provenance (``generated_at``), so
+    two fresh instances built from the same logical input produce an
+    IDENTICAL ``policy_hash`` across runs. The wall-clock field is still
+    recorded as metadata; it is only excluded from the hashed input.
+    """
+
+    @staticmethod
+    def _build() -> ArchitecturePolicy:
+        return ArchitecturePolicy(
+            policy_id="repro-policy",
+            policy_version="1.0.0",
+            description="reproducibility regression",
+            trust_zones=[
+                TrustZone(zone_id="public", endpoint_patterns=["/public/*"]),
+                TrustZone(zone_id="internal", endpoint_patterns=["/api/*"]),
+            ],
+            trust_boundary_rules=[
+                TrustBoundaryRule(
+                    rule_id="no-pub-to-int",
+                    from_zone="public",
+                    to_zone="internal",
+                    action="FORBIDDEN",
+                )
+            ],
+            layers=[LayerDefinition(layer_id="backend", endpoint_patterns=["/api/*"])],
+            mutation_rules=[
+                MutationRule(
+                    rule_id="api-mut",
+                    endpoint_pattern="/api/*",
+                    methods=["POST"],
+                    allowed_mutation_classes=["STATEFUL_MUTATION"],
+                )
+            ],
+        )
+
+    def test_policy_hash_is_reproducible(self):
+        import time
+
+        # Two fresh instances built from the same logical input, with a
+        # wall-clock gap between construction so generated_at differs.
+        p1 = self._build()
+        time.sleep(0.01)
+        p2 = self._build()
+
+        # Wall-clock provenance actually diverged...
+        assert p1.generated_at != p2.generated_at
+        # ...but the content-addressed hash is identical.
+        assert p1.compute_hash() == p2.compute_hash()
+
+    def test_policy_generated_at_still_recorded(self):
+        p = self._build()
+        # The timestamp metadata is still present on the model.
+        assert p.generated_at
+        assert isinstance(p.generated_at, str)
+
+    def test_policy_hash_changes_with_content(self):
+        # Sanity: the hash is still sensitive to real content changes.
+        p1 = self._build()
+        p2 = self._build()
+        p2.policy_id = "different-policy"
+        assert p1.compute_hash() != p2.compute_hash()
