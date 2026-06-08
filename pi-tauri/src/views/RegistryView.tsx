@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { listAllCapabilities } from '../lib/api';
+import { humanizeAgentName } from '../lib/humanize';
 import type { MarketplaceCapability } from '../types';
 
 const TRUST_CHIP: Record<string, string> = {
@@ -11,41 +12,63 @@ const TRUST_CHIP: Record<string, string> = {
 };
 
 function CapCard({ cap }: { cap: MarketplaceCapability }) {
+  const title = humanizeAgentName(cap.agent_name || cap.capability_id.replace(/^cap_/, ''));
+  const tags = cap.compatibility_tags ?? [];
   return (
     <div style={{
       border: 'var(--bw)', boxShadow: 'var(--shadow-sm)',
       background: 'var(--white)',
       display: 'flex', flexDirection: 'column',
     }}>
+      {/* Header: trust tier + schema version */}
       <div style={{
-        padding: '7px 10px',
-        borderBottom: 'var(--bw)',
+        padding: '7px 11px',
+        borderBottom: '1px solid var(--paper-3)',
         background: 'var(--paper-2)',
-        display: 'flex', alignItems: 'center', gap: 6,
+        display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <span className={`chip ${TRUST_CHIP[cap.trust_tier] ?? 'chip-ink'}`}>{cap.trust_tier}</span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666' }}>{cap.runtime}</span>
-        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#aaa' }}>v{cap.schema_version}</span>
+        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)' }}>
+          v{cap.schema_version}
+        </span>
       </div>
-      <div style={{ padding: '8px 10px', flex: 1 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, marginBottom: 4, wordBreak: 'break-all' }}>
-          {cap.capability_id}
+
+      {/* Body: human-readable name + plain-English description */}
+      <div style={{ padding: '10px 11px', flex: 1 }}>
+        <div style={{
+          fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 700,
+          color: 'var(--text)', marginBottom: 5, lineHeight: 1.2,
+        }}>
+          {title}
         </div>
-        <div style={{ fontSize: 12, color: '#555', lineHeight: 1.4 }}>{cap.description}</div>
+        <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text)', lineHeight: 1.45 }}>
+          {cap.description}
+        </div>
       </div>
-      {cap.compatibility_tags?.length > 0 && (
-        <div style={{ padding: '6px 10px', borderTop: '1px solid var(--paper-3)', display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-          {cap.compatibility_tags.slice(0, 4).map(t => (
-            <span key={t} style={{
-              fontFamily: 'var(--font-mono)', fontSize: 9,
-              padding: '1px 5px', background: 'var(--paper-2)',
-              border: '1px solid var(--paper-3)',
-              textTransform: 'uppercase', letterSpacing: '0.04em',
-            }}>{t}</span>
-          ))}
-          {cap.compatibility_tags.length > 4 && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#aaa' }}>+{cap.compatibility_tags.length - 4}</span>
-          )}
+
+      {/* Footer: what it triggers on (readable pills, not tiny uppercase) */}
+      {tags.length > 0 && (
+        <div style={{ padding: '8px 11px', borderTop: '1px solid var(--paper-3)' }}>
+          <div style={{
+            fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 700,
+            color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5,
+          }}>
+            Triggers on
+          </div>
+          <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            {tags.slice(0, 4).map(t => (
+              <span key={t} style={{
+                fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text)',
+                padding: '2px 7px', background: 'var(--paper-2)',
+                border: '1px solid var(--paper-3)',
+              }}>{t}</span>
+            ))}
+            {tags.length > 4 && (
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', padding: '2px 4px' }}>
+                +{tags.length - 4} more
+              </span>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -75,9 +98,10 @@ export function RegistryView() {
     const q = search.toLowerCase();
     setFiltered(caps.filter(c => {
       const matchSearch = !q ||
-        c.capability_id.toLowerCase().includes(q) ||
+        humanizeAgentName(c.agent_name || '').toLowerCase().includes(q) ||
+        c.agent_name?.toLowerCase().includes(q) ||
         c.description?.toLowerCase().includes(q) ||
-        c.runtime?.toLowerCase().includes(q);
+        c.compatibility_tags?.some(t => t.toLowerCase().includes(q));
       const matchTrust = trust === 'ALL' || c.trust_tier === trust;
       return matchSearch && matchTrust;
     }));
@@ -95,7 +119,7 @@ export function RegistryView() {
         background: 'var(--paper-2)', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', flex: 1, alignItems: 'center', border: 'var(--bw)', background: 'var(--white)' }}>
-          <Search size={13} style={{ margin: '0 8px', color: '#888', flexShrink: 0 }} />
+          <Search size={13} style={{ margin: '0 8px', color: 'var(--text-muted)', flexShrink: 0 }} />
           <input className="input" style={{ border: 'none', boxShadow: 'none', flex: 1 }}
             placeholder="search agents, runtimes, tags…"
             value={search} onChange={e => setSearch(e.target.value)} />
@@ -116,7 +140,7 @@ export function RegistryView() {
           ))}
         </div>
 
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', whiteSpace: 'nowrap' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
           {loading ? 'loading…' : loadError ? 'load failed' : `${filtered.length} / ${caps.length} agents`}
         </span>
         <button className="btn btn-sm" onClick={reload} disabled={loading} style={{ flexShrink: 0 }}>
@@ -137,14 +161,14 @@ export function RegistryView() {
         {!loading && loadError && (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48 }}>
             <div style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700, color: '#cc0022', marginBottom: 8 }}>Backend unreachable</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', marginBottom: 16 }}>{loadError}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', marginBottom: 16 }}>{loadError}</div>
             <button className="btn" onClick={reload}>↺ Retry connection</button>
           </div>
         )}
         {!loading && !loadError && filtered.length === 0 && (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48 }}>
             <div style={{ fontFamily: 'var(--font-ui)', fontSize: 15, fontWeight: 700, marginBottom: 8 }}>No agents match</div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#888' }}>Try a broader search or different trust tier filter.</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>Try a broader search or different trust tier filter.</div>
           </div>
         )}
       </div>

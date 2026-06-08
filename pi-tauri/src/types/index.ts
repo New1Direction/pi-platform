@@ -59,6 +59,7 @@ export interface SimulateCompositionResponse {
 
 export interface MarketplaceCapability {
   capability_id: string;
+  agent_name: string;
   runtime: string;
   operation: string;
   description: string;
@@ -199,6 +200,25 @@ export interface ForgeSaveResponse {
   saved_path: string;
   filename: string;
   trust_tier: string;
+}
+
+export interface ForgePendingAgent {
+  filename: string;
+  agent_name: string;
+  class_name: string;
+  method_name: string;
+  keywords: string[];
+  audit_passed: boolean;
+  code: string;
+}
+
+export interface ForgePromoteResponse {
+  agent_name: string;
+  promoted_path: string;
+  trust_tier: string;
+  router_edit: string;
+  consensus_edit: string;
+  validated: boolean;
 }
 
 export interface LedgerSummaryResponse {

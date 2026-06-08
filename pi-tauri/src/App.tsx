@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, Database, Grid3x3, Hammer, Shield, Zap, Bot, Wifi, WifiOff, Wrench } from 'lucide-react';
+import { Activity, Database, Grid3x3, Hammer, Shield, Zap, Bot, Wifi, WifiOff, Wrench, Sun, Moon } from 'lucide-react';
 import { Tooltip } from './components/Tooltip';
 import { createSession, getTenantId, getLedgerSummary, listCapabilities } from './lib/api';
 import type { LedgerSummaryResponse } from './types';
@@ -151,7 +151,7 @@ function StatsWidget({ summary, agentCount }: { summary: LedgerSummaryResponse |
         {([
           ['AGENTS',    agentCount > 0 ? `${agentCount}` : '…'],
           ['TRACES',    summary ? String(summary.total_traces) : '…'],
-          ['SUCCESS',   summary ? `${(summary.success_rate * 100).toFixed(0)}%` : '…'],
+          ['SUCCESS',   summary ? `${summary.success_rate.toFixed(0)}%` : '…'],
           ['AVG RISK',  summary ? summary.avg_risk_score.toFixed(1) : '…'],
           ['ANOMALIES', summary ? String(summary.anomalies_count) : '…'],
         ] as [string, string][]).map(([k, v]) => (
@@ -173,13 +173,40 @@ export default function App() {
   const [aiOpen, setAiOpen]         = useState(false);
   const [summary, setSummary]       = useState<LedgerSummaryResponse | null>(null);
   const [agentCount, setAgentCount] = useState(0);
+  const [theme, setTheme]           = useState<'light' | 'dark'>(
+    () => (localStorage.getItem('pi_theme') === 'dark' ? 'dark' : 'light')
+  );
 
   useEffect(() => {
-    createSession(getTenantId())
-      .then(r => { setSessionId(r.session_id); setStatus('ok'); })
-      .catch(() => setStatus('error'));
-    getLedgerSummary().then(setSummary).catch(() => {});
-    listCapabilities(1).then(r => setAgentCount(r.total)).catch(() => {});
+    document.documentElement.dataset.theme = theme;
+    localStorage.setItem('pi_theme', theme);
+  }, [theme]);
+  const toggleTheme = useCallback(() => setTheme(t => (t === 'dark' ? 'light' : 'dark')), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    // Connect, and auto-retry until the backend answers. Without this a single
+    // transient hiccup (e.g. the backend reloading) leaves sessionId null and
+    // the Builder/Compose tabs stuck showing "offline" until a full app reload.
+    const attempt = async () => {
+      try {
+        const r = await createSession(getTenantId());
+        if (cancelled) return;
+        setSessionId(r.session_id);
+        setStatus('ok');
+        getLedgerSummary().then(s => { if (!cancelled) setSummary(s); }).catch(() => {});
+        listCapabilities(1).then(c => { if (!cancelled) setAgentCount(c.total); }).catch(() => {});
+      } catch {
+        if (cancelled) return;
+        setStatus('error');
+        timer = setTimeout(attempt, 4000);
+      }
+    };
+    attempt();
+
+    return () => { cancelled = true; if (timer) clearTimeout(timer); };
   }, []);
 
   const toggleAi = useCallback(() => setAiOpen(o => !o), []);
@@ -293,10 +320,10 @@ export default function App() {
               <div className="widget-body">
                 <div className="widget-row">
                   {status === 'ok'
-                    ? <><Wifi size={10} style={{ color: '#226633' }} /><span style={{ color: '#226633', fontWeight: 700, fontSize: 11 }}>ONLINE</span></>
+                    ? <><Wifi size={10} style={{ color: '#1a6633' }} /><span style={{ color: '#1a6633', fontWeight: 700, fontSize: 12 }}>ONLINE</span></>
                     : status === 'error'
-                      ? <><WifiOff size={10} style={{ color: '#cc0022' }} /><span style={{ color: '#cc0022', fontWeight: 700, fontSize: 11 }}>OFFLINE</span></>
-                      : <span style={{ fontSize: 11, color: '#886600' }}>Connecting…</span>}
+                      ? <><WifiOff size={10} style={{ color: '#aa5500' }} /><span style={{ color: '#aa5500', fontWeight: 700, fontSize: 12 }}>Reconnecting…</span></>
+                      : <span style={{ fontSize: 12, color: '#aa5500' }}>Connecting…</span>}
                 </div>
                 {sessionId && (
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--chrome-dd)', marginTop: 4, wordBreak: 'break-all' }}>
@@ -331,9 +358,15 @@ export default function App() {
         </div>
         <div style={{ marginLeft: 8, display: 'flex', gap: 4, alignItems: 'center', fontFamily: 'var(--font-ui)', fontSize: 10 }}>
           {status === 'ok'
-            ? <span style={{ color: '#226633', display: 'flex', gap: 3, alignItems: 'center' }}><Wifi size={10} /> Online</span>
-            : <span style={{ color: '#cc0022', display: 'flex', gap: 3, alignItems: 'center' }}><WifiOff size={10} /> Offline</span>}
+            ? <span style={{ color: '#1a6633', display: 'flex', gap: 3, alignItems: 'center' }}><Wifi size={10} /> Online</span>
+            : <span style={{ color: '#aa5500', display: 'flex', gap: 3, alignItems: 'center' }}><WifiOff size={10} /> Reconnecting…</span>}
         </div>
+        <Tooltip tip={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} pos="top">
+          <button className="start-btn" onClick={toggleTheme} style={{ marginRight: 4 }}>
+            {theme === 'dark' ? <Sun size={11} /> : <Moon size={11} />}
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10 }}>{theme === 'dark' ? 'Light' : 'Dark'}</span>
+          </button>
+        </Tooltip>
         <Clock />
       </div>
     </div>

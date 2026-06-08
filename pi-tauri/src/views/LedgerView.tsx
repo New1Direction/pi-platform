@@ -33,14 +33,14 @@ function TraceDetail({ traceId }: { traceId: string }) {
       .finally(() => setLoading(false));
   }, [traceId]);
 
-  if (loading) return <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#888' }}>loading…</div>;
+  if (loading) return <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>loading…</div>;
   if (!detail) return <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--red)' }}>failed to load trace</div>;
 
   return (
     <div style={{ overflow: 'auto', height: '100%' }}>
       {/* Header row */}
       <div style={{ padding: '12px 16px', borderBottom: 'var(--bw)', background: 'var(--paper-2)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#666', marginBottom: 4 }}>TRACE ID</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>TRACE ID</div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, wordBreak: 'break-all' }}>{detail.trace_id}</div>
       </div>
 
@@ -107,7 +107,7 @@ export function LedgerView() {
             <KpiCard label="Total Traces" value={summary.total_traces} />
           </Tooltip>
           <Tooltip tip="Percentage of executions that completed without error.\nGreen = healthy (>80%), Red = degraded." wrapStyle={{ flex: 1 }}>
-            <KpiCard label="Success Rate" value={`${(summary.success_rate * 100).toFixed(1)}%`} accent="#005c22" />
+            <KpiCard label="Success Rate" value={`${summary.success_rate.toFixed(1)}%`} accent="#005c22" />
           </Tooltip>
           <Tooltip tip="Average risk score across all traces (0–100).\n>50 = elevated risk, >80 = critical." wrapStyle={{ flex: 1 }}>
             <KpiCard label="Avg Risk Score" value={summary.avg_risk_score.toFixed(1)} accent={summary.avg_risk_score > 50 ? '#cc2200' : '#005c22'} />
@@ -128,7 +128,7 @@ export function LedgerView() {
         background: 'var(--paper-2)', flexShrink: 0,
       }}>
         <div style={{ display: 'flex', flex: 1, alignItems: 'center', border: 'var(--bw)', background: 'var(--white)', boxShadow: 'inset 1px 1px 0 var(--paper-3)' }}>
-          <Search size={13} style={{ margin: '0 8px', color: '#888', flexShrink: 0 }} />
+          <Search size={13} style={{ margin: '0 8px', color: 'var(--text-muted)', flexShrink: 0 }} />
           <input
             className="input" style={{ border: 'none', boxShadow: 'none', flex: 1 }}
             placeholder="search traces, agents, hashes…"
@@ -140,7 +140,7 @@ export function LedgerView() {
         <button className="btn btn-sm" onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <RefreshCw size={12} className={loading ? 'spin' : ''} /> REFRESH
         </button>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', whiteSpace: 'nowrap' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
           {loading ? 'loading…' : `${total.toLocaleString()} traces`}
         </span>
       </div>
@@ -174,7 +174,7 @@ export function LedgerView() {
             <tbody>
               {traces.map(t => (
                 <tr
-                  key={t.trace_id}
+                  key={t.id}
                   className={selected === t.trace_id ? 'selected' : ''}
                   onClick={() => setSelected(s => s === t.trace_id ? null : t.trace_id)}
                   style={{ cursor: 'pointer' }}
@@ -182,7 +182,7 @@ export function LedgerView() {
                   <td style={{ textAlign: 'center', padding: '4px 4px' }}>
                     {selected === t.trace_id
                       ? <ChevronDown size={12} />
-                      : <ChevronRight size={12} style={{ color: '#bbb' }} />}
+                      : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
                   </td>
                   <td>
                     {t.success === false
@@ -192,11 +192,11 @@ export function LedgerView() {
                         : <span className="chip chip-ink">—</span>}
                     {(t.anomalies_detected?.length ?? 0) > 0 && <AlertTriangle size={11} style={{ color: 'var(--yellow)', marginLeft: 4 }} />}
                   </td>
-                  <td className="mono" style={{ fontSize: 10, color: '#555' }}>{t.trace_id?.slice(0, 14)}…</td>
+                  <td className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t.trace_id?.slice(0, 14)}…</td>
                   <td style={{ fontSize: 11 }}>{t.routed_agent ?? '—'}</td>
                   <td>{riskChip(t.risk_score)}</td>
                   <td style={{ fontSize: 11 }}>{t.node_name}</td>
-                  <td className="mono" style={{ fontSize: 10, color: '#888' }}>
+                  <td className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                     {t.timestamp ? format(new Date(t.timestamp), 'MM-dd HH:mm:ss') : '—'}
                   </td>
                 </tr>
@@ -207,17 +207,17 @@ export function LedgerView() {
                     margin: 24, padding: '24px 32px',
                     border: '2px solid var(--chrome-dd)',
                     boxShadow: 'inset 1px 1px 0 #808080',
-                    background: '#f4f4f4',
+                    background: 'var(--surface-2)',
                     textAlign: 'center',
                   }}>
                     <div style={{
                       fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700,
-                      color: '#111', marginBottom: 10, letterSpacing: '0.01em',
+                      color: 'var(--text)', marginBottom: 10, letterSpacing: '0.01em',
                     }}>
                       No traces yet
                     </div>
                     <div style={{
-                      fontFamily: 'var(--font-ui)', fontSize: 12, color: '#333',
+                      fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text)',
                       lineHeight: 1.8, maxWidth: 420, margin: '0 auto',
                     }}>
                       Open <strong>Compose</strong>, configure an agent node, click <strong>Simulate</strong> then <strong>Approve &amp; Submit</strong>.<br />

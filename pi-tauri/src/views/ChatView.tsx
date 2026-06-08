@@ -47,7 +47,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
           PI SECURITY COPILOT
         </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#666', marginLeft: 'auto' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', marginLeft: 'auto' }}>
           {sessionId ? `session: ${sessionId.slice(0, 14)}…` : 'no session'}
         </span>
       </div>
@@ -60,7 +60,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
             maxWidth: '75%',
           }}>
             <div style={{
-              fontSize: 9, fontFamily: 'var(--font-mono)', color: '#aaa',
+              fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--text-muted)',
               marginBottom: 3, textAlign: m.role === 'user' ? 'right' : 'left',
               textTransform: 'uppercase', letterSpacing: '0.06em',
             }}>
@@ -81,7 +81,7 @@ export function ChatView({ sessionId }: { sessionId: string | null }) {
           </div>
         ))}
         {loading && (
-          <div style={{ alignSelf: 'flex-start', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#aaa', letterSpacing: '0.1em' }}>
+          <div style={{ alignSelf: 'flex-start', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.1em' }}>
             thinking_
           </div>
         )}

@@ -28,7 +28,7 @@ function Bar({ label, value, max, accent }: { label: string; value: number; max:
             transition: 'width 400ms',
           }} />
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: '#888' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
           <span>0</span>
           <span style={{ color, fontWeight: 700 }}>{pct.toFixed(0)}% used</span>
           <span>{max}</span>
@@ -78,17 +78,17 @@ export function QuotaView() {
         <button className="btn btn-sm" onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 'auto' }}>
           <RefreshCw size={12} /> REFRESH
         </button>
-        {ts && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#aaa' }}>as of {ts}</span>}
+        {ts && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>as of {ts}</span>}
       </div>
 
-      {loading && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#888' }}>loading…</div>}
+      {loading && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-muted)' }}>loading…</div>}
 
       {quota && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Hourly bars */}
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, color: '#666' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, color: 'var(--text-muted)' }}>
               — CURRENT HOUR —
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -99,7 +99,7 @@ export function QuotaView() {
 
           {/* Lifetime stats */}
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, color: '#666' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10, color: 'var(--text-muted)' }}>
               — LIFETIME —
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>

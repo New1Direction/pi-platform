@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&family=Press+Start+2P&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -31,8 +31,8 @@
   --purple: #660099;
 
   /* ── type ── */
-  --font-ui:    'Segoe UI', Tahoma, 'MS Sans Serif', system-ui, sans-serif;
-  --font-mono:  'IBM Plex Mono', 'Courier New', monospace;
+  --font-ui:    'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:  'JetBrains Mono', 'SF Mono', 'IBM Plex Mono', ui-monospace, monospace;
   --font-pixel: 'Press Start 2P', monospace;
 
   /* ── Win98 3D borders ── */
@@ -47,6 +47,32 @@
   --font-sans: var(--font-ui);
   --shadow-sm: 1px 1px 0 var(--chrome-dd);
   --muted:    var(--chrome-d);
+
+  /* ── semantic theme tokens (flip in dark mode) ── */
+  --surface:    #ffffff;   /* content panes / cards */
+  --surface-2:  #f1f0ec;   /* secondary panels, list rows */
+  --text:       #1f1f1f;   /* primary text */
+  --text-muted: #555555;   /* secondary text */
+}
+
+/* ─────────────────────────────────────────
+   DARK THEME — flip surfaces + text; keep accents
+───────────────────────────────────────── */
+[data-theme="dark"] {
+  --desktop:   #0c2e2e;   /* deep teal wallpaper */
+  --white:     #1e1e1e;   /* "white" surfaces become charcoal */
+  --chrome:    #2b2b2b;
+  --chrome-d:  #3a3a3a;
+  --chrome-dd: #555555;
+  --ink:       #e8e8e8;   /* primary text becomes light */
+  --paper-2:   #2b2b2b;
+  --paper-3:   #3a3a3a;
+  --muted:     #3a3a3a;
+
+  --surface:    #1e1e1e;
+  --surface-2:  #262626;
+  --text:       #e8e8e8;
+  --text-muted: #a8a8a8;
 }
 
 html, body, #root { height: 100%; overflow: hidden; }
@@ -55,12 +81,13 @@ body {
   /* classic Win98 teal desktop + subtle 2×2 noise dither */
   background-color: var(--desktop);
   background-image: url("data:image/svg+xml,%3Csvg width='4' height='4' viewBox='0 0 4 4' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0' y='0' width='1' height='1' fill='rgba(0,0,0,0.06)'/%3E%3Crect x='2' y='2' width='1' height='1' fill='rgba(255,255,255,0.04)'/%3E%3C/svg%3E");
-  color: var(--black);
+  color: var(--ink);
   font-family: var(--font-ui);
   font-size: 12px;
   line-height: 1.4;
-  -webkit-font-smoothing: none;
-  image-rendering: pixelated;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
   user-select: none;
 }
 
@@ -170,7 +197,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
   border-bottom: 1px solid var(--black);
   display: flex; align-items: center; justify-content: center;
   font-size: 9px; font-family: var(--font-ui); font-weight: 700;
-  color: var(--black); cursor: pointer;
+  color: var(--ink); cursor: pointer;
   box-shadow: inset -1px -1px 0 var(--chrome-dd), inset 1px 1px 0 var(--white);
 }
 .win-title-btn:active {
@@ -192,7 +219,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
   display: flex;
   flex-direction: column;
   font-size: 12px;
-  color: #111;
+  color: var(--ink);
 }
 
 /* ─────────────────────────────────────────
@@ -212,7 +239,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
   cursor: pointer;
   border: 2px solid transparent;
   background: transparent;
-  color: var(--black);
+  color: var(--ink);
   font-family: var(--font-ui);
 }
 .menu-item:hover {
@@ -280,7 +307,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
   gap: 5px;
   padding: 4px 12px;
   background: var(--chrome);
-  color: var(--black);
+  color: var(--ink);
   font-family: var(--font-ui);
   font-size: 11px;
   border-top:    2px solid var(--white);
@@ -339,7 +366,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
   background: var(--white);
   font-family: var(--font-mono);
   font-size: 11px;
-  color: var(--black);
+  color: var(--ink);
   border-top:    2px solid var(--chrome-dd);
   border-left:   2px solid var(--chrome-dd);
   border-right:  2px solid var(--white);
@@ -365,18 +392,21 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
 }
 .brutal-table td {
   padding: 4px 10px;
-  border-bottom: 1px solid #d0d0d0;
-  border-right: 1px solid #d0d0d0;
+  border-bottom: 1px solid var(--paper-3);
+  border-right: 1px solid var(--paper-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 200px;
-  background: var(--white);
+  background: var(--surface);
+  color: var(--text);
   font-size: 12px;
 }
-.brutal-table tr:nth-child(even) td { background: #f0f0f8; }
+.brutal-table tr:nth-child(even) td { background: var(--surface-2); }
 .brutal-table tr:hover td   { background: #cce4ff; }
-.brutal-table tr.selected td { background: #0000aa; color: var(--white); }
+.brutal-table tr.selected td { background: #0000aa; color: #fff; }
+[data-theme="dark"] .brutal-table tr:hover td   { background: #2e3a4a; }
+[data-theme="dark"] .brutal-table tr.selected td { background: #1a3a8a; color: #fff; }
 
 /* ─────────────────────────────────────────
    STATUS CHIP
@@ -385,15 +415,22 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
   display: inline-flex; align-items: center; gap: 2px;
   padding: 2px 6px;
   border: 1px solid var(--chrome-dd);
-  font-family: var(--font-mono); font-size: 10px; font-weight: 600;
-  letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+  letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap;
   background: var(--chrome);
 }
 .chip-green  { background: #d4f5e5; border-color: #006622; color: #004400; }
 .chip-red    { background: #ffe0e6; border-color: #cc0022; color: #880011; }
 .chip-yellow { background: #fff5cc; border-color: #ccaa00; color: #7a4800; }
 .chip-blue   { background: #dde6ff; border-color: #000099; color: #000066; }
-.chip-ink    { background: var(--black); color: var(--white); border-color: var(--black); }
+.chip-ink    { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+[data-theme="dark"] .chip-ink { background: #3a3a3a; color: #fff; border-color: #666; }
+/* Light status chips read fine on dark; nudge their borders for separation */
+[data-theme="dark"] .chip-green  { background: #16351f; color: #7ee0a0; border-color: #2e7d4f; }
+[data-theme="dark"] .chip-red    { background: #3a1620; color: #ff9bae; border-color: #7d2e44; }
+[data-theme="dark"] .chip-yellow { background: #332b12; color: #e6c453; border-color: #7d6a2e; }
+[data-theme="dark"] .chip-blue   { background: #161e3a; color: #9bb0ff; border-color: #2e447d; }
+[data-theme="dark"] .chip-purple { background: #2a163a; color: #c79bff; border-color: #5e2e7d; }
 .chip-purple { background: #ead4ff; border-color: #660099; color: #440066; }
 
 /* ─────────────────────────────────────────
@@ -416,7 +453,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
 .kpi-value {
   padding: 8px 10px;
   font-family: var(--font-mono); font-size: 22px; font-weight: 600;
-  color: var(--black); line-height: 1;
+  color: var(--ink); line-height: 1;
 }
 
 /* ─────────────────────────────────────────
@@ -438,7 +475,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
 }
 .ai-msg-assistant {
   align-self: flex-start; max-width: 88%;
-  background: var(--chrome); color: var(--black);
+  background: var(--chrome); color: var(--ink);
   border-top:    2px solid var(--white);
   border-left:   2px solid var(--white);
   border-right:  2px solid var(--chrome-dd);
@@ -460,7 +497,7 @@ input, textarea, select { font-family: var(--font-mono); font-size: 11px; outlin
   border-left:   2px solid var(--white);
   border-right:  2px solid var(--black);
   border-bottom: 2px solid var(--black);
-  color: var(--black); display: flex; align-items: center; gap: 5px;
+  color: var(--ink); display: flex; align-items: center; gap: 5px;
   width: 100%;
 }
 .ai-chip:hover  { background: #cce4ff; }

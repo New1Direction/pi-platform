@@ -40,7 +40,7 @@ export function AuditView() {
         <button className="btn btn-sm" onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
           <RefreshCw size={12} /> REFRESH
         </button>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#888', marginLeft: 'auto' }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
           {loading ? 'loading…' : `${filtered.length} / ${total} entries`}
         </span>
       </div>
@@ -76,13 +76,13 @@ export function AuditView() {
                   className={expanded === e.entry_id ? 'selected' : ''}
                 >
                   <td style={{ textAlign: 'center', padding: '4px 4px' }}>
-                    {expanded === e.entry_id ? <ChevronDown size={12} /> : <ChevronRight size={12} style={{ color: '#bbb' }} />}
+                    {expanded === e.entry_id ? <ChevronDown size={12} /> : <ChevronRight size={12} style={{ color: 'var(--text-muted)' }} />}
                   </td>
-                  <td className="mono" style={{ fontSize: 10, color: '#777' }}>
+                  <td className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>
                     {e.timestamp ? format(new Date(e.timestamp), 'yyyy-MM-dd HH:mm:ss') : '—'}
                   </td>
                   <td style={{ fontWeight: 600, fontSize: 11 }}>{e.action}</td>
-                  <td className="mono" style={{ fontSize: 10, color: '#888' }}>{e.request_id?.slice(0, 18)}…</td>
+                  <td className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{e.request_id?.slice(0, 18)}…</td>
                   <td>
                     <span className={`chip ${e.response_status === 'SUCCESS' || e.response_status?.startsWith('2') ? 'chip-green' : 'chip-red'}`}>
                       {e.response_status}
@@ -106,7 +106,7 @@ export function AuditView() {
               </>
             ))}
             {!loading && filtered.length === 0 && (
-              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: '#aaa', fontFamily: 'var(--font-mono)', fontSize: 12 }}>no entries</td></tr>
+              <tr><td colSpan={6} style={{ textAlign: 'center', padding: 32, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>no entries</td></tr>
             )}
           </tbody>
         </table>
