@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pi-semantic-recon Pipeline Architecture</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot {
+      width: 12px; height: 12px; background: #22d3ee; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5); border-radius: 1rem;
+      border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 1000px; display: block; }
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem;
+      border: 1px solid #1e293b; padding: 1.25rem;
+    }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>pi-semantic-recon Pipeline</h1>
+      </div>
+      <p class="subtitle">Deterministic extraction nodes + governance-bound verification plane</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1100 720">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- PIPELINE BOUNDARY -->
+        <rect x="20" y="20" width="700" height="340" rx="12" fill="rgba(8, 51, 68, 0.08)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="34" y="38" fill="#22d3ee" font-size="11" font-weight="600">EXTRACTION PIPELINE</text>
+
+        <!-- Node 0: Acquisition Gateway -->
+        <rect x="40" y="60" width="130" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="105" y="82" fill="white" font-size="10" font-weight="600" text-anchor="middle">Acquisition</text>
+        <text x="105" y="96" fill="#94a3b8" font-size="8" text-anchor="middle">Gateway</text>
+        <text x="105" y="110" fill="#64748b" font-size="7" text-anchor="middle">Node 0</text>
+
+        <!-- Node 1: Ingress Parser -->
+        <rect x="210" y="60" width="130" height="60" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="275" y="82" fill="white" font-size="10" font-weight="600" text-anchor="middle">Ingress Parser</text>
+        <text x="275" y="96" fill="#94a3b8" font-size="8" text-anchor="middle">HTTP bytes → struct</text>
+        <text x="275" y="110" fill="#64748b" font-size="7" text-anchor="middle">Node 1</text>
+
+        <!-- Node 2: Structural Extractor -->
+        <rect x="380" y="60" width="130" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="445" y="82" fill="white" font-size="10" font-weight="600" text-anchor="middle">Structural</text>
+        <text x="445" y="96" fill="#94a3b8" font-size="8" text-anchor="middle">JSON field paths</text>
+        <text x="445" y="110" fill="#64748b" font-size="7" text-anchor="middle">Node 2</text>
+
+        <!-- Node 3: Semantic Typer -->
+        <rect x="550" y="60" width="130" height="60" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+        <text x="615" y="82" fill="white" font-size="10" font-weight="600" text-anchor="middle">Semantic Typer</text>
+        <text x="615" y="96" fill="#94a3b8" font-size="8" text-anchor="middle">UUID, JWT, EMAIL...</text>
+        <text x="615" y="110" fill="#64748b" font-size="7" text-anchor="middle">Node 3</text>
+
+        <!-- Node 4: Flow Mapper -->
+        <rect x="260" y="160" width="200" height="70" rx="6" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="360" y="182" fill="white" font-size="11" font-weight="600" text-anchor="middle">Flow Mapper</text>
+        <text x="360" y="198" fill="#94a3b8" font-size="8" text-anchor="middle">Dependency graph + replay equivalence</text>
+        <text x="360" y="214" fill="#64748b" font-size="7" text-anchor="middle">STRICT | SEMANTIC | PARTIAL | NON_EQUIVALENT</text>
+
+        <!-- Node 5: Spec Synthesizer -->
+        <rect x="260" y="270" width="200" height="60" rx="6" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+        <text x="360" y="292" fill="white" font-size="11" font-weight="600" text-anchor="middle">Spec Synthesizer</text>
+        <text x="360" y="308" fill="#94a3b8" font-size="8" text-anchor="middle">OpenAPI 3.0 from verified IR</text>
+        <text x="360" y="322" fill="#64748b" font-size="7" text-anchor="middle">Node 5</text>
+
+        <!-- VERIFICATION BOUNDARY -->
+        <rect x="20" y="390" width="1060" height="280" rx="12" fill="rgba(136, 19, 55, 0.05)" stroke="#fb7185" stroke-width="1" stroke-dasharray="8,4"/>
+        <text x="34" y="408" fill="#fb7185" font-size="11" font-weight="600">VERIFICATION PLANE (Governance Supremacy)</text>
+
+        <!-- Phase 1 -->
+        <rect x="40" y="430" width="140" height="70" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="110" y="452" fill="white" font-size="10" font-weight="600" text-anchor="middle">1. Provenance</text>
+        <text x="110" y="468" fill="#94a3b8" font-size="8" text-anchor="middle">Lineage closure</text>
+        <text x="110" y="482" fill="#64748b" font-size="7" text-anchor="middle">Orphan • Cyclic detect</text>
+
+        <!-- Phase 2 -->
+        <rect x="210" y="430" width="140" height="70" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="280" y="452" fill="white" font-size="10" font-weight="600" text-anchor="middle">2. Replay</text>
+        <text x="280" y="468" fill="#94a3b8" font-size="8" text-anchor="middle">Equivalence taxonomy</text>
+        <text x="280" y="482" fill="#64748b" font-size="7" text-anchor="middle">4-class + auth mutation</text>
+
+        <!-- Phase 3 -->
+        <rect x="380" y="430" width="160" height="70" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="460" y="452" fill="white" font-size="10" font-weight="600" text-anchor="middle">3. Auth Consistency</text>
+        <text x="460" y="468" fill="#94a3b8" font-size="8" text-anchor="middle">5-class rotation taxonomy</text>
+        <text x="460" y="482" fill="#64748b" font-size="7" text-anchor="middle">TOKEN_REUSE • CSRF • SESSION</text>
+
+        <!-- Phase 4 -->
+        <rect x="570" y="430" width="140" height="70" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="640" y="452" fill="white" font-size="10" font-weight="600" text-anchor="middle">4. State FSM</text>
+        <text x="640" y="468" fill="#94a3b8" font-size="8" text-anchor="middle">Bounded protocol FSM</text>
+        <text x="640" y="482" fill="#64748b" font-size="7" text-anchor="middle">MAX_NODES=64 • REPLAY gates</text>
+
+        <!-- Phase 5 -->
+        <rect x="740" y="430" width="140" height="70" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="810" y="452" fill="white" font-size="10" font-weight="600" text-anchor="middle">5. Semantic Quorum</text>
+        <text x="810" y="468" fill="#94a3b8" font-size="8" text-anchor="middle">INTERSECTION not voting</text>
+        <text x="810" y="482" fill="#64748b" font-size="7" text-anchor="middle">Conflict sets • Authority hierarchy</text>
+
+        <!-- Phase 6 -->
+        <rect x="910" y="430" width="150" height="70" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="985" y="452" fill="white" font-size="10" font-weight="600" text-anchor="middle">6. Entropy Analysis</text>
+        <text x="985" y="468" fill="#94a3b8" font-size="8" text-anchor="middle">Stability instrumentation</text>
+        <text x="985" y="482" fill="#64748b" font-size="7" text-anchor="middle">5-dim entropy • Drift detect</text>
+
+        <!-- Governance Kernel -->
+        <rect x="260" y="530" width="580" height="70" rx="6" fill="rgba(251, 191, 36, 0.1)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="550" y="552" fill="white" font-size="11" font-weight="600" text-anchor="middle">Governance Kernel</text>
+        <text x="550" y="570" fill="#94a3b8" font-size="8" text-anchor="middle">INIT → ACQUIRING → EXTRACTING → ASSEMBLING_IR → SYNTHESIZING → VERIFIED</text>
+        <text x="550" y="588" fill="#fbbf24" font-size="8" text-anchor="middle">HALT on CRITICAL • WARNING on non-critical • Monotonic promotion</text>
+
+        <!-- Arrows: Pipeline -->
+        <line x1="170" y1="90" x2="208" y2="90" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="340" y1="90" x2="378" y2="90" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="510" y1="90" x2="548" y2="90" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="615" y1="120" x2="615" y2="140" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="360" y1="230" x2="360" y2="268" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="360" y1="330" x2="360" y2="350" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- Arrow from pipeline to verification -->
+        <line x1="460" y1="360" x2="460" y2="428" stroke="#fb7185" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrowhead)"/>
+        <text x="475" y="395" fill="#fb7185" font-size="8">all artifacts</text>
+
+        <!-- Arrows between verification phases -->
+        <line x1="180" y1="465" x2="208" y2="465" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="350" y1="465" x2="378" y2="465" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="540" y1="465" x2="568" y2="465" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="710" y1="465" x2="738" y2="465" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="880" y1="465" x2="908" y2="465" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- Arrow from verification to governance -->
+        <line x1="550" y1="500" x2="550" y2="528" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- Artifact Registry box -->
+        <rect x="750" y="60" width="150" height="280" rx="6" fill="rgba(76, 29, 149, 0.2)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="825" y="82" fill="#a78bfa" font-size="10" font-weight="600" text-anchor="middle">Artifact Registry</text>
+        <text x="825" y="100" fill="#94a3b8" font-size="8" text-anchor="middle">SQLite-backed</text>
+        <text x="825" y="118" fill="#94a3b8" font-size="8" text-anchor="middle">Immutable store</text>
+        <text x="825" y="140" fill="#64748b" font-size="7" text-anchor="middle">packet_id</text>
+        <text x="825" y="154" fill="#64748b" font-size="7" text-anchor="middle">trace_id</text>
+        <text x="825" y="168" fill="#64748b" font-size="7" text-anchor="middle">envelope_hash</text>
+        <text x="825" y="182" fill="#64748b" font-size="7" text-anchor="middle">artifact_id</text>
+        <text x="825" y="196" fill="#64748b" font-size="7" text-anchor="middle">epistemic_state</text>
+        <text x="825" y="210" fill="#64748b" font-size="7" text-anchor="middle">producer_worker_id</text>
+
+        <!-- Arrow from nodes to registry -->
+        <line x1="680" y1="90" x2="748" y2="90" stroke="#a78bfa" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <line x1="460" y1="195" x2="748" y2="195" stroke="#a78bfa" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <line x1="460" y1="300" x2="748" y2="300" stroke="#a78bfa" stroke-width="1" marker-end="url(#arrowhead)"/>
+
+        <!-- Legend -->
+        <text x="920" y="560" fill="white" font-size="10" font-weight="600">Legend</text>
+        <rect x="920" y="572" width="14" height="10" rx="2" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1"/>
+        <text x="940" y="580" fill="#94a3b8" font-size="8">Ingress / Parse</text>
+        <rect x="920" y="588" width="14" height="10" rx="2" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+        <text x="940" y="596" fill="#94a3b8" font-size="8">Extraction</text>
+        <rect x="920" y="604" width="14" height="10" rx="2" fill="rgba(120, 53, 15, 0.3)" stroke="#fbbf24" stroke-width="1"/>
+        <text x="940" y="612" fill="#94a3b8" font-size="8">Mapping / FSM</text>
+        <rect x="920" y="620" width="14" height="10" rx="2" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1"/>
+        <text x="940" y="628" fill="#94a3b8" font-size="8">Synthesis</text>
+        <rect x="920" y="636" width="14" height="10" rx="2" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1"/>
+        <text x="940" y="644" fill="#94a3b8" font-size="8">Verification</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>Extraction Pipeline</h3></div>
+        <ul>
+          <li>• Node 0: Acquisition Gateway — canonicalizes raw HTTP into packets</li>
+          <li>• Node 1: Ingress Parser — parses bytes, parameterizes paths</li>
+          <li>• Node 2: Structural Extractor — flattens JSON into field paths</li>
+          <li>• Node 3: Semantic Typer — UUID, JWT, EMAIL pattern detection</li>
+          <li>• Node 4: Flow Mapper — dependency graph + replay equivalence</li>
+          <li>• Node 5: Spec Synthesizer — OpenAPI from verified IR</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot rose"></div><h3>Verification Plane</h3></div>
+        <ul>
+          <li>• Phase 1: Provenance — every claim traced to raw traffic</li>
+          <li>• Phase 2: Replay — 4-class equivalence taxonomy</li>
+          <li>• Phase 3: Auth — 5-class session rotation taxonomy</li>
+          <li>• Phase 4: FSM — bounded protocol state machine</li>
+          <li>• Phase 5: Quorum — intersection (not voting!)</li>
+          <li>• Phase 6: Entropy — stability instrumentation layer</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot amber"></div><h3>Governance Kernel</h3></div>
+        <ul>
+          <li>• Monotonic state machine: INIT → ... → VERIFIED</li>
+          <li>• HALT on CRITICAL violations (provenance broken, auth mutation)</li>
+          <li>• WARNING on non-critical (orphaned artifacts, unverified transitions)</li>
+          <li>• Schema gate validates before synthesis</li>
+          <li>• Entropy monitor detects divergence in real-time</li>
+          <li>• Objective tracker prevents goal drift</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">pi-semantic-recon • Deterministic Semantic Extraction Runtime</p>
+  </div>
+</body>
+</html>

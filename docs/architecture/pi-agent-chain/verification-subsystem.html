@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verification Subsystem — 6 Phases</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot {
+      width: 12px; height: 12px; background: #fb7185; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5); border-radius: 1rem;
+      border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 1000px; display: block; }
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem;
+      border: 1px solid #1e293b; padding: 1.25rem;
+    }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.amber { background: #fbbf24; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card ul { list-style: none; color: #94a3b8; font-size: 0.75rem; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>Verification Subsystem — 6 Phases</h1>
+      </div>
+      <p class="subtitle">Every claim must pass all 6 phases before promotion to VERIFIED</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1100 600">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- Top: raw artifacts entering -->
+        <rect x="20" y="20" width="1060" height="50" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="550" y="42" fill="white" font-size="12" font-weight="600" text-anchor="middle">Raw Semantic Artifacts (from Extraction Pipeline)</text>
+        <text x="550" y="58" fill="#94a3b8" font-size="9" text-anchor="middle">SemanticIRTrace • AuthEvidence • ExtractedProtocolSkeleton • DependencyGraph</text>
+
+        <!-- Phase 1 -->
+        <rect x="20" y="100" width="160" height="90" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="100" y="122" fill="white" font-size="11" font-weight="600" text-anchor="middle">Phase 1</text>
+        <text x="100" y="140" fill="white" font-size="10" font-weight="500" text-anchor="middle">Provenance</text>
+        <text x="100" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">Lineage closure</text>
+        <text x="100" y="174" fill="#64748b" font-size="7" text-anchor="middle">ORPHAN • CYCLIC • MISSING_REF</text>
+
+        <!-- Phase 2 -->
+        <rect x="210" y="100" width="160" height="90" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="290" y="122" fill="white" font-size="11" font-weight="600" text-anchor="middle">Phase 2</text>
+        <text x="290" y="140" fill="white" font-size="10" font-weight="500" text-anchor="middle">Replay Validator</text>
+        <text x="290" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">4-class equivalence</text>
+        <text x="290" y="174" fill="#64748b" font-size="7" text-anchor="middle">STRICT • SEMANTIC • PARTIAL • NON_EQ</text>
+
+        <!-- Phase 3 -->
+        <rect x="400" y="100" width="160" height="90" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="480" y="122" fill="white" font-size="11" font-weight="600" text-anchor="middle">Phase 3</text>
+        <text x="480" y="140" fill="white" font-size="10" font-weight="500" text-anchor="middle">Auth Consistency</text>
+        <text x="480" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">5-class rotation</text>
+        <text x="480" y="174" fill="#64748b" font-size="7" text-anchor="middle">STATIC • PER_REQ • PER_SESS • STATE_BOUND</text>
+
+        <!-- Phase 4 -->
+        <rect x="590" y="100" width="160" height="90" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="670" y="122" fill="white" font-size="11" font-weight="600" text-anchor="middle">Phase 4</text>
+        <text x="670" y="140" fill="white" font-size="10" font-weight="500" text-anchor="middle">State FSM</text>
+        <text x="670" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">Bounded protocol FSM</text>
+        <text x="670" y="174" fill="#64748b" font-size="7" text-anchor="middle">MAX_NODES=64 • No self-loops • Replay gates</text>
+
+        <!-- Phase 5 -->
+        <rect x="780" y="100" width="160" height="90" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="860" y="122" fill="white" font-size="11" font-weight="600" text-anchor="middle">Phase 5</text>
+        <text x="860" y="140" fill="white" font-size="10" font-weight="500" text-anchor="middle">Semantic Quorum</text>
+        <text x="860" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">INTERSECTION — no voting</text>
+        <text x="860" y="174" fill="#64748b" font-size="7" text-anchor="middle">Authority hierarchy • Conflict sets</text>
+
+        <!-- Phase 6 -->
+        <rect x="970" y="100" width="110" height="90" rx="6" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="1025" y="122" fill="white" font-size="11" font-weight="600" text-anchor="middle">Phase 6</text>
+        <text x="1025" y="140" fill="white" font-size="10" font-weight="500" text-anchor="middle">Entropy</text>
+        <text x="1025" y="158" fill="#94a3b8" font-size="8" text-anchor="middle">5-dim stability</text>
+        <text x="1025" y="174" fill="#64748b" font-size="7" text-anchor="middle">Drift • Convergence • HALT</text>
+
+        <!-- Flow arrows -->
+        <line x1="180" y1="145" x2="208" y2="145" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="370" y1="145" x2="398" y2="145" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="560" y1="145" x2="588" y2="145" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="750" y1="145" x2="778" y2="145" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="940" y1="145" x2="968" y2="145" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- Down arrow from raw artifacts -->
+        <line x1="100" y1="70" x2="100" y2="98" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <line x1="290" y1="70" x2="290" y2="98" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <line x1="480" y1="70" x2="480" y2="98" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <line x1="670" y1="70" x2="670" y2="98" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <line x1="860" y1="70" x2="860" y2="98" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrowhead)"/>
+        <line x1="1025" y1="70" x2="1025" y2="98" stroke="#94a3b8" stroke-width="1" marker-end="url(#arrowhead)"/>
+
+        <!-- Epistemic States row -->
+        <rect x="20" y="220" width="1060" height="50" rx="6" fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="34" y="236" fill="#fbbf24" font-size="10" font-weight="600">Epistemic State Machine (Monotonic Promotion)</text>
+        <text x="34" y="252" fill="#94a3b8" font-size="8">INIT → ACQUIRING → EXTRACTING → ASSEMBLING_IR → SYNTHESIZING → VERIFIED — CONTESTED ← conflicts — REJECTED ← quorum rejection</text>
+
+        <!-- Detail boxes for each phase -->
+        <!-- Phase 1 detail -->
+        <rect x="20" y="300" width="160" height="130" rx="4" fill="rgba(136, 19, 55, 0.1)" stroke="#fb7185" stroke-width="0.5"/>
+        <text x="100" y="318" fill="#fb7185" font-size="8" font-weight="600" text-anchor="middle">Provenance Validator</text>
+        <text x="30" y="336" fill="#94a3b8" font-size="7">• artifact_id → trace_id</text>
+        <text x="30" y="350" fill="#94a3b8" font-size="7">• trace_id → packet_id</text>
+        <text x="30" y="364" fill="#94a3b8" font-size="7">• envelope_hash match</text>
+        <text x="30" y="378" fill="#94a3b8" font-size="7">• No cyclic deps</text>
+        <text x="30" y="392" fill="#94a3b8" font-size="7">• No orphans</text>
+        <text x="30" y="412" fill="#fb7185" font-size="7" font-weight="600">HALT: PROVENANCE_BROKEN</text>
+
+        <!-- Phase 2 detail -->
+        <rect x="210" y="300" width="160" height="130" rx="4" fill="rgba(136, 19, 55, 0.1)" stroke="#fb7185" stroke-width="0.5"/>
+        <text x="290" y="318" fill="#fb7185" font-size="8" font-weight="600" text-anchor="middle">Replay Validator</text>
+        <text x="220" y="336" fill="#94a3b8" font-size="7">• Canonicalize (strip IDs)</text>
+        <text x="220" y="350" fill="#94a3b8" font-size="7">• STRICT = byte-equal</text>
+        <text x="220" y="364" fill="#94a3b8" font-size="7">• SEMANTIC = struct-equal</text>
+        <text x="220" y="378" fill="#94a3b8" font-size="7">• PARTIAL = superset</text>
+        <text x="220" y="392" fill="#94a3b8" font-size="7">• NON_EQ = structural diff</text>
+        <text x="220" y="412" fill="#fb7185" font-size="7" font-weight="600">HALT: AUTH_MUTATION</text>
+
+        <!-- Phase 3 detail -->
+        <rect x="400" y="300" width="160" height="130" rx="4" fill="rgba(136, 19, 55, 0.1)" stroke="#fb7185" stroke-width="0.5"/>
+        <text x="480" y="318" fill="#fb7185" font-size="8" font-weight="600" text-anchor="middle">Auth Consistency</text>
+        <text x="410" y="336" fill="#94a3b8" font-size="7">• Detect Bearer/JWT/CSRF</text>
+        <text x="410" y="350" fill="#94a3b8" font-size="7">• 5-class rotation</text>
+        <text x="410" y="364" fill="#94a3b8" font-size="7">• Token reuse detection</text>
+        <text x="410" y="378" fill="#94a3b8" font-size="7">• CSRF coupling</text>
+        <text x="410" y="392" fill="#94a3b8" font-size="7">• Auth transition (401)</text>
+        <text x="410" y="412" fill="#fb7185" font-size="7" font-weight="600">CONTESTED: DEP_ORDERING</text>
+
+        <!-- Phase 4 detail -->
+        <rect x="590" y="300" width="160" height="130" rx="4" fill="rgba(136, 19, 55, 0.1)" stroke="#fb7185" stroke-width="0.5"/>
+        <text x="670" y="318" fill="#fb7185" font-size="8" font-weight="600" text-anchor="middle">State FSM Extractor</text>
+        <text x="600" y="336" fill="#94a3b8" font-size="7">• Nodes = endpoints</text>
+        <text x="600" y="350" fill="#94a3b8" font-size="7">• Edges = temporal order</text>
+        <text x="600" y="364" fill="#94a3b8" font-size="7">• REPLAY_REQUIRED gate</text>
+        <text x="600" y="378" fill="#94a3b8" font-size="7">• MAX_NODES=64</text>
+        <text x="600" y="392" fill="#94a3b8" font-size="7">• MAX_EDGES=256</text>
+        <text x="600" y="412" fill="#fb7185" font-size="7" font-weight="600">HALT: FSM_OVERFLOW</text>
+
+        <!-- Phase 5 detail -->
+        <rect x="780" y="300" width="160" height="130" rx="4" fill="rgba(136, 19, 55, 0.1)" stroke="#fb7185" stroke-width="0.5"/>
+        <text x="860" y="318" fill="#fb7185" font-size="8" font-weight="600" text-anchor="middle">Semantic Quorum</text>
+        <text x="790" y="336" fill="#94a3b8" font-size="7">• NOT majority voting</text>
+        <text x="790" y="350" fill="#94a3b8" font-size="7">• INTERSECTION only</text>
+        <text x="790" y="364" fill="#94a3b8" font-size="7">• Authority hierarchy</text>
+        <text x="790" y="378" fill="#94a3b8" font-size="7">• Conflict sets preserved</text>
+        <text x="790" y="392" fill="#94a3b8" font-size="7">• MAX_CLAIMS=512</text>
+        <text x="790" y="412" fill="#fb7185" font-size="7" font-weight="600">HALT: ENTROPY_REGRESS</text>
+
+        <!-- Phase 6 detail -->
+        <rect x="970" y="300" width="110" height="130" rx="4" fill="rgba(136, 19, 55, 0.1)" stroke="#fb7185" stroke-width="0.5"/>
+        <text x="1025" y="318" fill="#fb7185" font-size="8" font-weight="600" text-anchor="middle">Entropy Analysis</text>
+        <text x="980" y="336" fill="#94a3b8" font-size="7">• Structural</text>
+        <text x="980" y="350" fill="#94a3b8" font-size="7">• Semantic</text>
+        <text x="980" y="364" fill="#94a3b8" font-size="7">• Replay</text>
+        <text x="980" y="378" fill="#94a3b8" font-size="7">• Temporal</text>
+        <text x="980" y="392" fill="#94a3b8" font-size="7">• Topological</text>
+        <text x="980" y="412" fill="#fb7185" font-size="7" font-weight="600">Observational only</text>
+
+        <!-- Governance Kernel box -->
+        <rect x="20" y="460" width="1060" height="100" rx="6" fill="rgba(251, 191, 36, 0.1)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="550" y="486" fill="white" font-size="12" font-weight="600" text-anchor="middle">Governance Kernel</text>
+        <text x="550" y="506" fill="#94a3b8" font-size="9" text-anchor="middle">Deterministic state machine — Monotonic promotion — CRITICAL violations HALT — Non-critical continue with WARNING</text>
+        <text x="100" y="536" fill="#fbbf24" font-size="8">Schema Gate</text>
+        <text x="100" y="548" fill="#94a3b8" font-size="7">max_endpoints • required_methods</text>
+        <text x="400" y="536" fill="#22d3ee" font-size="8">Entropy Monitor</text>
+        <text x="400" y="548" fill="#94a3b8" font-size="7">Monotonicity enforcement • Regression detection</text>
+        <text x="700" y="536" fill="#34d399" font-size="8">Objective Tracker</text>
+        <text x="700" y="548" fill="#94a3b8" font-size="7">Goal drift detection • Schema entropy</text>
+        <text x="950" y="536" fill="#a78bfa" font-size="8">Ledger</text>
+        <text x="950" y="548" fill="#94a3b8" font-size="7">SQLite • Immutable history</text>
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot rose"></div><h3>Phase 1–3: Evidence & Auth</h3></div>
+        <ul>
+          <li>• Provenance: Every claim must trace back to a raw packet hash</li>
+          <li>• Replay: 4-class equivalence proves structural survivability</li>
+          <li>• Auth: 5-class rotation taxonomy detects session behavior</li>
+          <li>• All invariants are evidence-bound, never inferred from naming</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>Phase 4–6: Structure & Stability</h3></div>
+        <ul>
+          <li>• FSM: Bounded protocol state machine with replay gates</li>
+          <li>• Quorum: Intersection-based consensus, never majority voting</li>
+          <li>• Entropy: 5-dim stability monitoring, HALT on regression</li>
+          <li>• All phases observational-only — never mutate runtime state</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot amber"></div><h3>Governance Supremacy</h3></div>
+        <ul>
+          <li>• CRITICAL violations: Provenance broken, Auth mutation, FSM overflow, Entropy regression</li>
+          <li>• Non-critical: Orphaned artifacts, unverified transitions → WARNING, continue</li>
+          <li>• Monotonic promotion: INIT → ... → VERIFIED only</li>
+          <li>• CONTESTED claims may promote with new evidence; REJECTED never promotes</li>
+        </ul>
+      </div>
+    </div>
+
+    <p class="footer">pi-semantic-recon • Verification Subsystem • 6 Phases • All tests pass</p>
+  </div>
+</body>
+</html>
