@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X } from 'lucide-react';
+import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X, FileUp } from 'lucide-react';
 import { listAllCapabilities, simulateComposition, submitComposition, getTenantId } from '../lib/api';
 import { humanizeAgentName } from '../lib/humanize';
 import type { MarketplaceCapability, SimulationReport } from '../types';
@@ -13,6 +13,8 @@ type PipelineNode = {
   name: string;
   tags: string[];
   goal: string;
+  content: string;   // the file/code/text the agent scans
+  filename: string;  // optional filename hint (some agents key off extension)
 };
 
 type Phase = 'configure' | 'simulating' | 'review' | 'running' | 'done';
@@ -44,7 +46,7 @@ function buildRequest(pipeline: PipelineNode[], sessionId: string) {
       node_id: n.id,
       runtime: 'pi-extension-governor',
       operation: 'SANDBOX',
-      artifacts: [{ goal: n.goal }],
+      artifacts: [{ goal: n.goal, content: n.content, filename: n.filename }],
       required_schema_version: '1.0.0',
       bounds: { max_depth: 3, max_fanout: 4 },
       dependencies: i > 0 ? [pipeline[i - 1].id] : [],
@@ -154,6 +156,8 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
         name: agentName(cap),
         tags: cap.compatibility_tags,
         goal: cap.compatibility_tags[0] ?? '',
+        content: '',
+        filename: '',
       }];
     });
     setPhase('configure');
@@ -166,8 +170,24 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
       prev.filter(n => n.id !== id).map((n, i) => ({ ...n, id: `n${i + 1}` }))
     );
 
-  const updateGoal = (id: string, goal: string) =>
-    setPipeline(prev => prev.map(n => n.id === id ? { ...n, goal } : n));
+  const updateNode = (id: string, patch: Partial<PipelineNode>) =>
+    setPipeline(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
+
+  const updateGoal = (id: string, goal: string) => updateNode(id, { goal });
+
+  // Read a picked file (browser File API — works inside the Tauri webview) into
+  // the node's content + filename. Capped to keep the request under the backend
+  // 1 MiB limit.
+  const MAX_SCAN_BYTES = 512 * 1024;
+  const readFileIntoNode = (id: string, file: File) => {
+    if (file.size > MAX_SCAN_BYTES) {
+      updateNode(id, { content: `// file too large (${Math.round(file.size / 1024)} KB > 512 KB cap)`, filename: file.name });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => updateNode(id, { content: String(reader.result ?? ''), filename: file.name });
+    reader.readAsText(file);
+  };
 
   const simulate = async () => {
     if (!sessionId || pipeline.length === 0) return;
@@ -386,6 +406,45 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                   />
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text)', marginTop: 3 }}>
                     {node.capId} · SANDBOX
+                  </div>
+
+                  {/* Content to scan — pick a file or paste */}
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600,
+                        textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text)',
+                      }}>
+                        Content to scan
+                      </span>
+                      <label className="btn btn-sm" style={{ cursor: isActive ? 'default' : 'pointer', flexShrink: 0 }}>
+                        <FileUp size={11} style={{ marginRight: 4 }} />
+                        Pick file
+                        <input
+                          type="file"
+                          style={{ display: 'none' }}
+                          disabled={isActive}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) readFileIntoNode(node.id, f); e.currentTarget.value = ''; }}
+                        />
+                      </label>
+                      {node.filename && (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {node.filename} · {node.content.length} chars
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      className="input"
+                      style={{ width: '100%', minHeight: 72, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11, boxSizing: 'border-box' }}
+                      value={node.content}
+                      onChange={e => updateNode(node.id, { content: e.target.value })}
+                      disabled={isActive}
+                      placeholder="Paste code/config/text to scan, or drop a file above. Leave empty for a dry structural run."
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f && !isActive) readFileIntoNode(node.id, f); }}
+                    />
                   </div>
                 </div>
               </div>
