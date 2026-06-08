@@ -72,3 +72,6 @@ tmp/
 # Rust-core PoC
 .venv-poc/
 rust/target/
+
+# MkDocs build output
+site/

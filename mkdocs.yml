@@ -1,0 +1,78 @@
+site_name: PI Platform
+site_description: Deterministic semantic execution kernel with governance-first architecture
+site_url: https://new1direction.github.io/pi-platform/
+repo_url: https://github.com/New1Direction/pi-platform
+repo_name: New1Direction/pi-platform
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: teal
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.indexes
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+    - toc.follow
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+# Keep build clean without forcing every legacy spec into the nav.
+validation:
+  nav:
+    omitted_files: info
+  links:
+    absolute_links: ignore
+    unrecognized_links: ignore
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Desktop Console:
+      - console/index.md
+      - Builder: console/builder.md
+      - Agents (Registry): console/agents.md
+      - Ledger: console/ledger.md
+      - Agent Forge: console/forge.md
+  - Architecture:
+      - Orchestrator & Routing: architecture/orchestrator-routing.md
+      - Trust Tiers: architecture/trust-tiers.md
+      - Ledger & Replay: architecture/ledger-replay.md
+      - Repo Mapping: architecture/repo-mapping.md
+  - API Reference: api-reference.md
+  - Deployment: deployment.md
+  - Runtime Spec (v1.4): PI-RUNTIME-SPEC-v1.4.md
+
+plugins:
+  - search

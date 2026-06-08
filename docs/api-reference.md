@@ -1,180 +1,114 @@
-# PI Platform — API Reference
+# API Reference
 
-This document describes the OpenAPI tool schemas exposed by the PI Console backend. These are the ONLY interfaces between Layer 4 (human interface) and Layers 1-3 (deterministic core).
+The PI Console backend (`pi_console.main:app`) exposes the only interface between the
+human layer (L4) and the deterministic core (L1–L3).
 
-All endpoints are prefixed with `/api/v1/` and require the `X-Tenant-ID` header.
+- All endpoints are prefixed with `/api/v1/`.
+- All require the `X-Tenant-ID` header (must match `[A-Za-z0-9_-]{1,64}`).
+- JWT and request signing are opt-in (`PI_SECRET_JWT`, `PI_SECRET_REQUEST_SIGNING`).
+- `GET /health` (unprefixed) is the liveness probe.
 
----
+!!! note "Verify against the live schema"
+    This page is generated from the running service. The authoritative, always-current
+    schema is `GET /openapi.json` (or `/docs` for Swagger UI).
 
-## Endpoints
+## Compositions
 
 ### `POST /api/v1/compositions/simulate`
 
-Run a deterministic simulation without mutating core state.
+Deterministic dry run — validates the DAG, bounds, policy, and risk without mutating
+core state or executing agents.
 
-**Request** (`SimulateCompositionRequest`):
 ```json
-{
-  "composition": {
-    "tenant_id": "tenant-001",
-    "console_session_id": "sess_abc123",
-    "nodes": [{"node_id": "n1", "runtime": "pi-semantic-recon", "operation": "VALIDATE"}],
-    "edges": [],
-    "global_bounds": {"max_total_nodes": 64, "max_depth": 8, "max_fanout": 16, "max_execution_time_ms": 300000},
-    "simulation_only": true,
-    "strict": true
-  }
-}
+{ "composition": { "tenant_id": "…", "console_session_id": "…", "nodes": [ … ], "edges": [], "simulation_only": true, "strict": true } }
 ```
 
-**Response** (`SimulateCompositionResponse`):
-```json
-{
-  "report": {
-    "report_id": "sim_xyz",
-    "request_id": "ecr_abc",
-    "dag_valid": true,
-    "bounds_respected": true,
-    "policy_violations": [],
-    "execution_plan": ["n1"],
-    "risk_level": "NONE",
-    "replay_safe": true,
-    "report_hash": "sha256..."
-  },
-  "can_execute": true
-}
-```
+Response: `{ "report": { "dag_valid", "bounds_respected", "risk_level", "execution_plan", "replay_safe", "report_hash" }, "can_execute": true }`
 
 ### `POST /api/v1/compositions/submit`
 
-Submit an approved composition for execution. Requires explicit user confirmation.
+Execute an approved composition. Body: `{ "composition": { … }, "user_confirmation": true }`.
 
-**Request** (`SubmitCompositionRequest`):
+Response (`SubmitCompositionResponse`):
+
 ```json
-{
-  "composition": { ... },
-  "user_confirmation": true
-}
+{ "request_id": "…", "accepted": true, "status": "ACCEPTED", "message": "…", "core_ledger_id": "ledger_…" }
 ```
 
-**Response** (`SubmitCompositionResponse`):
+Each node routes on its **artifact goal** (see [routing](architecture/orchestrator-routing.md)).
+
+### `POST /api/v1/compositions/translate-chat`
+
+LLM-only translation of natural language → a proposed `ExplicitCompositionRequest`.
+Never executes. Body: `{ "console_session_id", "tenant_id", "user_message" }`.
+
+## Capabilities
+
+### `POST /api/v1/capabilities/list`
+
+List the live micro-agent registry. Body: `{ "tenant_id", "limit", "offset" }`.
+
 ```json
-{
-  "request_id": "ecr_abc",
-  "accepted": true,
-  "status": "QUEUED",
-  "message": "Composition accepted",
-  "core_ledger_id": "ledger_xyz"
-}
+{ "capabilities": [ { "capability_id": "cap_pigitsecscanner", "runtime": "pi-extension-governor", "operation": "SANDBOX", "trust_tier": "GOVERNED", "compatibility_tags": ["dependency scan", …] } ], "total": 248 }
 ```
 
-### `POST /api/v1/compositions/translate`
+### `POST /api/v1/capabilities/compatibility-graph`
 
-(Internal) Translate natural language to `ExplicitCompositionRequest`. LLM-only. Never executes.
+Derive a compatibility graph (agents sharing a keyword are compatible). Body:
+`{ "tenant_id" }`. Bounded to 32 nodes.
 
-**Request** (`ChatTranslationRequest`):
+## Replay
+
+### `POST /api/v1/replay/get`
+
+Fetch the hash-chained events for a ledger id. Body: `{ "ledger_id" }`.
+
 ```json
-{
-  "console_session_id": "sess_abc",
-  "tenant_id": "tenant-001",
-  "user_message": "Validate all API endpoints"
-}
+{ "ledger_id": "ledger_…", "events": [ { "sequence_number": 1, "event_type": "…", "event_hash": "…", "previous_hash": "" } ], "integrity_verified": true, "total_events": 1 }
 ```
 
-**Response** (`ChatTranslationResponse`):
-```json
-{
-  "proposed_composition": { ... },
-  "translation_valid": true,
-  "requires_user_approval": true
-}
-```
+## Ledger
 
-### `GET /api/v1/replays/{ledger_id}`
+| Method | Path | Purpose |
+|--------|------|---------|
+| `GET` | `/api/v1/ledger/traces` | Paginated trace list (`?limit&offset&node_name&success&search&min_risk`). |
+| `GET` | `/api/v1/ledger/trace/{trace_id}` | Full trace incl. `raw_output` / `parsed_output`. |
+| `GET` | `/api/v1/ledger/summary` | Aggregate stats: totals, success rate, avg risk, anomalies. |
 
-Fetch execution replay events.
+Ledger endpoints are gated fail-closed (a valid reader principal is required). See
+the [shared-store note](architecture/ledger-replay.md).
 
-**Response** (`GetExecutionReplayResponse`):
-```json
-{
-  "ledger_id": "ledger_xyz",
-  "events": [
-    {"sequence_number": 1, "event_type": "ARTIFACT_RECEIVED", "event_hash": "...", "previous_hash": ""}
-  ],
-  "integrity_verified": true,
-  "total_events": 42
-}
-```
+## Agent Forge
 
-### `GET /api/v1/capabilities`
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/v1/forge/generate` | Generate agent code (header `x-anthropic-key`, BYOK). |
+| `POST` | `/api/v1/forge/audit` | Static audit (syntax + dangerous-pattern + structural). |
+| `POST` | `/api/v1/forge/save` | Re-audit then save to `pending/` as `UNVERIFIED` (`422` if audit fails). |
 
-List marketplace capabilities.
+See [Agent Forge](console/forge.md).
 
-**Query**: `?tenant_id=tenant-001&limit=50&offset=0`
+## Sessions, Tenant, Audit, Transparency
 
-**Response** (`ListMarketplaceCapabilitiesResponse`):
-```json
-{
-  "capabilities": [
-    {"capability_id": "cap_1", "runtime": "pi-semantic-recon", "operation": "VALIDATE", "trust_tier": "GOVERNED"}
-  ],
-  "total": 1, "limit": 50, "offset": 0
-}
-```
+| Method | Path | Purpose |
+|--------|------|---------|
+| `POST` | `/api/v1/sessions/create` | Create a session (`?tenant_id=`; must match header). |
+| `GET`  | `/api/v1/sessions/{session_id}` | Fetch a session. |
+| `POST` | `/api/v1/tenant/quota` | Tenant quota status. Body: `{ "tenant_id" }`. |
+| `POST` | `/api/v1/audit/log` | Query audit log (`body.tenant_id` must equal `X-Tenant-ID`). |
+| `GET`  | `/api/v1/transparency/lineage/{trace_id}` | Lineage for a trace. |
+| `GET`  | `/api/v1/transparency/replay/binary-search` | Binary-search replay diagnostics. |
+| `GET`  | `/api/v1/console/health` | Console health detail. |
 
-### `GET /api/v1/capabilities/compatibility`
-
-Fetch capability compatibility graph.
-
-**Response** (`GetCompatibilityGraphResponse`):
-```json
-{
-  "nodes": [{"capability_id": "cap_1", "runtime": "pi-semantic-recon", "trust_tier": "GOVERNED"}],
-  "edges": [{"source_capability": "cap_1", "target_capability": "cap_2", "compatible": true, "reason": ""}]
-}
-```
-
-### `GET /api/v1/tenant/quota`
-
-Get tenant quota status.
-
-**Response** (`GetTenantQuotaStatusResponse`):
-```json
-{
-  "quota": {
-    "tenant_id": "tenant-001",
-    "compositions_submitted": 12,
-    "quota_exceeded": false
-  }
-}
-```
-
-### `GET /api/v1/audit`
-
-Query audit log.
-
-**Query**: `?tenant_id=tenant-001&limit=100`
-
-**Response** (`GetAuditLogResponse`):
-```json
-{
-  "entries": [
-    {"entry_id": "aud_1", "action": "COMPOSITION_SUBMITTED", "structured_request": { ... }}
-  ],
-  "total": 42
-}
-```
-
----
-
-## Error Codes
+## Error codes
 
 | Code | Meaning |
 |------|---------|
-| `400` | Malformed request / schema validation failure |
-| `403` | Tenant mismatch / missing user confirmation / policy DENY |
-| `404` | Ledger / capability / resource not found |
-| `422` | ExplicitCompositionRequest validation failed |
+| `400` | Malformed request / invalid `X-Tenant-ID` |
+| `401` | Missing/invalid JWT or request signature (when required) |
+| `403` | Tenant mismatch / missing confirmation / policy DENY |
+| `413` | Request body exceeds the configured limit |
+| `422` | Schema validation failed / Forge audit failed |
 | `429` | Quota exceeded / rate limited |
-| `500` | Core execution failure (receipt status FAIL) |
-| `503` | Core unreachable / shard capacity exceeded |
+| `500` | Core execution failure |
+| `504` | Request exceeded the timeout |
