@@ -11,10 +11,10 @@ Endpoints:
 from __future__ import annotations
 
 import ast
+import re
 import shutil
 import subprocess
 import sys
-import re
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -74,6 +74,7 @@ The file must be importable and parseable by Python's `ast` module.
 # ---------------------------------------------------------------------------
 # Request / Response models
 # ---------------------------------------------------------------------------
+
 
 class GenerateRequest(BaseModel):
     description: str = Field(..., description="What the agent detects / does")
@@ -228,8 +229,12 @@ def _parse_agent_metadata(code: str) -> Optional[Dict[str, object]]:
         if not isinstance(node, ast.Call):
             continue
         func = node.func
-        if isinstance(func, ast.Attribute) and func.attr == "register" \
-                and isinstance(func.value, ast.Name) and func.value.id == "AgentRouter":
+        if (
+            isinstance(func, ast.Attribute)
+            and func.attr == "register"
+            and isinstance(func.value, ast.Name)
+            and func.value.id == "AgentRouter"
+        ):
             for kw in node.keywords:
                 if kw.arg == "agent_name" and isinstance(kw.value, ast.Constant):
                     agent_name = kw.value.value
@@ -263,6 +268,7 @@ def _parse_agent_metadata(code: str) -> Optional[Dict[str, object]]:
 # Routes
 # ---------------------------------------------------------------------------
 
+
 @router.post("/generate", response_model=GenerateResponse)
 async def generate_agent(
     req: GenerateRequest,
@@ -270,8 +276,8 @@ async def generate_agent(
 ) -> GenerateResponse:
     try:
         import anthropic
-    except ImportError:
-        raise HTTPException(status_code=500, detail="anthropic package not installed on server")
+    except ImportError as exc:
+        raise HTTPException(status_code=500, detail="anthropic package not installed on server") from exc
 
     agent_class_name = _to_class_name(req.description)
     # pi_name_of_thing
@@ -302,9 +308,9 @@ async def generate_agent(
             messages=[{"role": "user", "content": user_prompt}],
         )
     except anthropic.APIStatusError as exc:
-        raise HTTPException(status_code=502, detail=f"Anthropic API error: {exc.message}")
+        raise HTTPException(status_code=502, detail=f"Anthropic API error: {exc.message}") from exc
     except anthropic.APIError as exc:
-        raise HTTPException(status_code=502, detail=f"Anthropic API error: {exc}")
+        raise HTTPException(status_code=502, detail=f"Anthropic API error: {exc}") from exc
 
     code = message.content[0].text if message.content else ""
 
@@ -325,14 +331,14 @@ async def generate_agent(
         f"\n"
         f"# 3. Register the route (also in router.py)\n"
         f"AgentRouter.register(\n"
-        f"    agent_name=\"{agent_class_name}\",\n"
+        f'    agent_name="{agent_class_name}",\n'
         f"    keywords={req.keywords},\n"
         f"    agent_class={agent_class_name},\n"
-        f"    input_factory=lambda goal, ctx: {agent_class_name}Input(content=ctx.get(\"content\", \"\")),\n"
+        f'    input_factory=lambda goal, ctx: {agent_class_name}Input(content=ctx.get("content", "")),\n'
         f")\n"
         f"\n"
         f"# 4. Add a dispatch branch in orchestrator/consensus.py (run_single_perturbed):\n"
-        f"elif agent_name == \"{agent_class_name}\":\n"
+        f'elif agent_name == "{agent_class_name}":\n'
         f"    return agent_inst.scan(perturbed)"
     )
 
@@ -425,10 +431,14 @@ async def promote_agent(req: PromoteRequest) -> PromoteResponse:
 
     dest = AGENTS_DIR / src.name
     if dest.exists():
-        raise HTTPException(status_code=409, detail=f"{src.name} already exists in pi_micro_agents/ (already promoted?)")
+        raise HTTPException(
+            status_code=409, detail=f"{src.name} already exists in pi_micro_agents/ (already promoted?)"
+        )
 
     import_line = f"from pi_micro_agents.{module_stem} import {class_name}  # noqa: E402,F401  (promoted via Forge)"
-    branch = f'            elif agent_name == "{agent_name}":\n                return agent_inst.{method_name}(perturbed)\n'
+    branch = (
+        f'            elif agent_name == "{agent_name}":\n                return agent_inst.{method_name}(perturbed)\n'
+    )
 
     router_text = ROUTER_PY.read_text(encoding="utf-8")
     consensus_text = CONSENSUS_PY.read_text(encoding="utf-8")
@@ -458,8 +468,11 @@ async def promote_agent(req: PromoteRequest) -> PromoteResponse:
 
         # Validate the whole import chain in an isolated subprocess.
         proc = subprocess.run(
-            [sys.executable, "-c",
-             "import pi_micro_agents.orchestrator.consensus; import pi_micro_agents.orchestrator.router"],
+            [
+                sys.executable,
+                "-c",
+                "import pi_micro_agents.orchestrator.consensus; import pi_micro_agents.orchestrator.router",
+            ],
             cwd=str(REPO_ROOT),
             env={"PYTHONPATH": str(SRC_DIR), "PATH": __import__("os").environ.get("PATH", "")},
             capture_output=True,
@@ -469,12 +482,14 @@ async def promote_agent(req: PromoteRequest) -> PromoteResponse:
         if proc.returncode != 0:
             _rollback()
             tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-5:]
-            raise HTTPException(status_code=500, detail="Promotion reverted — import validation failed:\n" + "\n".join(tail))
+            raise HTTPException(
+                status_code=500, detail="Promotion reverted — import validation failed:\n" + "\n".join(tail)
+            )
     except HTTPException:
         raise
     except Exception as exc:  # noqa: BLE001 — any failure must roll back
         _rollback()
-        raise HTTPException(status_code=500, detail=f"Promotion reverted: {exc}")
+        raise HTTPException(status_code=500, detail=f"Promotion reverted: {exc}") from exc
 
     return PromoteResponse(
         agent_name=agent_name,

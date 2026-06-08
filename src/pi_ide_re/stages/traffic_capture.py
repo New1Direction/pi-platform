@@ -86,6 +86,7 @@ def _captured_request(method: str, url: str, headers: Dict[str, str], *, status=
 
 # ---- standalone WS mutation helper (deterministic, for mutation testing) ----
 
+
 def mutate_frame(frame: Dict[str, Any], mutations: List[str]) -> List[Dict[str, Any]]:
     """Produce deterministic mutated variants of a WebSocket frame.
 

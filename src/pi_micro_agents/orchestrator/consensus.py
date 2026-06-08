@@ -1300,9 +1300,18 @@ def run_with_consensus(
             # field names, so surface them generically instead of defaulting to 0.
             risk_score = majority_dict.get("risk_score", risk_score)
             for _field in (
-                "flagged_issues", "flagged_findings", "flagged_vulnerabilities",
-                "flagged_anomalies", "flagged_secrets", "flagged_lines", "violations",
-                "anomalies_detected", "anomalies", "issues", "alerts", "detected_leaks",
+                "flagged_issues",
+                "flagged_findings",
+                "flagged_vulnerabilities",
+                "flagged_anomalies",
+                "flagged_secrets",
+                "flagged_lines",
+                "violations",
+                "anomalies_detected",
+                "anomalies",
+                "issues",
+                "alerts",
+                "detected_leaks",
             ):
                 _vals = majority_dict.get(_field)
                 if isinstance(_vals, list):

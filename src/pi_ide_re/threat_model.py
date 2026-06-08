@@ -76,8 +76,9 @@ def _is_sandbox_string(n: GraphNode) -> bool:
 _CATEGORY_PREDICATES: Dict[str, Callable[[GraphNode], bool]] = {
     "auth": _is_credential_trace,
     "protocol": lambda n: n.type == "captured-request",
-    "instrumentation": lambda n: n.type == "process-hook"
-    or (n.type == "dynamic-trace" and "credential:" not in n.title),
+    "instrumentation": lambda n: (
+        n.type == "process-hook" or (n.type == "dynamic-trace" and "credential:" not in n.title)
+    ),
     "sandbox": _is_sandbox_string,
     "features": lambda n: n.type == "feature-flag",
 }

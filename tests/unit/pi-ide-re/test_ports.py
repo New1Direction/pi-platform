@@ -17,8 +17,11 @@ from pi_ide_re.ports import Port, PortRegistry, generate_port, port_from_node, r
 
 def _sample_port() -> Port:
     node = CapturedRequest(
-        method="POST", url="https://api.example.com/v1/chat", host="api.example.com",
-        path="/v1/chat", auth_schemes=["authorization"]
+        method="POST",
+        url="https://api.example.com/v1/chat",
+        host="api.example.com",
+        path="/v1/chat",
+        auth_schemes=["authorization"],
     ).to_graph_node()
     return port_from_node(node, target="acme-ide")
 
@@ -33,6 +36,7 @@ class TestPortFromNode:
 
     def test_unknown_type_still_yields_port(self):
         from pi_ide_re.graph_schema import GraphNode
+
         node = GraphNode(id="insight/x", type="insight", title="some insight", content="c")
         port = port_from_node(node, target="t")
         assert port.slug().endswith("-port")

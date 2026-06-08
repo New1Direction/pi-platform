@@ -16,12 +16,25 @@ from pi_ide_re.stages import ghidra_static as gs
 from pi_ide_re.stages import traffic_capture as tc
 from pi_ide_re.threat_model import generate_attack_tree, generate_dual_use_matrix, write_threat_model
 
-HAR = {"log": {"entries": [
-    {"request": {"method": "POST", "url": "https://api.example.com/v1/chat", "headers": [{"name": "Authorization", "value": "x"}]},
-     "response": {"status": 200, "content": {"mimeType": "application/json"}}}
-]}}
-CREDS = {"target": "acme-ide", "ssl_pinning_bypassed": True,
-         "credentials": [{"source": "keychain", "key": "svc/access_token", "value": "S", "type": "oauth"}]}
+HAR = {
+    "log": {
+        "entries": [
+            {
+                "request": {
+                    "method": "POST",
+                    "url": "https://api.example.com/v1/chat",
+                    "headers": [{"name": "Authorization", "value": "x"}],
+                },
+                "response": {"status": 200, "content": {"mimeType": "application/json"}},
+            }
+        ]
+    }
+}
+CREDS = {
+    "target": "acme-ide",
+    "ssl_pinning_bypassed": True,
+    "credentials": [{"source": "keychain", "key": "svc/access_token", "value": "S", "type": "oauth"}],
+}
 
 
 def _graph() -> KnowledgeGraph:
@@ -43,9 +56,9 @@ class TestAttackTree:
     def test_branches_reflect_present_categories(self):
         tree = generate_attack_tree("acme-ide", _graph())
         low = tree.lower()
-        assert "protocol" in low      # captured-request present
+        assert "protocol" in low  # captured-request present
         assert "credential" in low or "auth" in low  # credential/risk present
-        assert "sandbox" in low       # sandbox binary-string present
+        assert "sandbox" in low  # sandbox binary-string present
 
     def test_deterministic(self):
         assert generate_attack_tree("t", _graph()) == generate_attack_tree("t", _graph())
@@ -95,9 +108,9 @@ class TestRiskSurfaces:
     def test_attack_tree_uses_risk_own_offense_not_credential_text(self):
         tree = generate_attack_tree("t", self._risk_graph())
         assert "sandbox-escape" in tree
-        assert "escapes the OpenShell pod" in tree          # its own offense
-        assert "bypass SSL pinning" not in tree             # NOT the generic credential offense
-        assert "Risk Surface" in tree                       # dedicated branch
+        assert "escapes the OpenShell pod" in tree  # its own offense
+        assert "bypass SSL pinning" not in tree  # NOT the generic credential offense
+        assert "Risk Surface" in tree  # dedicated branch
 
     def test_dual_use_matrix_includes_risk_with_defense(self):
         matrix = generate_dual_use_matrix("t", self._risk_graph())

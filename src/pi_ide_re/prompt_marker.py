@@ -59,8 +59,8 @@ def extract_structure(response: str, marker: str, context: int = 5) -> Dict[str,
     idx = next((i for i, ln in enumerate(lines) if marker in ln), None)
     if idx is None:
         return {"found": False, "before": [], "after": []}
-    before = [ln for ln in lines[max(0, idx - context):idx] if marker not in ln]
-    after = [ln for ln in lines[idx + 1:idx + 1 + context] if marker not in ln]
+    before = [ln for ln in lines[max(0, idx - context) : idx] if marker not in ln]
+    after = [ln for ln in lines[idx + 1 : idx + 1 + context] if marker not in ln]
     return {"found": True, "before": before, "after": after, "marker_line": idx}
 
 

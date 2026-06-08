@@ -115,8 +115,6 @@ class CampaignWorkspace:
         files: List[str] = []
         if self.target_dir.exists():
             files = sorted(
-                str(p.relative_to(self.target_dir).as_posix())
-                for p in self.target_dir.rglob("*")
-                if p.is_file()
+                str(p.relative_to(self.target_dir).as_posix()) for p in self.target_dir.rglob("*") if p.is_file()
             )
         return {"target": self.target, "files": files, "captures": self.db.count()}
