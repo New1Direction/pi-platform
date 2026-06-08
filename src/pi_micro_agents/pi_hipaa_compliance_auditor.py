@@ -95,9 +95,7 @@ class PiHipaaComplianceAuditor:
                     risk_score = max(risk_score, 40.0)
 
         if _CLEARTEXT_HTTP_PATTERN.search(content):
-            violations.append(
-                "Cleartext HTTP URL detected — ePHI must be encrypted in transit (HIPAA §164.312(e)(1))"
-            )
+            violations.append("Cleartext HTTP URL detected — ePHI must be encrypted in transit (HIPAA §164.312(e)(1))")
             risk_score = max(risk_score, 90.0)
 
         component = input_envelope.component_type.lower()

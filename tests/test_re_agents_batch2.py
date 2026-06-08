@@ -102,9 +102,7 @@ class TestPiSshCertificateSecurityAuditor:
         self.agent = PiSshCertificateSecurityAuditor()
 
     def test_passes_clean_code(self) -> None:
-        result = self.agent.audit_ssh_cert_security(
-            SshCertInput(code_content="fn greet() { println!(\"hello\"); }")
-        )
+        result = self.agent.audit_ssh_cert_security(SshCertInput(code_content='fn greet() { println!("hello"); }'))
         assert result.status == "PASSED"
         assert result.is_secure is True
         assert result.risk_score == 0.0
@@ -177,9 +175,7 @@ impl Drop for ApiClient {
         result_without_flag = self.agent.audit_ssh_cert_security(
             SshCertInput(code_content=code, has_cert_parsing=False)
         )
-        result_with_flag = self.agent.audit_ssh_cert_security(
-            SshCertInput(code_content=code, has_cert_parsing=True)
-        )
+        result_with_flag = self.agent.audit_ssh_cert_security(SshCertInput(code_content=code, has_cert_parsing=True))
         assert len(result_with_flag.gaps) > len(result_without_flag.gaps)
 
     def test_agent_name(self) -> None:

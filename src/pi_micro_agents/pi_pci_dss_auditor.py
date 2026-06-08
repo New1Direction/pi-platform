@@ -98,15 +98,11 @@ class PiPciDssAuditor:
         # CVV stored anywhere → critical (Req 3.3.2 is absolute)
         if has_cvv:
             if component in ("db", "storage") or re.search(r"\b(?:save|store|insert|persist|write)\b", content_lower):
-                violations.append(
-                    f"CVV/CVC field detected in a storage/persistence context — {_REQ['cvv_stored']}"
-                )
+                violations.append(f"CVV/CVC field detected in a storage/persistence context — {_REQ['cvv_stored']}")
                 requirements_violated.append(_REQ["cvv_stored"])
                 risk_score = max(risk_score, 100.0)
             elif has_log_calls:
-                violations.append(
-                    f"CVV/CVC field appears alongside log calls — {_REQ['pan_log']}"
-                )
+                violations.append(f"CVV/CVC field appears alongside log calls — {_REQ['pan_log']}")
                 requirements_violated.append(_REQ["pan_log"])
                 risk_score = max(risk_score, 95.0)
 
