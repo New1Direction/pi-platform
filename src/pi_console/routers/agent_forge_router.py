@@ -4,14 +4,19 @@ Endpoints:
   POST /generate  — call Claude API to generate a new micro-agent Python file
   POST /audit     — static analysis on generated code (AST + pattern checks)
   POST /save      — write audit-passing code to src/pi_micro_agents/pending/
+  GET  /pending   — list quarantined (UNVERIFIED) agents awaiting promotion
+  POST /promote   — wire a pending agent into the router + dispatch chain (→ VERIFIED)
 """
 
 from __future__ import annotations
 
 import ast
+import shutil
+import subprocess
+import sys
 import re
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
@@ -19,8 +24,16 @@ from pydantic import BaseModel, Field
 router = APIRouter()
 
 # __file__ = src/pi_console/routers/agent_forge_router.py
-# parents[2] = src/  →  src/pi_micro_agents/pending/
-PENDING_DIR = Path(__file__).resolve().parents[2] / "pi_micro_agents" / "pending"
+# parents[2] = src/  ;  parents[3] = repo root
+SRC_DIR = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[3]
+PENDING_DIR = SRC_DIR / "pi_micro_agents" / "pending"
+AGENTS_DIR = SRC_DIR / "pi_micro_agents"
+ROUTER_PY = SRC_DIR / "pi_micro_agents" / "orchestrator" / "router.py"
+CONSENSUS_PY = SRC_DIR / "pi_micro_agents" / "orchestrator" / "consensus.py"
+
+# Exact anchor in consensus.py the new dispatch branch is inserted before.
+_CONSENSUS_RAISE = '            raise ValueError(f"Unknown agent: {agent_name}")'
 
 # ---------------------------------------------------------------------------
 # Claude generation prompt
@@ -103,6 +116,33 @@ class SaveResponse(BaseModel):
     trust_tier: str
 
 
+class PendingAgent(BaseModel):
+    filename: str
+    agent_name: str
+    class_name: str
+    method_name: str
+    keywords: List[str]
+    audit_passed: bool
+    code: str
+
+
+class PendingListResponse(BaseModel):
+    agents: List[PendingAgent]
+
+
+class PromoteRequest(BaseModel):
+    filename: str = Field(..., description="Pending module filename, e.g. pi_sql_injection_detector.py")
+
+
+class PromoteResponse(BaseModel):
+    agent_name: str
+    promoted_path: str
+    trust_tier: str
+    router_edit: str
+    consensus_edit: str
+    validated: bool
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------
@@ -160,6 +200,63 @@ def _run_audit(code: str) -> AuditResponse:
 
     passed = not any(f.severity in ("CRITICAL", "HIGH") for f in findings)
     return AuditResponse(passed=passed, findings=findings, structural_checks=structural)
+
+
+def _safe_pending_path(filename: str) -> Path:
+    """Resolve a pending filename, rejecting traversal/absolute paths."""
+    name = Path(filename).name  # strip any directory components
+    if name != filename or not name.endswith(".py") or name.startswith("."):
+        raise HTTPException(status_code=400, detail="invalid filename")
+    path = (PENDING_DIR / name).resolve()
+    if path.parent != PENDING_DIR.resolve():
+        raise HTTPException(status_code=400, detail="path escapes pending/")
+    return path
+
+
+def _parse_agent_metadata(code: str) -> Optional[Dict[str, object]]:
+    """Extract (agent_name, class_name, method_name, keywords) from a generated
+    agent's `AgentRouter.register(...)` call + class body via AST."""
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return None
+
+    agent_name = class_name = None
+    keywords: List[str] = []
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        if isinstance(func, ast.Attribute) and func.attr == "register" \
+                and isinstance(func.value, ast.Name) and func.value.id == "AgentRouter":
+            for kw in node.keywords:
+                if kw.arg == "agent_name" and isinstance(kw.value, ast.Constant):
+                    agent_name = kw.value.value
+                elif kw.arg == "agent_class" and isinstance(kw.value, ast.Name):
+                    class_name = kw.value.id
+                elif kw.arg == "keywords" and isinstance(kw.value, (ast.List, ast.Tuple)):
+                    keywords = [e.value for e in kw.value.elts if isinstance(e, ast.Constant)]
+            break
+
+    if not agent_name or not class_name:
+        return None
+
+    # Find the agent class and its primary method (prefer `scan`).
+    method_name = None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef) and node.name == class_name:
+            methods = [n.name for n in node.body if isinstance(n, ast.FunctionDef) and not n.name.startswith("_")]
+            if "scan" in methods:
+                method_name = "scan"
+            elif methods:
+                method_name = methods[0]
+            break
+
+    if not method_name:
+        return None
+
+    return {"agent_name": agent_name, "class_name": class_name, "method_name": method_name, "keywords": keywords}
 
 
 # ---------------------------------------------------------------------------
@@ -274,3 +371,116 @@ async def save_agent(req: SaveRequest) -> SaveResponse:
     dest.write_text(req.code, encoding="utf-8")
 
     return SaveResponse(saved_path=str(dest), filename=filename, trust_tier="UNVERIFIED")
+
+
+@router.get("/pending", response_model=PendingListResponse)
+async def list_pending() -> PendingListResponse:
+    agents: List[PendingAgent] = []
+    if PENDING_DIR.exists():
+        for path in sorted(PENDING_DIR.glob("pi_*.py")):
+            code = path.read_text(encoding="utf-8")
+            meta = _parse_agent_metadata(code)
+            audit = _run_audit(code)
+            agents.append(
+                PendingAgent(
+                    filename=path.name,
+                    agent_name=str(meta["agent_name"]) if meta else "(unparseable)",
+                    class_name=str(meta["class_name"]) if meta else "",
+                    method_name=str(meta["method_name"]) if meta else "",
+                    keywords=list(meta["keywords"]) if meta else [],  # type: ignore[arg-type]
+                    audit_passed=audit.passed,
+                    code=code,
+                )
+            )
+    return PendingListResponse(agents=agents)
+
+
+@router.post("/promote", response_model=PromoteResponse)
+async def promote_agent(req: PromoteRequest) -> PromoteResponse:
+    """Wire a pending agent into the live router + dispatch chain.
+
+    Atomic: snapshots router.py/consensus.py, moves the file out of pending/,
+    applies the edits, then validates the whole import chain in a subprocess.
+    Any failure rolls everything back, so a bad agent can never break the
+    running backend (which reloads on file change).
+    """
+    src = _safe_pending_path(req.filename)
+    if not src.exists():
+        raise HTTPException(status_code=404, detail=f"{req.filename} not found in pending/")
+
+    code = src.read_text(encoding="utf-8")
+    audit = _run_audit(code)
+    if not audit.passed:
+        bad = [f.message for f in audit.findings if f.severity in ("CRITICAL", "HIGH")]
+        raise HTTPException(status_code=422, detail=f"Audit failed: {bad}")
+
+    meta = _parse_agent_metadata(code)
+    if not meta:
+        raise HTTPException(status_code=422, detail="Could not parse agent_name/class/method from AgentRouter.register")
+
+    agent_name = str(meta["agent_name"])
+    class_name = str(meta["class_name"])
+    method_name = str(meta["method_name"])
+    module_stem = src.stem  # pi_sql_injection_detector
+
+    dest = AGENTS_DIR / src.name
+    if dest.exists():
+        raise HTTPException(status_code=409, detail=f"{src.name} already exists in pi_micro_agents/ (already promoted?)")
+
+    import_line = f"from pi_micro_agents.{module_stem} import {class_name}  # noqa: E402,F401  (promoted via Forge)"
+    branch = f'            elif agent_name == "{agent_name}":\n                return agent_inst.{method_name}(perturbed)\n'
+
+    router_text = ROUTER_PY.read_text(encoding="utf-8")
+    consensus_text = CONSENSUS_PY.read_text(encoding="utf-8")
+
+    # Idempotency guards.
+    if f"from pi_micro_agents.{module_stem} import" in router_text:
+        raise HTTPException(status_code=409, detail="router.py already imports this module")
+    if f'agent_name == "{agent_name}"' in consensus_text:
+        raise HTTPException(status_code=409, detail="consensus.py already dispatches this agent")
+    if _CONSENSUS_RAISE not in consensus_text:
+        raise HTTPException(status_code=500, detail="consensus.py dispatch anchor not found — structure changed")
+
+    new_router = router_text.rstrip() + "\n\n" + import_line + "\n"
+    new_consensus = consensus_text.replace(_CONSENSUS_RAISE, branch + _CONSENSUS_RAISE, 1)
+
+    # --- Apply atomically with rollback ---
+    def _rollback():
+        ROUTER_PY.write_text(router_text, encoding="utf-8")
+        CONSENSUS_PY.write_text(consensus_text, encoding="utf-8")
+        if dest.exists() and not src.exists():
+            shutil.move(str(dest), str(src))
+
+    try:
+        shutil.move(str(src), str(dest))
+        ROUTER_PY.write_text(new_router, encoding="utf-8")
+        CONSENSUS_PY.write_text(new_consensus, encoding="utf-8")
+
+        # Validate the whole import chain in an isolated subprocess.
+        proc = subprocess.run(
+            [sys.executable, "-c",
+             "import pi_micro_agents.orchestrator.consensus; import pi_micro_agents.orchestrator.router"],
+            cwd=str(REPO_ROOT),
+            env={"PYTHONPATH": str(SRC_DIR), "PATH": __import__("os").environ.get("PATH", "")},
+            capture_output=True,
+            text=True,
+            timeout=120,
+        )
+        if proc.returncode != 0:
+            _rollback()
+            tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-5:]
+            raise HTTPException(status_code=500, detail="Promotion reverted — import validation failed:\n" + "\n".join(tail))
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 — any failure must roll back
+        _rollback()
+        raise HTTPException(status_code=500, detail=f"Promotion reverted: {exc}")
+
+    return PromoteResponse(
+        agent_name=agent_name,
+        promoted_path=str(dest.relative_to(REPO_ROOT)),
+        trust_tier="VERIFIED",
+        router_edit=import_line,
+        consensus_edit=branch.strip(),
+        validated=True,
+    )

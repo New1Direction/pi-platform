@@ -726,15 +726,20 @@ class CoreAdapter:
 
         all_caps: List[MarketplaceCapability] = []
         for route in AgentRouter.routes:
+            # Prefer the agent class's docstring as a human-readable description
+            # (e.g. "CI/CD dependency and security patch scanner") over the raw
+            # "AgentName — keywords:" dump. Strip "Agent N:" prefixes and take the
+            # first sentence/line; fall back to the keywords if there's no doc.
+            doc = (getattr(route.agent_class, "__doc__", "") or "").strip()
+            first_line = doc.split("\n", 1)[0].strip()
+            first_line = re.sub(r"^Agent\s+\d+[:\-]\s*", "", first_line)
+            description = first_line or ("Checks: " + ", ".join(route.keywords[:4]))
             cap = MarketplaceCapability(
                 capability_id=f"cap_{route.agent_name.lower()}",
+                agent_name=route.agent_name,
                 runtime="pi-extension-governor",
                 operation="SANDBOX",
-                description=(
-                    f"{route.agent_name} — keywords: "
-                    + ", ".join(route.keywords[:6])
-                    + ("…" if len(route.keywords) > 6 else "")
-                ),
+                description=description,
                 schema_version="1.0.0",
                 trust_tier="GOVERNED",
                 compatibility_tags=route.keywords,
