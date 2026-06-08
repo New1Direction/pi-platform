@@ -31,6 +31,7 @@ from pi_micro_agents.pi_automated_anonymizer import AnonymizerInput, PiAutomated
 from pi_micro_agents.pi_automated_rotation_engine import PiAutomatedRotationEngine, RotationInput
 from pi_micro_agents.pi_backup_integrity_checker import BackupInput, PiBackupIntegrityChecker
 from pi_micro_agents.pi_block_timestamp_sentry import BlockTimestampInput, PiBlockTimestampSentry
+from pi_micro_agents.pi_bot_detection_evasion_sentry import BotEvasionInput, PiBotDetectionEvasionSentry
 from pi_micro_agents.pi_bytecode_decompiler import BytecodeDecompilerInput, PiBytecodeDecompiler
 
 # Cohort 11 (Agents 116-140) Imports
@@ -48,11 +49,6 @@ from pi_micro_agents.pi_cross_chain_bridge_auditor import BridgeAuditInput, PiCr
 from pi_micro_agents.pi_cross_chain_message_replay_sentry import BridgeReplayInput, PiCrossChainMessageReplaySentry
 from pi_micro_agents.pi_data_flow_privacy_mapper import PiDataFlowPrivacyMapper, PrivacyMapperInput
 from pi_micro_agents.pi_data_retention_policy_enforcer import PiDataRetentionPolicyEnforcer, RetentionInput
-from pi_micro_agents.pi_bot_detection_evasion_sentry import BotEvasionInput, PiBotDetectionEvasionSentry
-from pi_micro_agents.pi_hipaa_compliance_auditor import HipaaAuditInput, PiHipaaComplianceAuditor
-from pi_micro_agents.pi_mobile_security_auditor import MobileAuditInput, PiMobileSecurityAuditor
-from pi_micro_agents.pi_ssh_certificate_security_auditor import PiSshCertificateSecurityAuditor, SshCertInput
-from pi_micro_agents.pi_pci_dss_auditor import PciDssInput, PiPciDssAuditor
 from pi_micro_agents.pi_database_migration_unindexed_sentry import (
     DatabaseMigrationUnindexedInput,
     PiDatabaseMigrationUnindexedSentry,
@@ -107,6 +103,7 @@ from pi_micro_agents.pi_grpc_wire_protocol_insecure_sentry import (
 )
 from pi_micro_agents.pi_handoff_checkpoint_sentry import HandoffInput, PiHandoffCheckpointSentry
 from pi_micro_agents.pi_hardcoded_secret_detector import HardcodedSecretInput, PiHardcodedSecretDetector
+from pi_micro_agents.pi_hipaa_compliance_auditor import HipaaAuditInput, PiHipaaComplianceAuditor
 from pi_micro_agents.pi_hot_path_allocation_auditor import HotPathAllocationInput, PiHotPathAllocationAuditor
 
 # Phase 4 Complementary Micro-Agents (11-30)
@@ -156,6 +153,7 @@ from pi_micro_agents.pi_magic_number_scanner import MagicNumberInput, PiMagicNum
 from pi_micro_agents.pi_memory_zeroize_sentry import MemoryZeroizeInput, PiMemoryZeroizeSentry
 from pi_micro_agents.pi_mempool_sentry import MempoolTxInput, PiMempoolSentry
 from pi_micro_agents.pi_misconfig_pattern_matcher import ConfigInput, PiMisconfigPatternMatcher
+from pi_micro_agents.pi_mobile_security_auditor import MobileAuditInput, PiMobileSecurityAuditor
 from pi_micro_agents.pi_mock_data_tainting_sentry import MockDataTaintingInput, PiMockDataTaintingSentry
 from pi_micro_agents.pi_nginx_reverse_proxy_header_sentry import (
     NginxReverseProxyHeaderInput,
@@ -163,6 +161,7 @@ from pi_micro_agents.pi_nginx_reverse_proxy_header_sentry import (
 )
 from pi_micro_agents.pi_oracle_divergence_audit import OracleDivergenceInput, PiOracleDivergenceAudit
 from pi_micro_agents.pi_oracle_sentry import OracleSentryInput, PiOracleSentry
+from pi_micro_agents.pi_pci_dss_auditor import PciDssInput, PiPciDssAuditor
 from pi_micro_agents.pi_phishing_shield import PhishingShieldInput, PiPhishingShield
 from pi_micro_agents.pi_pipeline_integrity_auditor import PipelineIntegrityInput, PiPipelineIntegrityAuditor
 from pi_micro_agents.pi_prompt_leak_buster import LeakBusterInput, PiPromptLeakBuster
@@ -354,6 +353,7 @@ from pi_micro_agents.pi_solidity_upgradeable_initializer_sentry import (
     UpgradeableInitInput,
 )
 from pi_micro_agents.pi_solidity_yul_memory_offset_audit import PiSolidityYulMemoryOffsetAudit, YulMemoryOffsetInput
+from pi_micro_agents.pi_ssh_certificate_security_auditor import PiSshCertificateSecurityAuditor, SshCertInput
 from pi_micro_agents.pi_storage_layout_drift import PiStorageLayoutDrift, StorageDriftInput
 from pi_micro_agents.pi_structured_logging_enforcer import PiStructuredLoggingEnforcer, StructuredLoggingInput
 from pi_micro_agents.pi_supply_chain_integrity_checker import PiSupplyChainIntegrityChecker, SupplyChainInput
