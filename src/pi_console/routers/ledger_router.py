@@ -12,7 +12,10 @@ from pi_console.auth_guard import tenant_scope
 
 router = APIRouter()
 
-DB_PATH = os.getenv("PI_LEDGER_DB_PATH", "pi_audit_ledger.db")
+# The reader must point at the SAME store the writer (StateLedger) uses.
+# Writer keys off PI_STATE_LEDGER_PATH; honor an explicit PI_LEDGER_DB_PATH
+# override first, then fall back to the writer's path, then the legacy default.
+DB_PATH = os.getenv("PI_LEDGER_DB_PATH") or os.getenv("PI_STATE_LEDGER_PATH", "pi_audit_ledger.db")
 
 
 # ── Pydantic Models ───────────────────────────────────────────────────
