@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X } from 'lucide-react';
-import { listCapabilities, simulateComposition, submitComposition, getTenantId } from '../lib/api';
+import { listAllCapabilities, simulateComposition, submitComposition, getTenantId } from '../lib/api';
 import type { MarketplaceCapability, SimulationReport } from '../types';
 import { Tooltip } from '../components/Tooltip';
 
@@ -83,13 +83,13 @@ function AgentCard({ cap, onAdd }: { cap: MarketplaceCapability; onAdd: (c: Mark
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{
-            fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: '#111',
+            fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: '#111',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
           }}>
             {name}
           </span>
           <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 700,
+            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
             background: TIER_COLOR[cap.trust_tier] ?? '#555', color: '#fff',
             padding: '1px 4px', flexShrink: 0,
           }}>
@@ -99,7 +99,7 @@ function AgentCard({ cap, onAdd }: { cap: MarketplaceCapability; onAdd: (c: Mark
         <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
           {tags.map(t => (
             <span key={t} style={{
-              fontFamily: 'var(--font-mono)', fontSize: 8, color: '#444',
+              fontFamily: 'var(--font-mono)', fontSize: 11, color: '#444',
               background: '#e0e0e0', padding: '1px 4px',
             }}>
               {t}
@@ -129,7 +129,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
   const loadAgents = () => {
     setAgentsLoading(true);
     setAgentError(null);
-    listCapabilities(300, 0)
+    listAllCapabilities()
       .then(r => setAgents(r.capabilities))
       .catch(e => setAgentError(String(e)))
       .finally(() => setAgentsLoading(false));
@@ -210,13 +210,13 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           borderBottom: '1px solid var(--chrome-dd)',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Agent Registry
           </span>
           <button
             onClick={loadAgents}
             disabled={agentsLoading}
-            style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#777', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             title="Reload agent list"
           >
             {agentsLoading ? '…' : `↺ ${agents.length}`}
@@ -230,10 +230,10 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
             border: 'var(--bw)', background: '#fff',
             boxShadow: 'inset 1px 1px 0 var(--chrome-dd)',
           }}>
-            <Search size={11} style={{ margin: '0 6px', color: '#999', flexShrink: 0 }} />
+            <Search size={11} style={{ margin: '0 6px', color: '#2a2a2a', flexShrink: 0 }} />
             <input
               className="input"
-              style={{ border: 'none', boxShadow: 'none', fontSize: 11, padding: '4px 4px' }}
+              style={{ border: 'none', boxShadow: 'none', fontSize: 12, padding: '4px 4px' }}
               placeholder="search agents or keywords…"
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -244,13 +244,13 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
         {/* Agent list */}
         <div style={{ flex: 1, overflow: 'auto' }}>
           {agentsLoading && (
-            <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 11, color: '#aaa', textAlign: 'center' }}>
+            <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a', textAlign: 'center' }}>
               loading…
             </div>
           )}
           {!agentsLoading && agentError && (
             <div style={{ margin: 10 }}>
-              <div style={{ padding: '8px 10px', background: '#ffe0e6', border: '1px solid #cc0022', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#880011', marginBottom: 6 }}>
+              <div style={{ padding: '8px 10px', background: '#ffe0e6', border: '1px solid #cc0022', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#880011', marginBottom: 6 }}>
                 {agentError}
               </div>
               <button className="btn btn-sm" onClick={loadAgents} style={{ width: '100%' }}>
@@ -259,7 +259,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
             </div>
           )}
           {!agentsLoading && !agentError && filtered.length === 0 && (
-            <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 10, color: '#aaa', textAlign: 'center' }}>
+            <div style={{ padding: 16, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a', textAlign: 'center' }}>
               {agents.length === 0 ? 'no agents loaded' : 'no agents match'}
             </div>
           )}
@@ -271,7 +271,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
         {/* Footer hint */}
         <div style={{
           padding: '6px 10px', borderTop: '1px solid var(--chrome-dd)',
-          fontFamily: 'var(--font-ui)', fontSize: 10, color: '#888',
+          fontFamily: 'var(--font-ui)', fontSize: 12, color: '#2a2a2a',
           background: 'var(--chrome)', lineHeight: 1.5,
         }}>
           Click any agent to add it to the pipeline. Hover for keywords.
@@ -287,11 +287,11 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           borderBottom: '1px solid var(--chrome-dd)',
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
         }}>
-          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Pipeline Canvas
           </span>
           {pipeline.length > 0 && (
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#888' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a' }}>
               {pipeline.length} node{pipeline.length !== 1 ? 's' : ''} · all via pi-extension-governor · SANDBOX
             </span>
           )}
@@ -304,11 +304,11 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
             <div style={{
               padding: '36px 28px', textAlign: 'center',
               border: '1px dashed var(--chrome-dd)',
-              fontFamily: 'var(--font-ui)', fontSize: 12, color: '#888',
+              fontFamily: 'var(--font-ui)', fontSize: 12, color: '#2a2a2a',
               lineHeight: 1.8,
             }}>
               Browse the registry on the left and click any agent to add it here.
-              <div style={{ marginTop: 8, fontSize: 11, color: '#aaa' }}>
+              <div style={{ marginTop: 8, fontSize: 12, color: '#2a2a2a' }}>
                 Each agent is identified by the keywords in its goal text.<br />
                 The router dispatches the goal to the matching agent automatically.
               </div>
@@ -333,7 +333,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                 }}>
                   <span style={{
                     background: '#006677', color: '#fff',
-                    fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
+                    fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700,
                     padding: '1px 6px', flexShrink: 0,
                   }}>
                     N{i + 1}
@@ -344,7 +344,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                   <div style={{ display: 'flex', gap: 3, flex: 1, flexWrap: 'wrap' }}>
                     {node.tags.slice(0, 2).map(t => (
                       <span key={t} style={{
-                        fontFamily: 'var(--font-mono)', fontSize: 8,
+                        fontFamily: 'var(--font-mono)', fontSize: 11,
                         background: '#d8ecd8', color: '#1a6633',
                         padding: '1px 5px', border: '1px solid #b8d8b8',
                       }}>
@@ -369,9 +369,9 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                 <div style={{ padding: '8px 10px' }}>
                   <Tooltip tip={`The goal text is keyword-dispatched to ${node.name}.\nEdit it to match one of the agent's keywords:\n${node.tags.map(t => `· ${t}`).join('\n')}`}>
                     <div style={{
-                      fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600,
+                      fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600,
                       textTransform: 'uppercase', letterSpacing: '0.06em',
-                      color: '#555', marginBottom: 4, cursor: 'help',
+                      color: '#2a2a2a', marginBottom: 4, cursor: 'help',
                     }}>
                       Goal — routes to this agent (?)
                     </div>
@@ -384,7 +384,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                     disabled={isActive}
                     placeholder={node.tags[0] ?? 'enter goal keywords…'}
                   />
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#bbb', marginTop: 3 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a', marginTop: 3 }}>
                     {node.capId} · SANDBOX
                   </div>
                 </div>
@@ -392,7 +392,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
 
               {/* Connector arrow */}
               {i < pipeline.length - 1 && (
-                <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0', color: '#bbb' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '2px 0', color: '#2a2a2a' }}>
                   <ChevronRight size={16} />
                 </div>
               )}
@@ -404,7 +404,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
             <div style={{
               border: '1px solid var(--red)', background: '#ffe0e6',
               padding: '10px 14px', color: 'var(--red)',
-              fontFamily: 'var(--font-mono)', fontSize: 11,
+              fontFamily: 'var(--font-mono)', fontSize: 12,
             }}>
               {error}
             </div>
@@ -447,12 +447,12 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
 
           {/* Status spinners */}
           {phase === 'simulating' && (
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: '#555', padding: '12px 0' }}>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: '#2a2a2a', padding: '12px 0' }}>
               Simulating pipeline…
             </div>
           )}
           {phase === 'running' && (
-            <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: '#555', padding: '12px 0' }}>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: '#2a2a2a', padding: '12px 0' }}>
               Executing pipeline…
             </div>
           )}
@@ -463,10 +463,10 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
               <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: '#004400' }}>
                 ✓ Pipeline executed successfully
               </div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#226633', marginTop: 4 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#226633', marginTop: 4 }}>
                 Ledger: {ledgerId}
               </div>
-              <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: '#555', marginTop: 4 }}>
+              <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: '#2a2a2a', marginTop: 4 }}>
                 Open the Ledger tab to see the full hash-chained audit trace.
               </div>
               <button className="btn btn-sm" onClick={reset} style={{ marginTop: 8 }}>Run another</button>
@@ -498,8 +498,8 @@ function SimReport({ report }: { report: SimulationReport }) {
   return (
     <div style={{ marginTop: 8, borderTop: '1px solid var(--chrome-dd)', paddingTop: 14 }}>
       <div style={{
-        fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
-        textTransform: 'uppercase', letterSpacing: '0.07em', color: '#666', marginBottom: 10,
+        fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700,
+        textTransform: 'uppercase', letterSpacing: '0.07em', color: '#2a2a2a', marginBottom: 10,
       }}>
         Simulation Results
       </div>
@@ -542,8 +542,8 @@ function SimReport({ report }: { report: SimulationReport }) {
       {report.execution_plan?.length > 0 && (
         <div>
           <div style={{
-            fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
-            textTransform: 'uppercase', letterSpacing: '0.06em', color: '#666', marginBottom: 6,
+            fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700,
+            textTransform: 'uppercase', letterSpacing: '0.06em', color: '#2a2a2a', marginBottom: 6,
           }}>
             Execution Plan
           </div>
@@ -556,7 +556,7 @@ function SimReport({ report }: { report: SimulationReport }) {
               <span style={{
                 width: 20, height: 20, background: '#006677', color: '#fff',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontFamily: 'var(--font-mono)', fontSize: 10, flexShrink: 0,
+                fontFamily: 'var(--font-mono)', fontSize: 12, flexShrink: 0,
               }}>
                 {idx + 1}
               </span>
@@ -566,7 +566,7 @@ function SimReport({ report }: { report: SimulationReport }) {
         </div>
       )}
 
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#aaa', marginTop: 10, wordBreak: 'break-all' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a', marginTop: 10, wordBreak: 'break-all' }}>
         {report.report_hash}
       </div>
     </div>

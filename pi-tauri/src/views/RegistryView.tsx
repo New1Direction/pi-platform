@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { listCapabilities } from '../lib/api';
+import { listAllCapabilities } from '../lib/api';
 import type { MarketplaceCapability } from '../types';
 
 const TRUST_CHIP: Record<string, string> = {
@@ -63,7 +63,7 @@ export function RegistryView() {
   const reload = () => {
     setLoading(true);
     setLoadError(null);
-    listCapabilities(300)
+    listAllCapabilities()
       .then(r => { setCaps(r.capabilities); setFiltered(r.capabilities); })
       .catch(e => setLoadError(String(e)))
       .finally(() => setLoading(false));

@@ -86,7 +86,7 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
         <div className="win-title compose">
           
           COMPOSITION BUILDER
-          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, opacity: 0.7 }}>
+          <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 12, opacity: 0.7 }}>
             {nodes.length} node{nodes.length !== 1 ? 's' : ''}
           </span>
         </div>
@@ -102,7 +102,7 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
               }}>
                 <span style={{
                   background: 'var(--ink)', color: 'var(--yellow)',
-                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
+                  fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700,
                   padding: '1px 7px',
                 }}>{n.id.toUpperCase()}</span>
                 {i > 0 && (
@@ -118,7 +118,7 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <div style={{ flex: 1 }}>
                     <Tooltip tip={'Runtime selects the execution environment:\n· extension-governor — general agent sandbox\n· semantic-validator — schema/spec checking\n· semantic-diff — version comparison\n· blast-radius — impact analysis\n· semantic-recon — threat reconnaissance'}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: '#555', cursor: 'help' }}>RUNTIME (?)</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: '#2a2a2a', cursor: 'help' }}>RUNTIME (?)</div>
                     </Tooltip>
                     <select className="input" value={n.runtime} onChange={e => updateNode(n.id, 'runtime', e.target.value)}
                       style={{ width: '100%' }}>
@@ -127,7 +127,7 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
                   </div>
                   <div style={{ flex: '0 0 130px' }}>
                     <Tooltip tip={'Operation type:\n· SANDBOX — isolated safe execution\n· SCAN — find issues or threats\n· VALIDATE — correctness check\n· DIFF — compare two versions\n· ANALYZE — deep inspection'}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: '#555', cursor: 'help' }}>OPERATION (?)</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: '#2a2a2a', cursor: 'help' }}>OPERATION (?)</div>
                     </Tooltip>
                     <select className="input" value={n.operation} onChange={e => updateNode(n.id, 'operation', e.target.value)}
                       style={{ width: '100%' }}>
@@ -136,7 +136,7 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: '#888' }}>GOAL / ARTIFACT</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: '#2a2a2a' }}>GOAL / ARTIFACT</div>
                   <input className="input" style={{ width: '100%' }}
                     placeholder="e.g. scan for reentrancy vulnerabilities"
                     value={n.goal} onChange={e => updateNode(n.id, 'goal', e.target.value)} />
@@ -171,19 +171,19 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
 
         <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
           {error && (
-            <div style={{ border: '2px solid var(--red)', padding: 12, background: '#ffd8d0', marginBottom: 12, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--red)' }}>
+            <div style={{ border: '2px solid var(--red)', padding: 12, background: '#ffd8d0', marginBottom: 12, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--red)' }}>
               {error}
             </div>
           )}
 
           {!report && !error && !loading && (
-            <div style={{ textAlign: 'center', padding: 48, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#aaa' }}>
+            <div style={{ textAlign: 'center', padding: 48, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a' }}>
               configure nodes and click SIMULATE
             </div>
           )}
 
           {loading && (
-            <div style={{ textAlign: 'center', padding: 48, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#888' }}>
+            <div style={{ textAlign: 'center', padding: 48, fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a' }}>
               simulating…
             </div>
           )}
@@ -218,7 +218,7 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
 
               {/* Issues */}
               {[...report.dag_errors, ...report.bounds_violations, ...report.policy_violations, ...report.risk_details].map((msg, i) => (
-                <div key={i} style={{ border: '2px solid var(--red)', padding: '8px 12px', background: '#ffd8d055', fontFamily: 'var(--font-mono)', fontSize: 11, color: '#cc2200' }}>
+                <div key={i} style={{ border: '2px solid var(--red)', padding: '8px 12px', background: '#ffd8d055', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#cc2200' }}>
                   {msg}
                 </div>
               ))}
@@ -231,9 +231,9 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
                     <div key={i} style={{
                       display: 'flex', alignItems: 'center', gap: 10,
                       padding: '7px 12px', borderBottom: '1px solid var(--paper-3)',
-                      fontFamily: 'var(--font-mono)', fontSize: 11,
+                      fontFamily: 'var(--font-mono)', fontSize: 12,
                     }}>
-                      <span style={{ color: '#aaa', width: 20, textAlign: 'right', flexShrink: 0 }}>{i + 1}.</span>
+                      <span style={{ color: '#2a2a2a', width: 20, textAlign: 'right', flexShrink: 0 }}>{i + 1}.</span>
                       {step}
                     </div>
                   ))}
@@ -241,7 +241,7 @@ export function ComposeView({ sessionId }: { sessionId: string | null }) {
               )}
 
               {/* Hash */}
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#aaa', wordBreak: 'break-all' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#2a2a2a', wordBreak: 'break-all' }}>
                 REPORT HASH: {report.report_hash}
               </div>
 

@@ -7,6 +7,8 @@ import type {
   ForgeAuditResponse,
   ForgeGenerateRequest,
   ForgeGenerateResponse,
+  ForgePendingAgent,
+  ForgePromoteResponse,
   ForgeSaveRequest,
   ForgeSaveResponse,
   MarketplaceCapability,
@@ -52,6 +54,25 @@ export const listCapabilities = (limit = 100, offset = 0) =>
   api<{ capabilities: MarketplaceCapability[]; total: number }>('/capabilities/list', {
     method: 'POST', body: JSON.stringify({ tenant_id: _tenantId, limit, offset }),
   });
+
+// Backend caps `limit` at 200; the registry has more agents than that, so page
+// through to retrieve the full list. Bounded to avoid any runaway loop.
+const CAP_PAGE = 200;
+export const listAllCapabilities = async (): Promise<{ capabilities: MarketplaceCapability[]; total: number }> => {
+  const first = await listCapabilities(CAP_PAGE, 0);
+  let all = [...first.capabilities];
+  const total = first.total;
+  let offset = CAP_PAGE;
+  let guard = 0;
+  while (all.length < total && first.capabilities.length > 0 && guard < 50) {
+    const page = await listCapabilities(CAP_PAGE, offset);
+    if (page.capabilities.length === 0) break;
+    all = all.concat(page.capabilities);
+    offset += CAP_PAGE;
+    guard += 1;
+  }
+  return { capabilities: all, total };
+};
 
 export const getCompatibilityGraph = () =>
   api<{ nodes: CompatibilityNode[]; edges: CompatibilityEdge[] }>('/capabilities/compatibility-graph', {
@@ -140,4 +161,17 @@ export const forgeSave = (req: ForgeSaveRequest, apiKey: string) =>
   }).then(async r => {
     if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error((d as any).detail ?? `${r.status}`); }
     return r.json() as Promise<ForgeSaveResponse>;
+  });
+
+export const forgeListPending = () =>
+  api<{ agents: ForgePendingAgent[] }>('/forge/pending');
+
+export const forgePromote = (filename: string) =>
+  fetch(`${API_BASE}/forge/promote`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': _tenantId },
+    body: JSON.stringify({ filename }),
+  }).then(async r => {
+    if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error((d as any).detail ?? `${r.status}`); }
+    return r.json() as Promise<ForgePromoteResponse>;
   });
