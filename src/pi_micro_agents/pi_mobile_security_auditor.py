@@ -150,7 +150,7 @@ class PiMobileSecurityAuditor:
         violations: list[str] = []
         risk_score = 0.0
 
-        platform = self._infer_platform(input_envelope.file_path, input_envelope.platform)
+        _platform = self._infer_platform(input_envelope.file_path, input_envelope.platform)
 
         # MASVS-STORAGE-1: Sensitive data in unencrypted storage
         has_secure_storage = bool(_SECURE_STORAGE_MARKERS.search(content))
