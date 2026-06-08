@@ -1,0 +1,143 @@
+---
+title: Agent Catalog
+description: All 248 micro-agents registered in AgentRouter — organized by security domain with status values and routing keywords.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordions, Accordion } from 'fumadocs-ui/components/accordion';
+
+# Agent Catalog
+
+248 agents are registered in `AgentRouter`. Each agent:
+
+- Accepts a **typed Pydantic input** envelope.
+- Returns a **typed Pydantic output** envelope with `is_secure`, `risk_score`, and `status`.
+- Runs inside the **pi-extension-governor** WASM sandbox.
+- Writes a **ledger entry** stamped with `tenant_id`.
+
+<Callout type="info">
+The live agent list is always available via `GET /capabilities/list`. This page documents domain groupings and the 5 newest agents added in the latest batch.
+</Callout>
+
+## Status values
+
+| Status | Meaning | Blocks? |
+|--------|---------|---------|
+| `PASSED` | No violations found | No |
+| `WARN_*` | Risk detected; non-blocking in default mode | No |
+| `REJECTED_*` | Critical violation; blocks in strict mode | Yes (if `strict=True`) |
+
+Strict mode is controlled per-agent via environment variable (e.g. `PI_HIPAA_COMPLIANCE_STRICT_MODE=true`) or globally.
+
+## Domain groups
+
+<Accordions>
+
+<Accordion title="Regulatory Compliance">
+
+| Agent | Env var | Keywords |
+|-------|---------|----------|
+| `PiHipaaComplianceAuditor` | `PI_HIPAA_COMPLIANCE_STRICT_MODE` | `hipaa`, `phi`, `hipaa audit`, `healthcare data` |
+| `PiPciDssAuditor` | `PI_PCI_DSS_STRICT_MODE` | `pci dss`, `cardholder data`, `payment card`, `pci audit` |
+
+Both agents perform static analysis on code content:
+- **HIPAA** — 18 PHI identifiers, cleartext HTTP, unencrypted storage, missing BAA markers.
+- **PCI DSS v4.0** — CHD regex, weak TLS (SSLv2/3, TLS 1.0/1.1), missing tokenisation, hardcoded PANs.
+
+</Accordion>
+
+<Accordion title="Mobile Security">
+
+| Agent | Env var | Keywords |
+|-------|---------|----------|
+| `PiMobileSecurityAuditor` | `PI_MOBILE_SECURITY_STRICT_MODE` | `masvs audit`, `mobile security`, `android security`, `ios security` |
+
+Covers OWASP MASVS / MASTG v2:
+- **MASVS-STORAGE** — insecure SharedPreferences, NSUserDefaults for secrets.
+- **MASVS-CRYPTO** — hardcoded keys, weak algorithms (MD5/SHA1/DES/RC4/ECB).
+- **MASVS-NETWORK** — cleartext traffic, NSAllowsArbitraryLoads in plist, certificate pinning bypass.
+- **MASVS-AUTH** — missing biometric validation.
+- **MASVS-CODE** — debug builds, root/jailbreak detection bypass.
+
+Platform inferred from file path (`.kt`, `.java` → Android; `.swift`, `.m` → iOS).
+
+</Accordion>
+
+<Accordion title="Bot Detection & WAF Evasion">
+
+| Agent | Env var | Keywords |
+|-------|---------|----------|
+| `PiBotDetectionEvasionSentry` | `PI_BOT_DETECTION_EVASION_STRICT_MODE` | `bot evasion`, `waf bypass`, `captcha bypass`, `cloudflare jsd`, `datadome`, `aws waf solver` |
+
+Detects patterns reverse-engineered from three live bypass tools:
+- **AWS WAF Solver** — GPU WebGL pool, static AES-GCM key, fake timing fields.
+- **DataDome VM** — XOR obfuscation keys (183/46), bytecode VM with opcode dispatch.
+- **Cloudflare JSD** — LZ compression, TLS profile spoofing (`utls`), ordered header injection.
+
+Testing contexts (keyword `testing`) receive a 15-point risk-score reduction.
+
+</Accordion>
+
+<Accordion title="SSH & Certificate Security">
+
+| Agent | Env var | Keywords |
+|-------|---------|----------|
+| `PiSshCertificateSecurityAuditor` | `PI_SSH_CERT_SECURITY_STRICT_MODE` | `ssh certificate`, `sshcerts`, `ssh cert gap`, `certificate expiry audit` |
+
+Audits SSH certificate implementation gaps:
+- Missing expiry validation (`valid_before` / `valid_after` parsed but not enforced).
+- Missing principal validation.
+- Missing cert-type checks.
+- Weak RSA-SHA1 algorithm usage.
+- Plaintext webhook secrets.
+- Auth tokens stored as plain `String` without `Zeroize`.
+
+</Accordion>
+
+<Accordion title="Infrastructure & Cloud (selection)">
+
+Includes agents for:
+- IAM policy over-privilege (AWS/GCP/Azure)
+- Kubernetes RBAC misconfiguration
+- Terraform state drift
+- S3 bucket public-access
+- Docker image layer scanning
+- Secrets in environment variables
+- VPC/firewall rule analysis
+
+</Accordion>
+
+<Accordion title="Blockchain & Smart Contracts">
+
+Includes agents for:
+- Solidity reentrancy vulnerability
+- Integer overflow/underflow
+- Unchecked return values
+- tx.origin authentication
+- Timestamp dependence
+- ERC-20/721 standard compliance
+
+</Accordion>
+
+</Accordions>
+
+## Querying the live registry
+
+```bash
+curl http://localhost:8080/capabilities/list \
+  -H "X-Tenant-ID: org-a" \
+  -H "Authorization: Bearer $JWT" \
+  | jq '.total, .capabilities[0]'
+```
+
+Output:
+```json
+248
+{
+  "agent_name": "PiHipaaComplianceAuditor",
+  "runtime": "pi-extension-governor",
+  "operation": "SANDBOX",
+  "trust_tier": "GOVERNED",
+  "keywords": ["hipaa", "phi", "healthcare data"]
+}
+```

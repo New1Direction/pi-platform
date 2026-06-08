@@ -1,0 +1,55 @@
+---
+title: PI Platform
+description: A governed, deterministic AI micro-agent platform — 248 security agents, composable DAG pipelines, cryptographic audit replay.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Cards, Card } from 'fumadocs-ui/components/card';
+
+# PI Platform
+
+PI Platform is a **governed, deterministic** AI agent infrastructure. Code and data pass through a chain of 248 specialised micro-agents. Every execution is cryptographically recorded in an append-only ledger and can be replayed byte-for-byte.
+
+<Callout type="info">
+**Production status:** 248 agents registered · All CI checks green · Tenant-scoped audit trail live
+</Callout>
+
+## What it does
+
+```
+Your code or data
+      │
+      ▼
+AgentRouter (keyword dispatch, 248 routes)
+      │
+      ▼
+Micro-Agent (Pydantic I/O, WASM sandbox)
+      │
+      ▼
+StateLedger (content-addressed, tamper-evident)
+      │
+      ▼
+Replay API  ──►  PASSED / WARN / REJECTED
+```
+
+Agents span every major security domain:
+
+| Domain | Example agents |
+|--------|----------------|
+| Regulatory | HIPAA PHI scanner, PCI DSS v4.0 auditor |
+| Mobile | OWASP MASVS/MASTG static analyser |
+| Infrastructure | IAM policy, Kubernetes RBAC, Terraform drift |
+| Crypto | Key-strength, certificate expiry, SSH cert gaps |
+| Supply chain | SCA, SBOM, typo-squatting, dependency confusion |
+| Bot & WAF | Evasion-pattern sentry (AWS WAF, DataDome, Cloudflare) |
+| Blockchain | Smart-contract reentrancy, integer overflow |
+
+## Navigation
+
+<Cards>
+  <Card title="Getting Started" href="/docs/getting-started" description="Install, run the smoke suite, and submit your first composition in under 10 minutes." />
+  <Card title="Architecture" href="/docs/architecture" description="Deep-dive into the orchestrator, ledger, router, and WASM sandbox design." />
+  <Card title="Agents" href="/docs/agents" description="Browse the 248 agent catalog, understand the pattern, and build your own." />
+  <Card title="API Reference" href="/docs/api" description="Full HTTP API: sessions, compositions, replay, capabilities, audit." />
+  <Card title="Roadmap" href="/docs/roadmap" description="What's coming next — Tier 2 agents, Rust core GA, Docker hardening, and more." />
+</Cards>

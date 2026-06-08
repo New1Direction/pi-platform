@@ -1,0 +1,151 @@
+---
+title: Getting Started
+description: Install PI Platform, run the smoke test suite, and submit your first composition in under 10 minutes.
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+
+# Getting Started
+
+<Steps>
+
+<Step>
+
+## Clone and install
+
+```bash
+git clone https://github.com/New1Direction/pi-platform.git
+cd pi-platform
+
+# Python 3.11+ required
+pip install -e ".[dev,all]"
+```
+
+</Step>
+
+<Step>
+
+## Set environment secrets
+
+Two secrets are required at boot. Generate them:
+
+```bash
+export PI_SECRET_JWT=$(openssl rand -hex 32)
+export PI_SECRET_REQUEST_SIGNING=$(openssl rand -hex 32)
+```
+
+Add these to your `.env` (never commit). An `.env.example` file ships in the repo.
+
+</Step>
+
+<Step>
+
+## Run the smoke suite
+
+The driver boots the backend, exercises 10 endpoints, and exits clean:
+
+```bash
+python3 .claude/skills/run-pi-platform/driver.py smoke
+```
+
+Expected output:
+
+```
+→ booting backend on :8088
+  ✓ /health              → 200
+  ✓ traversal rejected   → 400
+  ✓ /openapi.json        → 19 endpoints
+  ✓ session create       → 200 (sess_…)
+  ✓ cross-tenant blocked → 403
+  ✓ /capabilities/list   → 248 total
+  ✓ /compositions/simulate → 200 can_execute=True
+  ✓ /compositions/submit   → 200 ledger=ledger_ecr_…
+  ✓ /replay/get          → 1 event(s) integrity=True
+✅ backend smoke all green
+```
+
+</Step>
+
+<Step>
+
+## Submit your first composition
+
+A composition is a DAG of agent nodes. The simplest one is a single node:
+
+```bash
+PYTHONPATH=src python3 - <<'EOF'
+from pi_console.services import CoreAdapter
+from pi_console.schemas import ExplicitCompositionRequest, CompositionNode
+
+adapter = CoreAdapter()
+
+req = ExplicitCompositionRequest(
+    tenant_id="my-org",
+    console_session_id="demo-session",
+    nodes=[
+        CompositionNode(
+            node_id="n1",
+            runtime="pi-extension-governor",
+            operation="SANDBOX",
+            artifacts=[{"goal": "scan", "code_content": "import os; key = 'abc123'"}],
+            required_schema_version="1.0.0",
+            bounds={"max_depth": 1, "max_fanout": 1},
+            dependencies=[],
+        )
+    ],
+    edges=[],
+    simulation_only=False,
+    approved_by_user=True,
+)
+
+result = adapter.submit(req)
+print("Ledger ID:", result.core_ledger_id)
+print("Status:   ", result.status)
+
+replay = adapter.get_execution_replay(result.core_ledger_id)
+print("Events:   ", replay.total_events)
+print("Integrity:", replay.integrity_check)
+EOF
+```
+
+</Step>
+
+<Step>
+
+## (Optional) Start the frontend dashboard
+
+```bash
+cd pi-console-frontend
+npm install && npm run build
+npm start
+# → http://localhost:3000
+```
+
+Open the dashboard to view live ledger entries, composition graphs, and the capability catalogue.
+
+</Step>
+
+</Steps>
+
+## Run the full test suite
+
+```bash
+PYTHONPATH=src python -m pytest tests --ignore=tests/browser -q
+```
+
+All 1,560+ tests should pass. The `tests/browser/` directory is excluded — it has a known collection-time error unrelated to runtime.
+
+<Callout type="warn">
+`tests/browser/` is excluded from CI. Do not include it in `pytest` runs.
+</Callout>
+
+## Troubleshooting
+
+| Symptom | Fix |
+|---------|-----|
+| `ports 8088/3000 in use` on rerun | TIME_WAIT — wait 30 s, or set `PI_DRIVER_BACKEND_PORT=8090` |
+| `frontend never came up` | Run `npm install && npm run build` in `pi-console-frontend/` |
+| `/replay/get` returns 0 events | Set `PI_STATE_LEDGER_PATH` to a shared file, not `:memory:` |
+| `capabilities/list` returns 0 | AgentRouter import failed — check backend log for the error |

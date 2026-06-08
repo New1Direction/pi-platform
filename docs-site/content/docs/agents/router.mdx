@@ -1,0 +1,84 @@
+---
+title: AgentRouter
+description: How AgentRouter dispatches a keyword-tagged goal to the correct micro-agent using word-boundary regex matching with sequential precedence.
+---
+
+import { Mermaid } from '@/components/mermaid';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# AgentRouter
+
+`AgentRouter` is the dispatch layer that maps an incoming goal string to the correct agent class. It uses `\b` word-boundary regex matching and returns the **first** matching route.
+
+## Dispatch flow
+
+<Mermaid chart={`
+graph TD
+    GOAL[goal string from CompositionNode artifact] --> ITER[Iterate routes in registration order]
+    ITER --> MATCH{\\b keyword \\b matches?}
+    MATCH -->|yes| AGENT[Instantiate + run agent]
+    MATCH -->|no, continue| ITER
+    ITER -->|no routes matched| NULL[Return None / no-op]
+
+    AGENT --> OUT[AgentOutput]
+    OUT --> LED[(StateLedger)]
+
+    style MATCH fill:#d97706,color:#fff
+    style AGENT fill:#3b82f6,color:#fff
+`} />
+
+## Registration
+
+```python
+AgentRouter.register(
+    agent_name="PiMyAuditor",
+    keywords=["my specific audit", "unique domain phrase"],
+    agent_class=PiMyAuditor,
+    input_factory=lambda artifacts: MyAuditInput(
+        code_content=artifacts[0].get("code_content", "") if artifacts else "",
+    ),
+)
+```
+
+- `keywords` — list of phrases matched with `\b{phrase}\b` (case-insensitive).
+- `input_factory` — callable that converts the `artifacts` list from the `CompositionNode` into the typed input model.
+- Registration order matters: the first matching route wins.
+
+## Keyword collision
+
+<Callout type="warn">
+**Gotcha:** `PiGitSecScanner` is registered early with the keyword `"security audit"`. Any agent using `"security audit"` as a keyword will never match because `PiGitSecScanner` takes precedence.
+
+Always use **multi-word, domain-specific** keywords:
+- `"hipaa audit"` ✅ — not `"security audit"` ❌
+- `"sshcerts security gap"` ✅ — not `"security audit"` ❌
+- `"masvs audit"` ✅ — not `"mobile security audit"` ❌ (would match PiGitSecScanner)
+</Callout>
+
+## Listing all capabilities
+
+```python
+from pi_micro_agents.orchestrator.router import AgentRouter
+
+caps = AgentRouter.list_capabilities()
+print(len(caps))   # 248
+
+for c in caps[:3]:
+    print(c.agent_name, c.keywords)
+```
+
+Or via HTTP:
+```bash
+curl http://localhost:8080/capabilities/list \
+  -H "X-Tenant-ID: org-a" \
+  -H "Authorization: Bearer $JWT"
+```
+
+## Resolving a keyword manually
+
+```python
+match = AgentRouter.resolve("hipaa audit")
+print(match.agent_name)  # PiHipaaComplianceAuditor
+```
+
+This is useful in unit tests to verify your agent is reachable via its keywords without submitting a full composition.

@@ -1,0 +1,136 @@
+---
+title: API Reference
+description: Full HTTP API reference for PI Platform — sessions, compositions, replay, capabilities, and audit endpoints.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# API Reference
+
+The PI Platform Console exposes a FastAPI service on port `8080` (default). All endpoints require:
+
+- `X-Tenant-ID: <tenant>` header
+- `Authorization: Bearer <JWT>` header
+
+The tenant ID in the header must match the `tenant_id` claim in the JWT. Mismatches return `403 Forbidden`.
+
+<Callout type="info">
+Interactive API docs are available at `http://localhost:8080/docs` (Swagger UI) and `http://localhost:8080/redoc` (ReDoc) when the backend is running.
+</Callout>
+
+## Authentication
+
+```bash
+# Generate a signed JWT for development
+PYTHONPATH=src python3 -c "
+import jwt, os, time
+payload = {'tenant_id': 'org-a', 'exp': int(time.time()) + 3600}
+token = jwt.encode(payload, os.environ['PI_SECRET_JWT'], algorithm='HS256')
+print(token)
+"
+```
+
+## Endpoints
+
+### Health
+
+```
+GET /health
+```
+
+No auth required. Returns `{"status": "ok"}` when the backend is up.
+
+---
+
+### Sessions
+
+```
+POST /api/v1/sessions/create?tenant_id={tenant}
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+```
+
+Creates a new console session. Returns:
+```json
+{"session_id": "sess_abc123", "tenant_id": "org-a"}
+```
+
+---
+
+### Capabilities
+
+```
+GET /api/v1/capabilities/list
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+```
+
+Returns the live registry from `AgentRouter`:
+```json
+{
+  "total": 248,
+  "capabilities": [
+    {
+      "agent_name": "PiHipaaComplianceAuditor",
+      "runtime": "pi-extension-governor",
+      "operation": "SANDBOX",
+      "trust_tier": "GOVERNED",
+      "keywords": ["hipaa", "phi", "healthcare data"]
+    }
+  ]
+}
+```
+
+---
+
+### Compositions
+
+See [Compositions](/docs/api/compositions) for the full request schema.
+
+```
+POST /api/v1/compositions/simulate     ← dry-run, no ledger write
+POST /api/v1/compositions/submit       ← execute + write ledger
+```
+
+---
+
+### Replay
+
+See [Replay](/docs/api/replay) for response schema.
+
+```
+GET /api/v1/replay/get?ledger_id={id}
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+```
+
+---
+
+### Audit
+
+```
+POST /api/v1/audit/log
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+Content-Type: application/json
+
+{
+  "tenant_id": "{tenant}",   ← must match X-Tenant-ID header
+  "event": "...",
+  "metadata": {}
+}
+```
+
+Returns `403` if `body.tenant_id` ≠ `X-Tenant-ID` header.
+
+---
+
+### Ledger
+
+```
+GET /api/v1/ledger/entries?tenant_id={tenant}
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+```
+
+Returns all ledger entries for the authenticated tenant. Entries from other tenants are never returned.

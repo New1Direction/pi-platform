@@ -1,0 +1,115 @@
+---
+title: Architecture Overview
+description: How the PI Platform layers — from HTTP boundary to micro-agent WASM sandbox — fit together into a deterministic, tamper-evident pipeline.
+---
+
+import { Mermaid } from '@/components/mermaid';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Architecture Overview
+
+PI Platform is built around three core guarantees:
+
+1. **Determinism** — identical inputs always produce identical ledger entries.
+2. **Isolation** — every agent runs inside a Wasmer WASM sandbox with capability deny-by-default.
+3. **Auditability** — every execution is content-addressed and can be replayed with integrity verification.
+
+## System layers
+
+<Mermaid chart={`
+graph TD
+    U[Client / Developer] -->|JWT-authenticated HTTPS| API[FastAPI Console \\n :8080]
+    API --> S[Sessions]
+    API --> C[Compositions]
+    API --> R[Replay API]
+    API --> CAP[Capabilities]
+
+    C --> ORCH[PiOrchestrator]
+    ORCH --> ROUTER[AgentRouter \\n 248 keyword routes]
+    ROUTER --> A1[Micro-Agent A]
+    ROUTER --> A2[Micro-Agent B]
+    ROUTER --> A3[Micro-Agent N]
+
+    A1 --> SB[Wasmer WASM Sandbox \\n pi-extension-governor]
+    A2 --> SB
+    A3 --> SB
+
+    A1 --> LED[StateLedger \\n SQLite WAL]
+    A2 --> LED
+    A3 --> LED
+
+    R -->|hash chain verify| LED
+
+    style API fill:#3b82f6,color:#fff
+    style ORCH fill:#7c3aed,color:#fff
+    style ROUTER fill:#2563eb,color:#fff
+    style SB fill:#d97706,color:#fff
+    style LED fill:#059669,color:#fff
+`} />
+
+## Request sequence
+
+<Mermaid chart={`
+sequenceDiagram
+    participant C as Client
+    participant API as FastAPI :8080
+    participant ORCH as PiOrchestrator
+    participant ROUTER as AgentRouter
+    participant AGENT as Micro-Agent
+    participant LED as StateLedger
+
+    C->>API: POST /compositions/submit\\n{X-Tenant-ID: org, JWT}
+    API->>API: Validate JWT + tenant scope
+    API->>ORCH: submit(ExplicitCompositionRequest)
+
+    ORCH->>ROUTER: route(goal/keyword)
+    ROUTER->>AGENT: agent.run(input)
+
+    AGENT->>AGENT: resolve_strict_mode()
+    AGENT->>AGENT: analyse(code_content)
+
+    alt PASSED or WARN
+        AGENT-->>ORCH: Output(status=PASSED, risk_score=12)
+    else REJECTED (strict mode)
+        AGENT-->>ORCH: Output(status=REJECTED_X, risk_score=95)
+    end
+
+    ORCH->>LED: stamp(tenant_id, hash, output)
+    LED-->>ORCH: ledger_id
+
+    ORCH-->>API: CompositionResult(ledger_id, status)
+    API-->>C: 200 OK {ledger_id, status}
+
+    C->>API: GET /replay/get?ledger_id=…
+    API->>LED: fetch + verify hash chain
+    LED-->>API: events[], integrity=True
+    API-->>C: ReplayResult
+`} />
+
+## Key components
+
+| Component | File(s) | Role |
+|-----------|---------|------|
+| `PiOrchestrator` | `src/pi_micro_agents/orchestrator/` | Accepts compositions, fans out to router |
+| `AgentRouter` | `src/pi_micro_agents/orchestrator/router.py` | Keyword → agent class dispatch |
+| `StateLedger` | `src/pi_micro_agents/orchestrator/` | Append-only SQLite WAL, content-addressed |
+| `pi-extension-governor` | WASM runtime | Capability-gated sandbox for every agent |
+| Console API | `src/pi_console/` | FastAPI boundary, JWT auth, tenant scoping |
+| Frontend | `pi-console-frontend/` | Next.js 15 dashboard |
+
+<Callout type="info">
+The Rust core (PyO3) accelerates the agent fabric by up to **12.5×** vs pure Python for per-agent runs. The batch path benchmarks at ~2.1× faster for full fan-out scenarios.
+</Callout>
+
+## Tenant isolation
+
+Every write to the `StateLedger` is stamped with the authenticated `tenant_id` from the JWT. The Replay API enforces read scoping — a tenant can only fetch their own ledger entries. IDOR is blocked at the API boundary.
+
+```
+POST /compositions/submit
+  X-Tenant-ID: org-a          ← must match JWT claim
+  Authorization: Bearer <JWT> ← tenant_id extracted here
+
+GET /replay/get?ledger_id=X
+  X-Tenant-ID: org-a          ← ledger row must belong to org-a
+```

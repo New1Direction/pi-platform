@@ -1,0 +1,72 @@
+---
+title: StateLedger
+description: The content-addressed, tamper-evident append-only ledger that backs all PI Platform agent executions.
+---
+
+import { Mermaid } from '@/components/mermaid';
+
+# StateLedger
+
+The `StateLedger` is a **content-addressed, append-only** store backed by SQLite in WAL mode. It provides:
+
+- **Determinism** — the same input always hashes to the same entry.
+- **Tamper evidence** — each row's `prev_hash` links to the previous row, forming a hash chain.
+- **Tenant scoping** — every row carries a `tenant_id`; reads are filtered by tenant.
+
+## Hash chain
+
+<Mermaid chart={`
+graph LR
+    G[Genesis \\n prev_hash=0000] -->|SHA-256| E1[Entry 1 \\n hash=abc…]
+    E1 -->|SHA-256| E2[Entry 2 \\n hash=def…]
+    E2 -->|SHA-256| E3[Entry 3 \\n hash=ghi…]
+
+    style G fill:#e0f2fe
+    style E1 fill:#dbeafe
+    style E2 fill:#dbeafe
+    style E3 fill:#dbeafe
+`} />
+
+If any row is modified after the fact, its hash no longer matches the `prev_hash` stored in the next row. The Replay API checks this chain on every fetch and returns `integrity_check: false` if a gap is detected.
+
+## Schema (simplified)
+
+```sql
+CREATE TABLE ledger (
+  id           INTEGER PRIMARY KEY,
+  ledger_id    TEXT NOT NULL,
+  tenant_id    TEXT NOT NULL,
+  node_id      TEXT,
+  input_hash   TEXT NOT NULL,
+  output_hash  TEXT NOT NULL,
+  status       TEXT NOT NULL,
+  risk_score   INTEGER,
+  timestamp    TEXT NOT NULL,
+  prev_hash    TEXT NOT NULL
+);
+CREATE INDEX ledger_tenant ON ledger(tenant_id, ledger_id);
+```
+
+## Configuring the path
+
+By default the ledger uses an in-memory SQLite database. This means two separate processes (or uvicorn workers) cannot share state. Set `PI_STATE_LEDGER_PATH` to a shared file:
+
+```bash
+export PI_STATE_LEDGER_PATH=/var/pi/state_ledger.db
+```
+
+In Docker Compose, mount this path as a named volume so the backend and any sidecar processes share the same file.
+
+## Integrity verification
+
+```python
+from pi_console.services import CoreAdapter
+
+adapter = CoreAdapter()
+replay = adapter.get_execution_replay("ledger_ecr_abc123")
+
+print(replay.integrity_check)   # True or False
+print(replay.total_events)      # number of chained entries
+```
+
+A `False` result means at least one entry in the chain has been modified or deleted since it was written.

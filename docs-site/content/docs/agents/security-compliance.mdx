@@ -1,0 +1,143 @@
+---
+title: Security & Compliance Agents
+description: Deep dive into the five newest security compliance agents — HIPAA, PCI DSS, Mobile MASVS, Bot Evasion Sentry, and SSH Certificate Auditor.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+# Security & Compliance Agents
+
+The five agents below were added in the most recent batch, covering regulatory compliance, mobile security, bot evasion detection, and SSH certificate gaps.
+
+## HIPAA Compliance Auditor
+
+**File:** `src/pi_micro_agents/pi_hipaa_compliance_auditor.py`
+**Env var:** `PI_HIPAA_COMPLIANCE_STRICT_MODE`
+
+Scans code and configuration for HIPAA Protected Health Information (PHI) exposure:
+
+- 18 PHI identifier patterns (SSN, DOB, diagnosis codes, etc.)
+- Cleartext HTTP transmission of health data
+- Unencrypted storage markers
+- Missing Business Associate Agreement (BAA) markers
+- Minimum-necessary violation patterns (bulk PHI access)
+
+<Tabs items={['Input', 'Output', 'Example']}>
+<Tab value="Input">
+```python
+HipaaAuditInput(
+    code_content: str,
+    file_path: str = "",
+    component_type: str = "",  # e.g. "api", "database", "frontend"
+)
+```
+</Tab>
+<Tab value="Output">
+```python
+HipaaAuditOutput(
+    is_secure: bool,
+    phi_identifiers_found: list[str],
+    violations: list[str],
+    risk_score: int,  # 0–100
+    status: Literal["PASSED", "WARN_PHI_EXPOSURE", "REJECTED_PHI_EXPOSURE"],
+)
+```
+</Tab>
+<Tab value="Example">
+```python
+result = PiHipaaComplianceAuditor().run(HipaaAuditInput(
+    code_content="""
+    def get_patient_record(ssn):
+        return db.query(f"SELECT * FROM patients WHERE ssn='{ssn}'")
+    """,
+    component_type="api",
+))
+# result.status → "WARN_PHI_EXPOSURE" (or REJECTED in strict mode)
+# result.phi_identifiers_found → ["ssn"]
+# result.risk_score → 55
+```
+</Tab>
+</Tabs>
+
+---
+
+## PCI DSS v4.0 Auditor
+
+**File:** `src/pi_micro_agents/pi_pci_dss_auditor.py`
+**Env var:** `PI_PCI_DSS_STRICT_MODE`
+
+Validates code against PCI DSS v4.0 cardholder data (CHD) requirements:
+
+- Primary Account Number (PAN) regex in code strings
+- Weak TLS versions (SSLv2, SSLv3, TLS 1.0, TLS 1.1)
+- Hardcoded CVV/CVC values
+- Missing tokenisation
+- Logging of CHD
+- Insecure transmission
+
+<Callout type="info">
+The `_WEAK_TLS` pattern matches both `TLS_1_0` and `TLS 1.0` formats using `[_.]` — a subtle regex fix uncovered during testing.
+</Callout>
+
+PCI requirements surfaced: **3.3** (CHD storage), **4.2** (TLS version), **6.4** (injection), **10.5** (logging).
+
+---
+
+## Mobile Security Auditor (MASVS/MASTG)
+
+**File:** `src/pi_micro_agents/pi_mobile_security_auditor.py`
+**Env var:** `PI_MOBILE_SECURITY_STRICT_MODE`
+
+Static analysis against OWASP MASVS v2 and MASTG:
+
+| MASVS Control | What it checks |
+|---------------|----------------|
+| MASVS-STORAGE-1 | Insecure SharedPreferences / NSUserDefaults for secrets |
+| MASVS-CRYPTO-1 | Hardcoded keys, weak ciphers (MD5/SHA1/DES/RC4/ECB) |
+| MASVS-NETWORK-1 | Cleartext traffic, NSAllowsArbitraryLoads (inline + plist XML) |
+| MASVS-AUTH-1 | Missing biometric/2FA enforcement |
+| MASVS-CODE-1 | Debug flag in production, root/jailbreak bypass |
+
+Platform is inferred from the `file_path` extension:
+- `.kt`, `.java` → Android
+- `.swift`, `.m`, `.mm` → iOS
+- `.dart`, `.js`, `.ts` → Cross-platform
+
+---
+
+## Bot Detection Evasion Sentry
+
+**File:** `src/pi_micro_agents/pi_bot_detection_evasion_sentry.py`
+**Env var:** `PI_BOT_DETECTION_EVASION_STRICT_MODE`
+
+Detects patterns reverse-engineered from three live WAF/bot bypass tools:
+
+| Source | Pattern detected |
+|--------|-----------------|
+| AWS WAF Solver | GPU WebGL pool, static AES-GCM key, fake browser timing |
+| DataDome VM | XOR keys 183/46, bytecode VM with opcode/IP/stack |
+| Cloudflare JSD | LZ compression, `utls` TLS profile spoofing, header-order injection |
+| Generic | PoW/hashcash solvers, canvas fingerprint randomisation |
+
+Testing contexts reduce the risk score by 15 if the `context` field contains `"testing"` and the raw score is below 60.
+
+---
+
+## SSH Certificate Security Auditor
+
+**File:** `src/pi_micro_agents/pi_ssh_certificate_security_auditor.py`
+**Env var:** `PI_SSH_CERT_SECURITY_STRICT_MODE`
+
+Audits SSH certificate implementations — originally derived from reverse-engineering the `obelisk/sshcerts` Rust library, which parses `valid_before`/`valid_after` fields but never enforces them:
+
+| Gap | Pattern |
+|-----|---------|
+| Expiry not enforced | `valid_before`/`valid_after` parsed but no comparison to current time |
+| Principals not validated | No `principals` field check |
+| Cert type not checked | No `CertType`/`UserCert`/`HostCert` guard |
+| Weak algorithm | `ssh-rsa`, `RSA_SHA1`, `rsa_pkcs1_sha1` |
+| Plaintext webhook secret | Bare string assignment to `webhook_secret` |
+| Token without Zeroize | Rust `auth_token: String` without Zeroize trait |
+
+Set `has_cert_parsing=True` on the input to skip auto-detection and always run the full audit.

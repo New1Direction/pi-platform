@@ -1,0 +1,114 @@
+---
+title: Roadmap
+description: What's coming next for PI Platform — Tier 2 security agents, Rust core GA, Docker hardening, and the adOmnia MCP tool validator.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Mermaid } from '@/components/mermaid';
+
+# Roadmap
+
+<Callout type="info">
+This roadmap reflects the current local backlog. All items are subject to change. See `ROADMAP.local.md` in the repo root for the living version.
+</Callout>
+
+## Release themes
+
+<Mermaid chart={`
+gantt
+    title PI Platform Roadmap
+    dateFormat  YYYY-MM
+    section Infrastructure
+    Docker build validation     :active, d1, 2026-06, 1M
+    Rust core GA (PyO3)        :d2, 2026-07, 2M
+    WASM sandbox hardening     :d3, 2026-07, 1M
+    section Agents
+    Tier 2 security agents     :active, a1, 2026-06, 1M
+    adOmnia MCP tool validator :a2, 2026-07, 1M
+    Tier 3 advanced forensics  :a3, 2026-08, 2M
+    section Platform
+    Multi-tenant dashboard      :p1, 2026-07, 2M
+    Streaming ledger events     :p2, 2026-08, 1M
+    Agent marketplace           :p3, 2026-09, 2M
+`} />
+
+---
+
+## P0 — Docker build validation
+
+**Status:** Pending VM provisioning (user to create VM)
+
+Validate the full Docker Compose stack — backend + frontend + ledger volume:
+
+- `Dockerfile` for the FastAPI backend
+- `docker-compose.yml` with `PI_STATE_LEDGER_PATH` mounted as a named volume
+- Health-check probing all 19 API endpoints
+- `PI_SECRET_JWT` and `PI_SECRET_REQUEST_SIGNING` injected via Docker secrets
+
+This ensures the platform runs identically in any containerised environment.
+
+---
+
+## P1 — Tier 2 security agents
+
+Three agents deferred from the current batch due to domain complexity:
+
+| Agent | Description |
+|-------|-------------|
+| `pi_siem_rule_validator` | Validates SIEM rule syntax (Sigma, Splunk SPL, Elastic EQL) for logic errors and coverage gaps |
+| `pi_security_finding_scorer` | CVSS v3.1 / v4.0 scoring for raw findings, normalises scores across different scanner outputs |
+| `pi_breach_pattern_detector` | Detects patterns consistent with known breach playbooks (credential stuffing, exfil staging, lateral movement indicators) |
+
+---
+
+## P2 — Rust core GA
+
+The PyO3-backed Rust core is proven in benchmarks:
+- Full fan-out: **2.1× faster** than pure Python
+- Per-agent: up to **12.5× faster** with GIL-released parallelism
+
+GA work:
+- Move the agent fabric fully into Rust
+- Expose `AgentRouter.resolve()` and `StateLedger.write()` as Rust-native calls
+- Maintain Python bindings for agent `run()` methods (agents stay Python)
+
+---
+
+## P3 — adOmnia MCP tool schema validator
+
+The adOmnia repo (52k Go + 71.5k TypeScript API toolbox) was audited during the RE phase. The key opportunity is a `pi_mcp_tool_schema_validator` agent that:
+
+- Validates MCP (Model Context Protocol) tool definitions against their declared JSON Schema
+- Flags tools that accept `any` / untyped inputs
+- Detects missing `required` fields in tool schemas
+- Validates tool response schemas against actual return shapes
+
+---
+
+## P4 — Streaming ledger events
+
+Replace the polling-based `/ledger/entries` endpoint with a Server-Sent Events stream. Agents push entries as they complete; the dashboard renders results in real time without page refresh.
+
+---
+
+## P5 — Agent marketplace
+
+A curated registry where:
+- Community agents can be submitted as Python packages
+- Each submission is automatically run through the existing 248 agents (meta-scan)
+- Approved agents are published with a trust tier (`GOVERNED` / `COMMUNITY` / `EXPERIMENTAL`)
+- Tenants can enable/disable agents per-account
+
+---
+
+## Contributing
+
+The PI Platform follows a Test-Driven Development workflow. Before opening a PR:
+
+1. Write tests first — all must be red before implementation.
+2. Implement until tests are green.
+3. Ensure all 1,560+ existing tests still pass.
+4. Add your agent to `AgentRouter` with domain-specific keywords (avoid collisions).
+5. Verify the router smoke tests pass.
+
+See [Building Agents](/docs/agents/building-agents) for the complete guide.
