@@ -1,0 +1,11 @@
+{
+  "title": "PI Platform",
+  "pages": [
+    "index",
+    "getting-started",
+    "architecture",
+    "agents",
+    "api",
+    "roadmap"
+  ]
+}

@@ -1,0 +1,68 @@
+---
+title: Replay
+description: Fetch and verify the tamper-evident execution trace for any composition via the Replay API.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Replay
+
+The Replay API fetches the full execution trace for a composition and verifies the hash chain. If any ledger entry has been modified after the fact, `integrity_check` returns `false`.
+
+## Fetch a replay
+
+```
+GET /api/v1/replay/get?ledger_id={id}
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+```
+
+**Response:**
+```json
+{
+  "ledger_id": "ledger_ecr_ff1df8a4bf1c44f4",
+  "total_events": 2,
+  "integrity_check": true,
+  "events": [
+    {
+      "node_id": "hipaa-scan",
+      "status": "PASSED",
+      "risk_score": 0,
+      "input_hash": "sha256:abc...",
+      "output_hash": "sha256:def...",
+      "timestamp": "2026-06-08T00:00:00Z"
+    },
+    {
+      "node_id": "pci-scan",
+      "status": "WARN_CHD_RISK",
+      "risk_score": 45,
+      "input_hash": "sha256:ghi...",
+      "output_hash": "sha256:jkl...",
+      "timestamp": "2026-06-08T00:00:01Z"
+    }
+  ]
+}
+```
+
+## Integrity check
+
+`integrity_check: true` means every `prev_hash` in the chain correctly points to its predecessor's hash. A `false` value means the chain has been broken — at least one entry was modified or deleted.
+
+<Callout type="warn">
+Replay queries are tenant-scoped. A `ledger_id` belonging to `org-b` cannot be fetched by `org-a` — the API returns `403 Forbidden`.
+</Callout>
+
+## Python SDK
+
+```python
+from pi_console.services import CoreAdapter
+
+adapter = CoreAdapter()
+replay = adapter.get_execution_replay("ledger_ecr_ff1df8a4bf1c44f4")
+
+assert replay.integrity_check is True
+print(replay.total_events)
+
+for event in replay.events:
+    print(event.node_id, event.status, event.risk_score)
+```

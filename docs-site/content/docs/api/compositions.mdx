@@ -1,0 +1,86 @@
+---
+title: Compositions
+description: Submit and simulate ExplicitCompositionRequest DAGs — the primary way to run agents on the PI Platform.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Compositions
+
+## Simulate (dry-run)
+
+```
+POST /api/v1/compositions/simulate
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+Content-Type: application/json
+```
+
+```json
+{
+  "tenant_id": "org-a",
+  "console_session_id": "sess_abc",
+  "simulation_only": true,
+  "approved_by_user": true,
+  "nodes": [
+    {
+      "node_id": "scan-1",
+      "runtime": "pi-extension-governor",
+      "operation": "SANDBOX",
+      "artifacts": [{"goal": "hipaa audit", "code_content": "x = 1"}],
+      "required_schema_version": "1.0.0",
+      "bounds": {"max_depth": 1, "max_fanout": 1},
+      "dependencies": []
+    }
+  ],
+  "edges": []
+}
+```
+
+**Response:**
+```json
+{"can_execute": true, "warnings": []}
+```
+
+## Submit (execute)
+
+Same body with `"simulation_only": false`. The composition is executed and a ledger entry is created.
+
+**Response:**
+```json
+{
+  "status": "ACCEPTED",
+  "core_ledger_id": "ledger_ecr_ff1df8a4bf1c44f4",
+  "node_results": {
+    "scan-1": {"status": "PASSED", "risk_score": 0}
+  }
+}
+```
+
+## Valid runtime values
+
+<Callout type="warn">
+`runtime` is a closed Literal. Only these values are accepted:
+
+- `pi-extension-governor` ← use this for all micro-agents
+- `pi-semantic-recon`
+- `pi-semantic-validator`
+- `pi-semantic-diff`
+- `pi-blast-radius`
+- `pi-interoperability-layer`
+- `pi-catalog-integration`
+
+Any other value returns `HTTP 422 Unprocessable Entity`.
+</Callout>
+
+## Goal routing
+
+The `goal` field inside `artifacts[0]` is matched against `AgentRouter` keywords. Examples:
+
+| Goal string | Routes to |
+|-------------|-----------|
+| `"hipaa audit"` | `PiHipaaComplianceAuditor` |
+| `"pci dss audit"` | `PiPciDssAuditor` |
+| `"masvs audit"` | `PiMobileSecurityAuditor` |
+| `"bot evasion"` | `PiBotDetectionEvasionSentry` |
+| `"sshcerts security gap"` | `PiSshCertificateSecurityAuditor` |

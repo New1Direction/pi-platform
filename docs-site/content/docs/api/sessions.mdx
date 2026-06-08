@@ -1,0 +1,39 @@
+---
+title: Sessions
+description: Create and manage console sessions — the authentication context for compositions and ledger queries.
+---
+
+# Sessions
+
+A **session** is a short-lived context that scopes compositions and ledger reads to a tenant. Create one before submitting compositions.
+
+## Create a session
+
+```
+POST /api/v1/sessions/create?tenant_id={tenant}
+X-Tenant-ID: {tenant}
+Authorization: Bearer {JWT}
+```
+
+**Response:**
+```json
+{
+  "session_id": "sess_abc123def456",
+  "tenant_id": "org-a",
+  "created_at": "2026-06-08T00:00:00Z"
+}
+```
+
+## IDOR protection
+
+The API enforces that `?tenant_id` in the query string matches the `X-Tenant-ID` header AND the JWT claim. Any mismatch returns `403 Forbidden`:
+
+```bash
+# This is blocked — query param does not match header
+curl -X POST "http://localhost:8080/api/v1/sessions/create?tenant_id=org-b" \
+  -H "X-Tenant-ID: org-a" \
+  -H "Authorization: Bearer $JWT"
+# → 403 Forbidden
+```
+
+The smoke test suite explicitly verifies this protection on every boot.

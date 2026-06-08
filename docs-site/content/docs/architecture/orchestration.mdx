@@ -1,0 +1,124 @@
+---
+title: Composition DAG
+description: How ExplicitCompositionRequest DAGs fan out agents in parallel or chain them sequentially, and how the ledger captures the result.
+---
+
+import { Mermaid } from '@/components/mermaid';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Composition DAG
+
+A **composition** is a directed acyclic graph (DAG) of agent nodes. Nodes with no dependencies run in parallel. Nodes whose `dependencies` list another node's `node_id` wait for that node to complete.
+
+## Schema
+
+```python
+ExplicitCompositionRequest(
+    tenant_id="org-a",
+    console_session_id="sess_abc",
+    nodes=[
+        CompositionNode(
+            node_id="hipaa-scan",
+            runtime="pi-extension-governor",
+            operation="SANDBOX",
+            artifacts=[{"goal": "hipaa audit", "code_content": "..."}],
+            required_schema_version="1.0.0",
+            bounds={"max_depth": 1, "max_fanout": 4},
+            dependencies=[],
+        ),
+        CompositionNode(
+            node_id="pci-scan",
+            runtime="pi-extension-governor",
+            operation="SANDBOX",
+            artifacts=[{"goal": "pci dss audit", "code_content": "..."}],
+            required_schema_version="1.0.0",
+            bounds={"max_depth": 1, "max_fanout": 4},
+            dependencies=[],
+        ),
+        CompositionNode(
+            node_id="risk-summary",
+            runtime="pi-extension-governor",
+            operation="SANDBOX",
+            artifacts=[{"goal": "risk score summary"}],
+            required_schema_version="1.0.0",
+            bounds={"max_depth": 1, "max_fanout": 1},
+            dependencies=["hipaa-scan", "pci-scan"],  # waits for both
+        ),
+    ],
+    edges=[
+        {"from": "hipaa-scan", "to": "risk-summary"},
+        {"from": "pci-scan",   "to": "risk-summary"},
+    ],
+    simulation_only=False,
+    approved_by_user=True,
+)
+```
+
+## Execution flow
+
+<Mermaid chart={`
+graph LR
+    subgraph Parallel ["Parallel (no dependencies)"]
+        H[hipaa-scan]
+        P[pci-scan]
+    end
+    subgraph Sequential ["Sequential (waits for both)"]
+        RS[risk-summary]
+    end
+    H --> RS
+    P --> RS
+    RS --> LED[(StateLedger)]
+
+    style Parallel fill:#dbeafe
+    style Sequential fill:#ede9fe
+    style LED fill:#d1fae5
+`} />
+
+## Simulation mode
+
+Set `simulation_only=True` to dry-run the DAG without writing to the ledger or executing agent logic. Useful for validating that all node references resolve before submitting.
+
+```bash
+curl -X POST http://localhost:8080/compositions/simulate \
+  -H "X-Tenant-ID: org-a" \
+  -H "Authorization: Bearer $JWT" \
+  -d '{"nodes":[...],"edges":[...],"simulation_only":true}'
+# → {"can_execute": true, "warnings": []}
+```
+
+## Ledger entry
+
+After a successful submit, one ledger entry is created per node. Each entry contains:
+
+- `tenant_id` — authenticated tenant
+- `node_id` — which node produced this output
+- `input_hash` — SHA-256 of the serialised input
+- `output_hash` — SHA-256 of the serialised output
+- `status` — `PASSED | WARN_* | REJECTED_*`
+- `timestamp` — UTC ISO-8601
+- `prev_hash` — hash of the previous entry (hash chain)
+
+<Callout type="warn">
+`CompositionNode.runtime` is a closed `Literal`. Only these values are valid: `pi-extension-governor`, `pi-semantic-recon`, `pi-semantic-validator`, `pi-semantic-diff`, `pi-blast-radius`, `pi-interoperability-layer`, `pi-catalog-integration`.
+</Callout>
+
+## Replay
+
+```bash
+curl "http://localhost:8080/replay/get?ledger_id=ledger_ecr_abc123" \
+  -H "X-Tenant-ID: org-a" \
+  -H "Authorization: Bearer $JWT"
+```
+
+```json
+{
+  "ledger_id": "ledger_ecr_abc123",
+  "total_events": 3,
+  "integrity_check": true,
+  "events": [
+    {"node_id": "hipaa-scan", "status": "PASSED", "risk_score": 5},
+    {"node_id": "pci-scan", "status": "WARN_CHD_RISK", "risk_score": 45},
+    {"node_id": "risk-summary", "status": "WARN_CHD_RISK", "risk_score": 45}
+  ]
+}
+```

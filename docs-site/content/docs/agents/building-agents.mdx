@@ -1,0 +1,226 @@
+---
+title: Building Agents
+description: Step-by-step guide to building a new PI micro-agent that follows the platform pattern — typed I/O, strict-mode support, and router registration.
+---
+
+import { Steps, Step } from 'fumadocs-ui/components/steps';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Mermaid } from '@/components/mermaid';
+
+# Building Agents
+
+Every PI micro-agent follows the same pattern. Here's the full lifecycle:
+
+<Mermaid chart={`
+graph LR
+    INPUT[Pydantic Input] --> STRICT{resolve_strict_mode}
+    STRICT --> ANALYSE[analyse code_content]
+    ANALYSE --> FINDINGS[findings list]
+    FINDINGS --> SCORE[compute risk_score]
+    SCORE --> STATUS{status}
+
+    STATUS -->|0 findings| PASSED[PASSED]
+    STATUS -->|findings, not strict| WARN[WARN_X]
+    STATUS -->|findings, strict| REJECT[REJECTED_X]
+
+    PASSED --> OUTPUT[Pydantic Output]
+    WARN --> OUTPUT
+    REJECT --> OUTPUT
+    OUTPUT --> LED[(StateLedger)]
+
+    style STRICT fill:#d97706,color:#fff
+    style PASSED fill:#059669,color:#fff
+    style WARN fill:#d97706,color:#fff
+    style REJECT fill:#dc2626,color:#fff
+`} />
+
+<Steps>
+
+<Step>
+
+## Create the agent file
+
+Create `src/pi_micro_agents/pi_my_domain_auditor.py`:
+
+```python
+from __future__ import annotations
+
+import re
+from typing import Literal
+
+from pydantic import BaseModel
+
+from pi_micro_agents.pi_strict_mode import resolve_strict_mode
+
+
+class MyDomainInput(BaseModel):
+    code_content: str
+    file_path: str = ""
+    context: str = ""
+
+
+class MyDomainOutput(BaseModel):
+    is_secure: bool
+    findings: list[str]
+    risk_score: int
+    status: Literal["PASSED", "WARN_MY_RISK", "REJECTED_MY_VIOLATION"]
+
+
+# Compile patterns once at module level
+_DANGEROUS_PATTERN = re.compile(r"\beval\s*\(", re.IGNORECASE)
+_HARDCODED_SECRET  = re.compile(r'(?:api_key|secret)\s*=\s*["\'][^"\']{8,}["\']', re.IGNORECASE)
+
+
+class PiMyDomainAuditor:
+    agent_name = "PiMyDomainAuditor"
+
+    def run(self, input_data: MyDomainInput) -> MyDomainOutput:
+        strict = resolve_strict_mode("PI_MY_DOMAIN_STRICT_MODE")
+        findings: list[str] = []
+
+        if _DANGEROUS_PATTERN.search(input_data.code_content):
+            findings.append("Dynamic eval() detected")
+
+        if _HARDCODED_SECRET.search(input_data.code_content):
+            findings.append("Hardcoded secret or API key detected")
+
+        risk_score = min(len(findings) * 35, 100)
+
+        if not findings:
+            return MyDomainOutput(
+                is_secure=True,
+                findings=[],
+                risk_score=0,
+                status="PASSED",
+            )
+
+        if strict:
+            return MyDomainOutput(
+                is_secure=False,
+                findings=findings,
+                risk_score=risk_score,
+                status="REJECTED_MY_VIOLATION",
+            )
+
+        return MyDomainOutput(
+            is_secure=False,
+            findings=findings,
+            risk_score=risk_score,
+            status="WARN_MY_RISK",
+        )
+```
+
+</Step>
+
+<Step>
+
+## Write tests first (TDD)
+
+Create `tests/test_my_domain_auditor.py`:
+
+```python
+import pytest
+from pi_micro_agents.pi_my_domain_auditor import (
+    MyDomainInput,
+    MyDomainOutput,
+    PiMyDomainAuditor,
+)
+
+
+@pytest.fixture()
+def agent():
+    return PiMyDomainAuditor()
+
+
+def test_clean_code_passes(agent):
+    result = agent.run(MyDomainInput(code_content="x = 1 + 1"))
+    assert result.status == "PASSED"
+    assert result.is_secure is True
+    assert result.risk_score == 0
+
+
+def test_eval_flagged(agent):
+    result = agent.run(MyDomainInput(code_content="result = eval(user_input)"))
+    assert "eval" in result.findings[0].lower()
+    assert result.risk_score > 0
+
+
+def test_hardcoded_secret_flagged(agent):
+    result = agent.run(MyDomainInput(code_content='api_key = "sk-super-secret-abc"'))
+    assert any("secret" in f.lower() or "api key" in f.lower() for f in result.findings)
+
+
+def test_strict_mode_rejects(agent, monkeypatch):
+    monkeypatch.setenv("PI_MY_DOMAIN_STRICT_MODE", "true")
+    result = agent.run(MyDomainInput(code_content="result = eval(user_input)"))
+    assert result.status == "REJECTED_MY_VIOLATION"
+
+
+def test_non_strict_warns(agent, monkeypatch):
+    monkeypatch.setenv("PI_MY_DOMAIN_STRICT_MODE", "false")
+    result = agent.run(MyDomainInput(code_content="result = eval(user_input)"))
+    assert result.status == "WARN_MY_RISK"
+```
+
+Run: `PYTHONPATH=src pytest tests/test_my_domain_auditor.py -v`
+
+</Step>
+
+<Step>
+
+## Register in AgentRouter
+
+Open `src/pi_micro_agents/orchestrator/router.py` and add:
+
+```python
+from pi_micro_agents.pi_my_domain_auditor import MyDomainInput, PiMyDomainAuditor
+
+AgentRouter.register(
+    agent_name="PiMyDomainAuditor",
+    keywords=["my domain audit", "eval detection", "hardcoded secret scan"],
+    agent_class=PiMyDomainAuditor,
+    input_factory=lambda artifacts: MyDomainInput(
+        code_content=artifacts[0].get("code_content", "") if artifacts else "",
+        file_path=artifacts[0].get("file_path", "") if artifacts else "",
+    ),
+)
+```
+
+<Callout type="warn">
+**Keyword collision** — keywords are matched with `\b` word-boundary regex, and the first matching route wins. Use multi-word, domain-specific phrases (e.g. `"my domain audit"` not `"security audit"`) to avoid colliding with earlier registrations like `PiGitSecScanner` which holds `"security audit"`.
+</Callout>
+
+</Step>
+
+<Step>
+
+## Add a router smoke test
+
+```python
+def test_my_domain_agent_registered():
+    from pi_micro_agents.orchestrator.router import AgentRouter
+    caps = [c.agent_name for c in AgentRouter.list_capabilities()]
+    assert "PiMyDomainAuditor" in caps
+
+
+def test_my_domain_keyword_resolves():
+    from pi_micro_agents.orchestrator.router import AgentRouter
+    match = AgentRouter.resolve("my domain audit")
+    assert match is not None
+    assert match.agent_name == "PiMyDomainAuditor"
+```
+
+</Step>
+
+</Steps>
+
+## Checklist
+
+- [ ] `from __future__ import annotations` at top
+- [ ] `BaseModel` for both input and output
+- [ ] `resolve_strict_mode("PI_MY_DOMAIN_STRICT_MODE")` called at the start of `run()`
+- [ ] `PASSED / WARN_* / REJECTED_*` status values used correctly
+- [ ] All regex patterns compiled at module level (not inside `run()`)
+- [ ] At least 5 unit tests covering: clean pass, each finding type, strict=True, strict=False
+- [ ] `AgentRouter.register()` added with specific multi-word keywords
+- [ ] Router smoke test confirms registration and keyword resolution

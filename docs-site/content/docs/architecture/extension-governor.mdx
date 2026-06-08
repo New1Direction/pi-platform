@@ -1,0 +1,80 @@
+---
+title: Extension Governor (WASM Sandbox)
+description: How pi-extension-governor uses Wasmer to run every micro-agent in a capability-gated, gas-metered, fail-closed WASM sandbox.
+---
+
+import { Mermaid } from '@/components/mermaid';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+# Extension Governor (WASM Sandbox)
+
+`pi-extension-governor` is the WASM runtime that backs every micro-agent execution. It uses **Wasmer 7.1** and enforces:
+
+- **Capability deny-by-default** — network, filesystem, env, and random access are off unless explicitly granted.
+- **Gas metering** — each execution has a compute budget; runaway agents are halted.
+- **Fail-closed** — if the sandbox panics or runs out of gas, the agent returns `REJECTED_SANDBOX_FAULT`, never a partial result.
+- **Determinism** — `Date.now()`, `Math.random()`, and wallclock time are stubbed out.
+
+## Capability model
+
+<Mermaid chart={`
+graph TD
+    AGENT[Micro-Agent WASM module] -->|requests| CAP{Capability \\n Checker}
+
+    CAP -->|granted| NET[Network I/O]
+    CAP -->|granted| FS[Filesystem]
+    CAP -->|granted| ENV[Env vars]
+    CAP -->|DENIED ❌| PRIV[Privileged syscalls]
+    CAP -->|DENIED ❌| SPAWN[Process spawn]
+
+    CAP --> RECEIPT[Capability Receipt]
+    RECEIPT --> LED[(StateLedger)]
+
+    style CAP fill:#d97706,color:#fff
+    style PRIV fill:#dc2626,color:#fff
+    style SPAWN fill:#dc2626,color:#fff
+    style RECEIPT fill:#059669,color:#fff
+`} />
+
+The capability receipt is written to the ledger alongside the agent output. This means every audit entry includes **exactly which resources the agent accessed**.
+
+## CompositionNode runtime field
+
+Every node that uses a micro-agent must set `runtime="pi-extension-governor"`:
+
+```python
+CompositionNode(
+    node_id="my-scan",
+    runtime="pi-extension-governor",   # ← required
+    operation="SANDBOX",
+    artifacts=[{"goal": "hipaa audit", "code_content": "..."}],
+    ...
+)
+```
+
+<Callout type="warn">
+`runtime` is a closed `Literal` validated at schema-parse time. Submitting an unknown runtime value returns HTTP 422.
+</Callout>
+
+## Spike proof-of-concept
+
+The Wasmer sandbox was validated in a standalone spike at `~/pi-wasm-spike` before integration. Key findings:
+
+- Capability deny-by-default confirmed with Wasmer's `caps` API
+- Gas metering halts computation within < 1 ms of budget exhaustion
+- Receipt format designed to be ledger-compatible from day one
+- Determinism: `Date.now()` / `Math.random()` stub confirmed non-callable from within WASM modules
+
+## Fail-closed guarantee
+
+If the WASM module panics for any reason — stack overflow, out-of-gas, import resolution failure — the governor catches the trap and returns:
+
+```python
+Output(
+    status="REJECTED_SANDBOX_FAULT",
+    is_secure=False,
+    risk_score=100,
+)
+```
+
+The ledger entry is still written. The pipeline does not silently succeed.

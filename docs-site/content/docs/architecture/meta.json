@@ -1,0 +1,9 @@
+{
+  "title": "Architecture",
+  "pages": [
+    "index",
+    "orchestration",
+    "ledger",
+    "extension-governor"
+  ]
+}

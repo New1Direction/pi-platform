@@ -112,6 +112,27 @@ them at compile time.
 
 ---
 
+## Documentation Site
+
+Full interactive docs live in [`docs-site/`](docs-site/) — built with [Fumadocs](https://fumadocs.dev) (Next.js 15 + MDX):
+
+```bash
+cd docs-site
+npm install
+npm run dev
+# → http://localhost:3001
+```
+
+| Section | What's covered |
+|---------|---------------|
+| [Getting Started](docs-site/content/docs/getting-started.mdx) | Install, smoke suite, first composition |
+| [Architecture](docs-site/content/docs/architecture/) | System layers, request sequence, StateLedger, WASM sandbox |
+| [Agent Catalog](docs-site/content/docs/agents/) | 248 agents by domain, building your own, AgentRouter |
+| [API Reference](docs-site/content/docs/api/) | Sessions, compositions, replay, capabilities, audit |
+| [Roadmap](docs-site/content/docs/roadmap.mdx) | Tier 2 agents, Rust GA, Docker hardening, marketplace |
+
+---
+
 ## Quick Start
 
 ### Prerequisites
