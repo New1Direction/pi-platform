@@ -567,7 +567,14 @@ class CoreAdapter:
         anomalies: List[str] = []
         all_success = True
         for node in request.nodes:
-            goal = f"{node.operation} on {node.runtime} for {node.node_id}"
+            artifact = node.artifacts[0] if node.artifacts else {}
+            if not isinstance(artifact, dict):
+                artifact = {}
+            # Route on the artifact's goal (the keyword the Builder/Compose UI
+            # set) so the chosen micro-agent actually runs. Without this the
+            # orchestrator routes on a synthetic descriptor and always falls back
+            # to PiMasterGeneralistFallback.
+            goal = artifact.get("goal") or f"{node.operation} on {node.runtime} for {node.node_id}"
             ctx: Dict[str, Any] = {
                 "node_id": node.node_id,
                 "runtime": node.runtime,
@@ -576,6 +583,12 @@ class CoreAdapter:
                 "tenant_id": request.tenant_id,
                 "schema_version": node.required_schema_version,
             }
+            # Lift artifact fields (content, filename, solidity_code, …) to the
+            # top level so each agent's input_factory (ctx.get("content"), etc.)
+            # receives them. Reserved keys above are not overwritten.
+            for _k, _v in artifact.items():
+                if _k != "goal":
+                    ctx.setdefault(_k, _v)
             try:
                 envelope = OrchestratorInput(goal=goal, context=ctx)
                 result = self._orchestrator.execute_goal(envelope)
