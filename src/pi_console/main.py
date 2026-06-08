@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from pi_agent_chain.tenant_context import reset_tenant, set_tenant, tenant_from_claims
 from pi_console.auth_guard import require_reader
 from pi_console.routers import (
+    agent_forge_router,
     audit_router,
     capabilities_router,
     composition_router,
@@ -232,6 +233,7 @@ def create_app() -> FastAPI:
         return response
 
     # Include routers
+    app.include_router(agent_forge_router.router, prefix="/api/v1/forge", tags=["AgentForge"])
     app.include_router(console_router.router, prefix="/api/v1/console", tags=["Console"])
     app.include_router(session_router.router, prefix="/api/v1/sessions", tags=["Sessions"])
     app.include_router(composition_router.router, prefix="/api/v1/compositions", tags=["Compositions"])
