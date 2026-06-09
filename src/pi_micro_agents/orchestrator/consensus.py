@@ -13,11 +13,12 @@ import copy
 #  Python agent, so this can never change results or break execution.
 # ──────────────────────────────────────────────────────────────────────────
 import functools as _functools
+import inspect
 import json
 import os
 import threading
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # Import outputs for Pydantic reconstruction in consensus testing
 from pi_micro_agents.pi_access_control_verifier import AccessControlOutput
@@ -485,6 +486,74 @@ def get_verdict(agent_name: str, d: Dict[str, Any]) -> Any:
     return None
 
 
+# Verb hints used only to disambiguate the rare agent that exposes a helper method
+# alongside its single entry point (e.g. an ``audit_*`` next to a ``calculate_*``).
+_ENTRY_VERBS = (
+    "audit",
+    "scan",
+    "check",
+    "detect",
+    "analyze",
+    "verify",
+    "validate",
+    "inspect",
+    "enforce",
+    "generate",
+    "evaluate",
+    "assess",
+    "review",
+    "guard",
+    "hunt",
+    "heal",
+    "dispatch",
+    "monitor",
+    "trace",
+    "lint",
+    "optimize",
+    "recommend",
+    "remediate",
+)
+_ENTRY_METHOD_CACHE: Dict[type, Optional[str]] = {}
+
+
+def resolve_entry_method(agent_inst: Any) -> Optional[str]:
+    """Find an agent's single primary entry method, for GENERIC dispatch.
+
+    The explicit ``if/elif`` in ``run_single_perturbed`` covers the original core
+    agents, each with a hand-written branch. The 150+ later-registered agents
+    follow the same contract — one public, class-defined method taking the input
+    envelope — so we resolve and call it instead of raising "Unknown agent". That
+    is how a *registered* agent becomes *executable* without a bespoke branch.
+    Returns None when the entry is ambiguous (>1 candidate, no clear verb) or
+    absent, so such cases still fail loudly rather than guess. Cached per class.
+    """
+    cls = type(agent_inst)
+    if cls in _ENTRY_METHOD_CACHE:
+        return _ENTRY_METHOD_CACHE[cls]
+    cands: List[str] = []
+    for name in dir(cls):
+        if name.startswith("_"):
+            continue
+        fn = inspect.getattr_static(cls, name, None)
+        if not inspect.isfunction(fn):  # user-defined methods only (skip inherited builtins)
+            continue
+        try:
+            params = [p for p in inspect.signature(fn).parameters.values() if p.name != "self"]
+        except (ValueError, TypeError):
+            params = [None]  # unintrospectable — assume it takes the input
+        if params:
+            cands.append(name)
+    if len(cands) == 1:
+        chosen: Optional[str] = cands[0]
+    elif len(cands) > 1:
+        verbed = [c for c in cands if any(v in c.lower() for v in _ENTRY_VERBS)]
+        chosen = verbed[0] if len(verbed) == 1 else None
+    else:
+        chosen = None
+    _ENTRY_METHOD_CACHE[cls] = chosen
+    return chosen
+
+
 def run_with_consensus(
     orchestrator: Any, agent_class: Any, input_envelope: Any, goal: str, context: Dict[str, Any], agent_name: str
 ) -> Tuple[bool, float, str, Dict[str, Any], List[str]]:
@@ -887,6 +956,14 @@ def run_with_consensus(
                 return agent_inst.audit_runtime(perturbed)
             elif agent_name == "PiOpenRedirectDetector":
                 return agent_inst.scan(perturbed)
+            # Generic dispatch: a registered agent with no explicit branch above
+            # (the 150+ expansion agents) still follows the standard contract — one
+            # public entry method taking the input envelope. Resolve + call it so it
+            # actually runs instead of raising "Unknown agent". get_verdict already
+            # has a generic fallback for the result, so consensus completes normally.
+            _entry = resolve_entry_method(agent_inst)
+            if _entry is not None:
+                return getattr(agent_inst, _entry)(perturbed)
             raise ValueError(f"Unknown agent: {agent_name}")
 
         from pathlib import Path
