@@ -130,7 +130,7 @@ mkdocs serve            # → http://localhost:8000
 | Section | What's covered |
 |---------|---------------|
 | [Getting Started](docs/getting-started.md) | Install, run backend + console, smoke suite |
-| [Desktop Console](docs/console/index.md) | Builder, Agents, Ledger, Agent Forge |
+| [Desktop Console](docs/console/index.md) | Agentdex, Party, Battle Log, Forge, Governance Compass |
 | [Architecture](docs/architecture/orchestrator-routing.md) | Routing, trust tiers, ledger & replay |
 | [API Reference](docs/api-reference.md) | Live endpoint reference (methods/paths/schemas) |
 

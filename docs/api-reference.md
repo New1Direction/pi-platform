@@ -75,6 +75,13 @@ Fetch the hash-chained events for a ledger id. Body: `{ "ledger_id" }`.
 | `GET` | `/api/v1/ledger/trace/{trace_id}` | Full trace incl. `raw_output` / `parsed_output`. |
 | `GET` | `/api/v1/ledger/summary` | Aggregate stats: totals, success rate, avg risk, anomalies. |
 
+Each trace item carries the parsed orchestrator output (`routed_agent`, `risk_score`,
+`success`, `anomalies_detected`, `output_summary`) plus a **`terrain`** tag —
+`{class, by, at}` — the content-class a classifier *inferred* for the input. `terrain`
+is **interpretation, not ground truth** (`by` = classifier id, e.g. `content-signals@1`;
+legacy traces read `by: unknown@pre-provenance`). See the [interpretation
+layer](console/compass.md#interpretation-vs-ground-truth).
+
 Ledger endpoints are gated fail-closed (a valid reader principal is required). See
 the [shared-store note](architecture/ledger-replay.md).
 
@@ -85,6 +92,9 @@ the [shared-store note](architecture/ledger-replay.md).
 | `POST` | `/api/v1/forge/generate` | Generate agent code (header `x-anthropic-key`, BYOK). |
 | `POST` | `/api/v1/forge/audit` | Static audit (syntax + dangerous-pattern + structural). |
 | `POST` | `/api/v1/forge/save` | Re-audit then save to `pending/` as `UNVERIFIED` (`422` if audit fails). |
+| `GET` | `/api/v1/forge/pending` | List quarantined agents awaiting review. |
+| `POST` | `/api/v1/forge/test` | Run a pending agent against labelled samples in an isolated subprocess (audit-gated). |
+| `POST` | `/api/v1/forge/promote` | Atomic promote: file move + router/consensus edits + import-validation, with rollback. |
 
 See [Agent Forge](console/forge.md).
 

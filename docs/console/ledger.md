@@ -12,7 +12,10 @@ score, and anomalies.
   (green safe · amber elevated · red critical), with an average-risk line. Click a bar to
   open that trace.
 - **Trace table** — each row shows the routed agent's creature, risk chip, node, and
-  timestamp; click to expand the full hash-chained detail.
+  timestamp; click to expand the full hash-chained detail. A small **terrain glyph**
+  marks the content-class a classifier *inferred* for the scanned input — an
+  [interpretation, not a property of the input](compass.md#interpretation-vs-ground-truth)
+  (hover for the classifier that produced it).
 - **Compass mode** swaps the KPI strip for the [Governance Compass](compass.md) — a fleet
   *heading* across every run — and adds the **Migratory instincts** readout: the agent
   Types history has taught the field to watch hardest.
