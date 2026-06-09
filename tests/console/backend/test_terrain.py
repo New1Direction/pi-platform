@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 
 from pi_console import main as console_main
 from pi_console.routers import ledger_router
-from pi_console.terrain import CLASSIFIER_ID, classify_terrain, stamp_terrain
+from pi_console.terrain import CLASSIFIER_ID, LEGACY_CLASSIFIER, classify_terrain, stamp_terrain
 
 
 # ── unit: classifier ────────────────────────────────────────────────────────
@@ -107,12 +107,15 @@ def test_router_surfaces_terrain_object(monkeypatch, tmp_path):
 
 
 def test_router_normalizes_legacy_string_terrain(monkeypatch, tmp_path):
-    # Pre-provenance traces stored a bare string; the read surface must coerce it.
+    # Pre-provenance traces stored a bare string; the read surface must coerce it
+    # WITHOUT laundering it as a known classifier — `by` must assert ignorance, not
+    # backfill content-signals@1 (which would reintroduce the very bug, retroactively).
     db = str(tmp_path / "ledger.db")
     _seed(db, json.dumps({"routed_agent": "X", "terrain": "web"}))
     r = _client(monkeypatch, db).get("/api/v1/ledger/traces?limit=10", headers={"X-Tenant-ID": "default"})
     t = r.json()["traces"][0]
-    assert t["terrain"] == {"class": "web", "by": "legacy", "at": "submit"}
+    assert t["terrain"] == {"class": "web", "by": LEGACY_CLASSIFIER, "at": "submit"}
+    assert t["terrain"]["by"] != CLASSIFIER_ID  # never masquerade as v1
 
 
 # ── write path: submit stamps terrain on the written trace ──────────────────

@@ -79,6 +79,13 @@ NONE = "none"
 # rather than silently overwriting history.
 CLASSIFIER_ID = "content-signals@1"
 
+# Provenance for terrain recovered from pre-provenance traces (PR #30): we have
+# the class but NOT a record of which classifier produced it. We assert ignorance
+# rather than backfilling a version we can't vouch for — labeling a legacy trace
+# as `content-signals@1` would relaunder an interpretation as a known fact, the
+# exact bug provenance exists to prevent.
+LEGACY_CLASSIFIER = "unknown@pre-provenance"
+
 
 def classify_terrain(content: str) -> str:
     """Return the dominant terrain key for ``content`` (or ``"none"``).
