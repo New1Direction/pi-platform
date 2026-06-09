@@ -1,11 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X, FileUp } from 'lucide-react';
+import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X, FileUp, Compass } from 'lucide-react';
 import { listAllCapabilities, simulateComposition, submitComposition, getTenantId } from '../lib/api';
 import { humanizeAgentName } from '../lib/humanize';
-import { agentTypeOf } from '../lib/agentdex';
+import { agentTypeOf, TYPES } from '../lib/agentdex';
+import { planRoute, contentHeading } from '../lib/orientation';
 import { Creature } from '../components/Creature';
 import type { MarketplaceCapability, SimulationReport } from '../types';
 import { Tooltip } from '../components/Tooltip';
+
+const TYPE_LABEL: Record<string, { label: string; color: string; emoji: string }> = Object.fromEntries(
+  TYPES.map(t => [t.key, { label: t.label, color: t.color, emoji: t.emoji }]),
+);
 
 // Stable per-agent seed for the creature sprite — same value the Agentdex uses,
 // so a given agent looks identical everywhere.
@@ -132,7 +137,7 @@ function AgentCard({ cap, onAdd }: { cap: MarketplaceCapability; onAdd: (c: Mark
 
 // ─── BuilderView ──────────────────────────────────────────────────────────────
 
-export function BuilderView({ sessionId }: { sessionId: string | null }) {
+export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string | null; govMode?: 'gate' | 'compass' }) {
   const [agents, setAgents] = useState<MarketplaceCapability[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -189,6 +194,13 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
     setPipeline(prev =>
       prev.filter(n => n.id !== id).map((n, i) => ({ ...n, id: `n${i + 1}` }))
     );
+
+  // Phase 2 — reorder the party to the gradient-emergent route.
+  const applyRoute = (ordered: PipelineNode[]) => {
+    setPipeline(ordered.map((n, i) => ({ ...n, id: `n${i + 1}` })));
+    setReport(null);
+    setError(null);
+  };
 
   const updateNode = (id: string, patch: Partial<PipelineNode>) =>
     setPipeline(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
@@ -338,6 +350,71 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
         </div>
 
         <div style={{ flex: 1, overflow: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+          {/* ── Phase 2: Navigate — the route emerges (compass mode) ── */}
+          {govMode === 'compass' && pipeline.length >= 2 && (() => {
+            const routeContent = pipeline.map(n => n.content).join('\n').trim();
+            const head = contentHeading(routeContent);
+            const planned = planRoute(pipeline, routeContent);
+            const sameOrder = planned.every((p, i) => p.agent.id === pipeline[i].id);
+            return (
+              <div style={{ border: '2px solid #0088aa', background: 'var(--surface)', boxShadow: '2px 2px 0 var(--chrome-dd)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--chrome-dd)', background: 'var(--surface-2)' }}>
+                  <Compass size={14} style={{ color: '#0088aa' }} />
+                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>Navigate — let the route emerge</span>
+                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>compass mode</span>
+                </div>
+                <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {head.length === 0 ? (
+                    <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      Drop a file or paste content into an agent, and I'll order the party by where the file's risk points — strongest-risk first.
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)' }}>File points toward:</span>
+                        {head.slice(0, 4).map(h => { const m = TYPE_LABEL[h.key]; return (
+                          <span key={h.key} style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: m?.color }}>{m?.emoji} {m?.label} {(h.score * 100).toFixed(0)}%</span>
+                        ); })}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {planned.map((p, i) => { const t = TYPE_LABEL[p.typeKey]; return (
+                          <div key={p.agent.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#0088aa', width: 14, flexShrink: 0 }}>{i + 1}</span>
+                            <Creature seed={p.agent.seed} color={t?.color ?? '#888'} size={18} />
+                            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)', flexShrink: 0 }}>{p.agent.name}</span>
+                            <div style={{ width: 90, height: 5, background: 'var(--paper-3)', flexShrink: 0 }}>
+                              <div style={{ width: `${p.affinity * 100}%`, height: '100%', background: t?.color ?? '#888' }} />
+                            </div>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {p.affinity > 0 ? `matched: ${p.matched}` : 'no signal · runs last'}
+                            </span>
+                          </div>
+                        ); })}
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                          The order emerged from the file, not a fixed sequence — then runs through the same gate.
+                        </span>
+                        <button
+                          onClick={() => applyRoute(planned.map(p => p.agent))}
+                          disabled={sameOrder}
+                          style={{
+                            marginLeft: 'auto', flexShrink: 0, padding: '6px 12px',
+                            background: sameOrder ? 'var(--surface-2)' : 'linear-gradient(to right, #006677, #0088aa)',
+                            color: sameOrder ? 'var(--text-muted)' : '#fff', border: 'var(--bw)',
+                            cursor: sameOrder ? 'default' : 'pointer', fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
+                          }}
+                        >
+                          {sameOrder ? '✓ already on route' : '↳ Apply this order'}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Empty state — starter parties */}
           {pipeline.length === 0 && (

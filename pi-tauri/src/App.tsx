@@ -311,7 +311,7 @@ export default function App() {
           <div className="win-content">
             {tab === 'ledger'   && <LedgerView govMode={govMode} />}
             {tab === 'agents'   && <RegistryView />}
-            {tab === 'builder'  && <BuilderView sessionId={sessionId} />}
+            {tab === 'builder'  && <BuilderView sessionId={sessionId} govMode={govMode} />}
             {tab === 'compose' && composeMode === 'builder' && <ComposeView sessionId={sessionId} />}
             {tab === 'compose' && composeMode === 'copilot' && <ChatView sessionId={sessionId} />}
             {tab === 'quota'    && <QuotaView />}
