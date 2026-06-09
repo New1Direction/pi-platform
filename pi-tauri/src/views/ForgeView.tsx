@@ -9,6 +9,8 @@ import {
   getForgeApiKey,
   setForgeApiKey,
 } from '../lib/api';
+import { agentTypeOf } from '../lib/agentdex';
+import { Creature } from '../components/Creature';
 import type { ForgeGenerateResponse, ForgeAuditResponse, ForgePendingAgent, ForgePromoteResponse } from '../types';
 
 type Stage = 'idle' | 'generating' | 'generated' | 'saving' | 'saved';
@@ -335,14 +337,19 @@ export function ForgeView() {
 
                 {/* item card */}
                 <div className="forge-glow" style={{ border: '2px solid var(--ember)', background: 'var(--forge-bg2)', padding: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                    <span style={{ fontSize: 22 }}>⬢</span>
-                    <div style={{ flex: 1 }}>
+                  {(() => { const t = agentTypeOf(generated.agent_class_name, keywords); return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                    <div style={{ width: 48, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#120d0a', border: `1px solid ${t.color}` }}>
+                      <Creature seed={generated.agent_class_name} color={t.color} size={40} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <div className="forge-pixel" style={{ fontSize: 12, color: '#fff' }}>{generated.agent_class_name}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', marginTop: 4 }}>forged by {generated.model_used}</div>
+                      <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: t.color, marginTop: 5 }}>{t.emoji} {t.label}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', marginTop: 3 }}>forged by {generated.model_used}</div>
                     </div>
                     <span className="forge-pixel" style={{ fontSize: 8, color: '#1c1510', background: '#ffb400', padding: '4px 7px' }}>◆ UNVERIFIED</span>
                   </div>
+                  ); })()}
 
                   {/* level track */}
                   <div style={{ padding: '6px 4px 2px' }}>
@@ -533,7 +540,7 @@ function RosterPanel({ onCount }: { onCount: (n: number) => void }) {
         return (
           <div key={a.filename} style={{ border: '2px solid var(--forge-line)', background: 'var(--forge-bg2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
-              <span style={{ fontSize: 18 }}>⬢</span>
+              <Creature seed={a.agent_name} color={agentTypeOf(a.agent_name, a.keywords).color} size={30} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="forge-pixel" style={{ fontSize: 9, color: '#fff' }}>{a.agent_name}</div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

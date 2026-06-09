@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { RefreshCw, Search, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Tooltip } from '../components/Tooltip';
 import { getLedgerTraces, getLedgerSummary, getLedgerTraceDetail } from '../lib/api';
+import { agentTypeOf } from '../lib/agentdex';
+import { humanizeAgentName } from '../lib/humanize';
+import { Creature } from '../components/Creature';
 import type { TraceListItem, LedgerSummaryResponse, TraceDetailResponse } from '../types';
 import { format } from 'date-fns';
 
@@ -193,7 +196,14 @@ export function LedgerView() {
                     {(t.anomalies_detected?.length ?? 0) > 0 && <AlertTriangle size={11} style={{ color: 'var(--yellow)', marginLeft: 4 }} />}
                   </td>
                   <td className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>{t.trace_id?.slice(0, 14)}…</td>
-                  <td style={{ fontSize: 11 }}>{t.routed_agent ?? '—'}</td>
+                  <td style={{ fontSize: 11 }}>
+                    {t.routed_agent ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <Creature seed={t.routed_agent} color={agentTypeOf(t.routed_agent, []).color} size={18} />
+                        {humanizeAgentName(t.routed_agent)}
+                      </span>
+                    ) : '—'}
+                  </td>
                   <td>{riskChip(t.risk_score)}</td>
                   <td style={{ fontSize: 11 }}>{t.node_name}</td>
                   <td className="mono" style={{ fontSize: 10, color: 'var(--text-muted)' }}>

@@ -2,8 +2,14 @@ import { useState, useEffect } from 'react';
 import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X, FileUp } from 'lucide-react';
 import { listAllCapabilities, simulateComposition, submitComposition, getTenantId } from '../lib/api';
 import { humanizeAgentName } from '../lib/humanize';
+import { agentTypeOf } from '../lib/agentdex';
+import { Creature } from '../components/Creature';
 import type { MarketplaceCapability, SimulationReport } from '../types';
 import { Tooltip } from '../components/Tooltip';
+
+// Stable per-agent seed for the creature sprite — same value the Agentdex uses,
+// so a given agent looks identical everywhere.
+const seedOf = (c: MarketplaceCapability) => c.agent_name || c.capability_id.replace(/^cap_/, '');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,6 +21,7 @@ type PipelineNode = {
   goal: string;
   content: string;   // the file/code/text the agent scans
   filename: string;  // optional filename hint (some agents key off extension)
+  seed: string;      // stable creature seed (= the agent's raw name)
 };
 
 type Phase = 'configure' | 'simulating' | 'review' | 'running' | 'done';
@@ -24,13 +31,6 @@ type Phase = 'configure' | 'simulating' | 'review' | 'running' | 'done';
 function agentName(cap: MarketplaceCapability): string {
   return humanizeAgentName(cap.agent_name || cap.capability_id.replace(/^cap_/, ''));
 }
-
-const TIER_COLOR: Record<string, string> = {
-  GOVERNED: '#1a6633',
-  AUDITED: '#005c88',
-  VERIFIED: '#884400',
-  UNVERIFIED: '#666',
-};
 
 const RISK_COLOR: Record<string, string> = {
   NONE: '#006622', LOW: '#006622', MEDIUM: '#7a4800', HIGH: '#cc0022', CRITICAL: '#cc0022',
@@ -66,47 +66,37 @@ function buildRequest(pipeline: PipelineNode[], sessionId: string) {
 
 function AgentCard({ cap, onAdd }: { cap: MarketplaceCapability; onAdd: (c: MarketplaceCapability) => void }) {
   const name = agentName(cap);
-  const tags = cap.compatibility_tags.slice(0, 3);
-  const tipText = `${name}\n\nKeywords:\n${cap.compatibility_tags.map(t => `· ${t}`).join('\n')}\n\nTrust tier: ${cap.trust_tier}\n\nClick to add to pipeline.`;
+  const seed = seedOf(cap);
+  const type = agentTypeOf(seed, cap.compatibility_tags);
+  const tipText = `${name}\n\n${type.emoji} ${type.label}\n\nScans for:\n${cap.compatibility_tags.map(t => `· ${t}`).join('\n')}\n\nClick to add to your party.`;
 
   return (
     <Tooltip tip={tipText} pos="right" wrapStyle={{ display: 'block' }}>
       <button
         onClick={() => onAdd(cap)}
         style={{
-          display: 'flex', flexDirection: 'column', gap: 4,
-          padding: '7px 10px', width: '100%', textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: 9,
+          padding: '6px 10px', width: '100%', textAlign: 'left',
           background: 'transparent', border: 'none',
-          borderBottom: '1px solid var(--chrome-dd)',
+          borderBottom: '1px solid var(--chrome-dd)', borderLeft: `3px solid ${type.color}`,
           cursor: 'pointer', transition: 'background 60ms',
         }}
         onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{
+        <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Creature seed={seed} color={type.color} size={26} />
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{
             fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {name}
-          </span>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-            background: TIER_COLOR[cap.trust_tier] ?? '#555', color: '#fff',
-            padding: '1px 4px', flexShrink: 0,
-          }}>
-            {cap.trust_tier}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-          {tags.map(t => (
-            <span key={t} style={{
-              fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)',
-              background: 'var(--surface-2)', padding: '1px 4px',
-            }}>
-              {t}
-            </span>
-          ))}
+          </div>
+          <div style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, color: type.color, marginTop: 1 }}>
+            {type.emoji} {type.label}
+          </div>
         </div>
       </button>
     </Tooltip>
@@ -158,6 +148,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
         goal: cap.compatibility_tags[0] ?? '',
         content: '',
         filename: '',
+        seed: seedOf(cap),
       }];
     });
     setPhase('configure');
@@ -231,7 +222,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Agent Registry
+            Pick Agents
           </span>
           <button
             onClick={loadAgents}
@@ -294,7 +285,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text)',
           background: 'var(--chrome)', lineHeight: 1.5,
         }}>
-          Click any agent to add it to the pipeline. Hover for keywords.
+          Tap an agent to add it to your party. Hover for what it scans.
         </div>
       </div>
 
@@ -308,11 +299,11 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Pipeline Canvas
+            Your Party
           </span>
           {pipeline.length > 0 && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text)' }}>
-              {pipeline.length} node{pipeline.length !== 1 ? 's' : ''} · all via pi-extension-governor · SANDBOX
+              {pipeline.length} agent{pipeline.length !== 1 ? 's' : ''} on the team · runs in sandbox
             </span>
           )}
         </div>
@@ -336,12 +327,14 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           )}
 
           {/* Pipeline nodes */}
-          {pipeline.map((node, i) => (
+          {pipeline.map((node, i) => {
+            const type = agentTypeOf(node.seed, node.tags);
+            return (
             <div key={node.id}>
               {/* Node card */}
               <div style={{
                 border: '1px solid var(--chrome-dd)',
-                borderTop: '3px solid #006677',
+                borderTop: `3px solid ${type.color}`,
                 background: 'var(--surface)',
                 boxShadow: '1px 1px 0 var(--chrome-dd)',
               }}>
@@ -352,12 +345,13 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                   background: 'var(--surface-2)', borderBottom: '1px solid var(--chrome-dd)',
                 }}>
                   <span style={{
-                    background: '#006677', color: '#fff',
+                    background: type.color, color: '#fff',
                     fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700,
                     padding: '1px 6px', flexShrink: 0,
                   }}>
-                    N{i + 1}
+                    {i + 1}
                   </span>
+                  <Creature seed={node.seed} color={type.color} size={22} />
                   <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
                     {node.name}
                   </span>
@@ -456,7 +450,8 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
 
           {/* Error */}
           {error && (
