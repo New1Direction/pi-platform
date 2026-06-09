@@ -122,3 +122,29 @@ The multi-objective belongs in the field; the attractor stays mono-objective.
     the axiom, because the feedback loop compounds. Until there's migration data worth
     bending North with, **North stays fixed** — the Compass learns, the Gate doesn't, and
     neither does North.
+
+## Interpretation vs ground truth
+
+The whole Compass — heading, route, instincts, terrain — is an **interpretation layer**.
+Keeping it cleanly separate from the **ground-truth layer** is what stops a useful lens
+from quietly becoming latent policy.
+
+| Layer | What's in it | Property |
+|-------|--------------|----------|
+| **Ground truth** | input, agent output, the hash-chained trace, the gate decision | immutable, recorded |
+| **Interpretation** | terrain, agent Type, risk framing, routing-ambiguity, the heading itself | mutable, fallible, classifier-assigned |
+
+Two rules keep the boundary sharp:
+
+1. **Interpretation may read ground truth; ground truth never reads interpretation.** The
+   gate decides from the trace, never from a heading or a terrain label.
+2. **Interpretation carries provenance.** A terrain tag is `{class, by, at}` — `by` names
+   the classifier (`content-signals@1`); pre-provenance traces honestly read
+   `by: unknown@pre-provenance` rather than masquerade as a known version. So a label can
+   never be mistaken for a fact, and divergence between classifiers stays measurable.
+
+Why it matters: terrain is *not* a property of the input — a different classifier could
+read the same bytes differently. The danger is a self-reinforcing loop (classifier →
+terrain → routing → reinforces classifier). Terrain is **logged but does not yet condition
+routing**, so that loop is still open — and any future terrain-conditioned routing must
+carry "per classifier vN" so it can't harden into truth.

@@ -20,7 +20,7 @@ runs along the bottom, including the **theme toggle** and the **Gate⇄Compass s
 
 | Surface | Was | Purpose |
 |---------|-----|---------|
-| **[Agentdex](agents.md)** | Registry | All 248 agents as collectible creatures — Type, stats, trust tier, capabilities. |
+| **[Agentdex](agents.md)** | Registry | All 248 agents as collectible creatures — Type, real ledger stats, trust tier, capabilities. |
 | **[Party](builder.md)** | Builder | Pick a team, give it a file, simulate, run. Keyword-dispatched, sandboxed. |
 | **[Battle Log](ledger.md)** | Ledger | Hash-chained audit of every run — traces, risk, anomalies, replay. |
 | **[Forge](forge.md)** | Agent Forge | AI-assisted agent generator behind a static-audit gate. |
@@ -31,10 +31,11 @@ runs along the bottom, including the **theme toggle** and the **Gate⇄Compass s
 
 Every agent is classified into a **Type** (Smart-Contract, Crypto/ZK, AI/LLM, Secrets,
 Web/API, Infra, Supply-Chain, Privacy, Code-Quality, Runtime) and rendered as a
-deterministic procedural **creature** with flavor stats (POW/CVR/SPD). The same agent
-looks identical everywhere — Agentdex, Party, Battle Log — because the sprite is seeded
-from its name. It's a recognizability layer, not a reskin: the Type colors and creatures
-are how you read a team at a glance.
+deterministic procedural **creature** seeded from its name, so the same agent looks
+identical everywhere — Agentdex, Party, Battle Log. It's a recognizability layer, not a
+reskin: the Type colors and creatures are how you read a team at a glance. The Agentdex
+**stats are real**, aggregated live from the ledger (runs, find rate, avg risk,
+reliability) — see [Agentdex](agents.md).
 
 ## Gate ⇄ Compass
 
