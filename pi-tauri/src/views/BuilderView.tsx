@@ -1,9 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X } from 'lucide-react';
+import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X, FileUp } from 'lucide-react';
 import { listAllCapabilities, simulateComposition, submitComposition, getTenantId } from '../lib/api';
 import { humanizeAgentName } from '../lib/humanize';
+import { agentTypeOf } from '../lib/agentdex';
+import { Creature } from '../components/Creature';
 import type { MarketplaceCapability, SimulationReport } from '../types';
 import { Tooltip } from '../components/Tooltip';
+
+// Stable per-agent seed for the creature sprite — same value the Agentdex uses,
+// so a given agent looks identical everywhere.
+const seedOf = (c: MarketplaceCapability) => c.agent_name || c.capability_id.replace(/^cap_/, '');
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -13,6 +19,9 @@ type PipelineNode = {
   name: string;
   tags: string[];
   goal: string;
+  content: string;   // the file/code/text the agent scans
+  filename: string;  // optional filename hint (some agents key off extension)
+  seed: string;      // stable creature seed (= the agent's raw name)
 };
 
 type Phase = 'configure' | 'simulating' | 'review' | 'running' | 'done';
@@ -22,13 +31,6 @@ type Phase = 'configure' | 'simulating' | 'review' | 'running' | 'done';
 function agentName(cap: MarketplaceCapability): string {
   return humanizeAgentName(cap.agent_name || cap.capability_id.replace(/^cap_/, ''));
 }
-
-const TIER_COLOR: Record<string, string> = {
-  GOVERNED: '#1a6633',
-  AUDITED: '#005c88',
-  VERIFIED: '#884400',
-  UNVERIFIED: '#666',
-};
 
 const RISK_COLOR: Record<string, string> = {
   NONE: '#006622', LOW: '#006622', MEDIUM: '#7a4800', HIGH: '#cc0022', CRITICAL: '#cc0022',
@@ -44,7 +46,7 @@ function buildRequest(pipeline: PipelineNode[], sessionId: string) {
       node_id: n.id,
       runtime: 'pi-extension-governor',
       operation: 'SANDBOX',
-      artifacts: [{ goal: n.goal }],
+      artifacts: [{ goal: n.goal, content: n.content, filename: n.filename }],
       required_schema_version: '1.0.0',
       bounds: { max_depth: 3, max_fanout: 4 },
       dependencies: i > 0 ? [pipeline[i - 1].id] : [],
@@ -60,51 +62,68 @@ function buildRequest(pipeline: PipelineNode[], sessionId: string) {
   };
 }
 
+function makeNode(cap: MarketplaceCapability, idx: number): PipelineNode {
+  return {
+    id: `n${idx + 1}`, capId: cap.capability_id, name: agentName(cap),
+    tags: cap.compatibility_tags, goal: cap.compatibility_tags[0] ?? '',
+    content: '', filename: '', seed: seedOf(cap),
+  };
+}
+
+// Ready-made "parties" — curated teams so a newcomer picks one instead of
+// facing 248 agents. `picks` are agent-name substrings, matched against the
+// live registry (missing ones are skipped, so this can't break).
+type Playbook = { key: string; name: string; emoji: string; color: string; desc: string; picks: string[] };
+const PLAYBOOKS: Playbook[] = [
+  { key: 'solidity', name: 'Solidity Audit', emoji: '🔮', color: '#a368ff', desc: 'Smart-contract security sweep',
+    picks: ['Reentrancy', 'AccessControl', 'Arithmetic', 'FlashLoan', 'DelegateCall'] },
+  { key: 'secrets', name: 'Secrets Sweep', emoji: '🔑', color: '#ffb400', desc: 'Hunt leaked keys & credentials',
+    picks: ['HardcodedSecret', 'GitSecretLeak', 'PromptLeak', 'SecretsManager'] },
+  { key: 'llm', name: 'LLM Safety', emoji: '🧠', color: '#ff6ec7', desc: 'Prompt-injection & output checks',
+    picks: ['PromptInjectionSentry', 'HallucinationDetector', 'OutputSanitizer', 'SystemPromptHijack'] },
+  { key: 'web', name: 'Web & API', emoji: '🌐', color: '#3aa0ff', desc: 'OWASP-style web/API scan',
+    picks: ['APIOWASPScanner', 'WebVulnScanner', 'PhishingShield', 'TxOriginSentry'] },
+  { key: 'supply', name: 'Supply Chain', emoji: '📦', color: '#ff8a3a', desc: 'Deps, SBOM & signing',
+    picks: ['GitSecScanner', 'DependencyVuln', 'SBOMValidator', 'SupplyChain', 'CodeSigning'] },
+  { key: 'infra', name: 'Container & Infra', emoji: '🐳', color: '#5fd38a', desc: 'Docker, K8s & IaC',
+    picks: ['DockerImageScanner', 'KubernetesSecurity', 'IaCScanner', 'FirewallRule', 'ContainerEscape'] },
+];
+
 // ─── AgentCard ────────────────────────────────────────────────────────────────
 
 function AgentCard({ cap, onAdd }: { cap: MarketplaceCapability; onAdd: (c: MarketplaceCapability) => void }) {
   const name = agentName(cap);
-  const tags = cap.compatibility_tags.slice(0, 3);
-  const tipText = `${name}\n\nKeywords:\n${cap.compatibility_tags.map(t => `· ${t}`).join('\n')}\n\nTrust tier: ${cap.trust_tier}\n\nClick to add to pipeline.`;
+  const seed = seedOf(cap);
+  const type = agentTypeOf(seed, cap.compatibility_tags);
+  const tipText = `${name}\n\n${type.emoji} ${type.label}\n\nScans for:\n${cap.compatibility_tags.map(t => `· ${t}`).join('\n')}\n\nClick to add to your party.`;
 
   return (
     <Tooltip tip={tipText} pos="right" wrapStyle={{ display: 'block' }}>
       <button
         onClick={() => onAdd(cap)}
         style={{
-          display: 'flex', flexDirection: 'column', gap: 4,
-          padding: '7px 10px', width: '100%', textAlign: 'left',
+          display: 'flex', alignItems: 'center', gap: 9,
+          padding: '6px 10px', width: '100%', textAlign: 'left',
           background: 'transparent', border: 'none',
-          borderBottom: '1px solid var(--chrome-dd)',
+          borderBottom: '1px solid var(--chrome-dd)', borderLeft: `3px solid ${type.color}`,
           cursor: 'pointer', transition: 'background 60ms',
         }}
         onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
         onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{
+        <div style={{ width: 28, height: 28, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Creature seed={seed} color={type.color} size={26} />
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{
             fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)',
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {name}
-          </span>
-          <span style={{
-            fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-            background: TIER_COLOR[cap.trust_tier] ?? '#555', color: '#fff',
-            padding: '1px 4px', flexShrink: 0,
-          }}>
-            {cap.trust_tier}
-          </span>
-        </div>
-        <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-          {tags.map(t => (
-            <span key={t} style={{
-              fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)',
-              background: 'var(--surface-2)', padding: '1px 4px',
-            }}>
-              {t}
-            </span>
-          ))}
+          </div>
+          <div style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, color: type.color, marginTop: 1 }}>
+            {type.emoji} {type.label}
+          </div>
         </div>
       </button>
     </Tooltip>
@@ -146,19 +165,24 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
     : agents;
 
   const addAgent = (cap: MarketplaceCapability) => {
-    setPipeline(prev => {
-      const idx = prev.length;
-      return [...prev, {
-        id: `n${idx + 1}`,
-        capId: cap.capability_id,
-        name: agentName(cap),
-        tags: cap.compatibility_tags,
-        goal: cap.compatibility_tags[0] ?? '',
-      }];
-    });
+    setPipeline(prev => [...prev, makeNode(cap, prev.length)]);
     setPhase('configure');
     setReport(null);
     setError(null);
+  };
+
+  const loadPlaybook = (pb: Playbook) => {
+    const picked: MarketplaceCapability[] = [];
+    for (const pat of pb.picks) {
+      const cap = agents.find(c => (c.agent_name || '').toLowerCase().includes(pat.toLowerCase()) && !picked.includes(c));
+      if (cap) picked.push(cap);
+    }
+    if (picked.length) {
+      setPipeline(picked.map((c, i) => makeNode(c, i)));
+      setPhase('configure');
+      setReport(null);
+      setError(null);
+    }
   };
 
   const removeNode = (id: string) =>
@@ -166,8 +190,24 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
       prev.filter(n => n.id !== id).map((n, i) => ({ ...n, id: `n${i + 1}` }))
     );
 
-  const updateGoal = (id: string, goal: string) =>
-    setPipeline(prev => prev.map(n => n.id === id ? { ...n, goal } : n));
+  const updateNode = (id: string, patch: Partial<PipelineNode>) =>
+    setPipeline(prev => prev.map(n => n.id === id ? { ...n, ...patch } : n));
+
+  const updateGoal = (id: string, goal: string) => updateNode(id, { goal });
+
+  // Read a picked file (browser File API — works inside the Tauri webview) into
+  // the node's content + filename. Capped to keep the request under the backend
+  // 1 MiB limit.
+  const MAX_SCAN_BYTES = 512 * 1024;
+  const readFileIntoNode = (id: string, file: File) => {
+    if (file.size > MAX_SCAN_BYTES) {
+      updateNode(id, { content: `// file too large (${Math.round(file.size / 1024)} KB > 512 KB cap)`, filename: file.name });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => updateNode(id, { content: String(reader.result ?? ''), filename: file.name });
+    reader.readAsText(file);
+  };
 
   const simulate = async () => {
     if (!sessionId || pipeline.length === 0) return;
@@ -211,7 +251,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Agent Registry
+            Pick Agents
           </span>
           <button
             onClick={loadAgents}
@@ -274,7 +314,7 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text)',
           background: 'var(--chrome)', lineHeight: 1.5,
         }}>
-          Click any agent to add it to the pipeline. Hover for keywords.
+          Tap an agent to add it to your party. Hover for what it scans.
         </div>
       </div>
 
@@ -288,40 +328,77 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
           flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
         }}>
           <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Pipeline Canvas
+            Your Party
           </span>
           {pipeline.length > 0 && (
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text)' }}>
-              {pipeline.length} node{pipeline.length !== 1 ? 's' : ''} · all via pi-extension-governor · SANDBOX
+              {pipeline.length} agent{pipeline.length !== 1 ? 's' : ''} on the team · runs in sandbox
             </span>
           )}
         </div>
 
         <div style={{ flex: 1, overflow: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-          {/* Empty state */}
+          {/* Empty state — starter parties */}
           {pipeline.length === 0 && (
-            <div style={{
-              padding: '36px 28px', textAlign: 'center',
-              border: '1px dashed var(--chrome-dd)',
-              fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text)',
-              lineHeight: 1.8,
-            }}>
-              Browse the registry on the left and click any agent to add it here.
-              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text)' }}>
-                Each agent is identified by the keywords in its goal text.<br />
-                The router dispatches the goal to the matching agent automatically.
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4,
+              }}>
+                Start with a ready-made party
+              </div>
+              <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                One click picks a proven team — or pick agents yourself on the left.
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
+                {PLAYBOOKS.map(pb => {
+                  const found = pb.picks.filter(pat => agents.some(c => (c.agent_name || '').toLowerCase().includes(pat.toLowerCase()))).length;
+                  return (
+                    <button
+                      key={pb.key}
+                      onClick={() => loadPlaybook(pb)}
+                      disabled={agentsLoading || found === 0}
+                      style={{
+                        textAlign: 'left', cursor: found ? 'pointer' : 'default',
+                        padding: '10px 12px', background: 'var(--surface)',
+                        border: `2px solid ${pb.color}`, borderLeft: `5px solid ${pb.color}`,
+                        display: 'flex', flexDirection: 'column', gap: 4, opacity: found ? 1 : 0.5,
+                        transition: 'transform 80ms, box-shadow 80ms',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 12px ${pb.color}66`; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span style={{ fontSize: 18 }}>{pb.emoji}</span>
+                        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{pb.name}</span>
+                        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: pb.color }}>×{found}</span>
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.35 }}>{pb.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{
+                marginTop: 16, padding: '10px 14px', textAlign: 'center',
+                border: '1px dashed var(--chrome-dd)',
+                fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6,
+              }}>
+                Each agent then takes a file/paste to scan; hit Simulate, then Run.
               </div>
             </div>
           )}
 
           {/* Pipeline nodes */}
-          {pipeline.map((node, i) => (
+          {pipeline.map((node, i) => {
+            const type = agentTypeOf(node.seed, node.tags);
+            return (
             <div key={node.id}>
               {/* Node card */}
               <div style={{
                 border: '1px solid var(--chrome-dd)',
-                borderTop: '3px solid #006677',
+                borderTop: `3px solid ${type.color}`,
                 background: 'var(--surface)',
                 boxShadow: '1px 1px 0 var(--chrome-dd)',
               }}>
@@ -332,12 +409,13 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                   background: 'var(--surface-2)', borderBottom: '1px solid var(--chrome-dd)',
                 }}>
                   <span style={{
-                    background: '#006677', color: '#fff',
+                    background: type.color, color: '#fff',
                     fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700,
                     padding: '1px 6px', flexShrink: 0,
                   }}>
-                    N{i + 1}
+                    {i + 1}
                   </span>
+                  <Creature seed={node.seed} color={type.color} size={22} />
                   <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
                     {node.name}
                   </span>
@@ -387,6 +465,45 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text)', marginTop: 3 }}>
                     {node.capId} · SANDBOX
                   </div>
+
+                  {/* Content to scan — pick a file or paste */}
+                  <div style={{ marginTop: 10 }}>
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4,
+                    }}>
+                      <span style={{
+                        fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 600,
+                        textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text)',
+                      }}>
+                        Content to scan
+                      </span>
+                      <label className="btn btn-sm" style={{ cursor: isActive ? 'default' : 'pointer', flexShrink: 0 }}>
+                        <FileUp size={11} style={{ marginRight: 4 }} />
+                        Pick file
+                        <input
+                          type="file"
+                          style={{ display: 'none' }}
+                          disabled={isActive}
+                          onChange={e => { const f = e.target.files?.[0]; if (f) readFileIntoNode(node.id, f); e.currentTarget.value = ''; }}
+                        />
+                      </label>
+                      {node.filename && (
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {node.filename} · {node.content.length} chars
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      className="input"
+                      style={{ width: '100%', minHeight: 72, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11, boxSizing: 'border-box' }}
+                      value={node.content}
+                      onChange={e => updateNode(node.id, { content: e.target.value })}
+                      disabled={isActive}
+                      placeholder="Paste code/config/text to scan, or drop a file above. Leave empty for a dry structural run."
+                      onDragOver={e => e.preventDefault()}
+                      onDrop={e => { e.preventDefault(); const f = e.dataTransfer.files?.[0]; if (f && !isActive) readFileIntoNode(node.id, f); }}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -397,7 +514,8 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
 
           {/* Error */}
           {error && (

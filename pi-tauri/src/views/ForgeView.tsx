@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Hammer, Eye, ShieldCheck, Save, RefreshCw, ChevronDown, ChevronRight, ArrowUpCircle, CheckCircle2 } from 'lucide-react';
+import { Eye, Save, RefreshCw, ChevronDown, ChevronRight, X } from 'lucide-react';
 import {
   forgeGenerate,
   forgeAudit,
@@ -9,68 +9,123 @@ import {
   getForgeApiKey,
   setForgeApiKey,
 } from '../lib/api';
+import { agentTypeOf } from '../lib/agentdex';
+import { Creature } from '../components/Creature';
 import type { ForgeGenerateResponse, ForgeAuditResponse, ForgePendingAgent, ForgePromoteResponse } from '../types';
 
 type Stage = 'idle' | 'generating' | 'generated' | 'saving' | 'saved';
 type Mode = 'generate' | 'pending';
 
 const SEVERITY_COLOR: Record<string, string> = {
-  CRITICAL: '#cc0022',
-  HIGH:     '#cc6600',
-  MEDIUM:   '#886600',
-  LOW:      '#336600',
+  CRITICAL: '#ff5a6a', HIGH: '#ff9a3a', MEDIUM: '#ffd24a', LOW: '#9ad36a',
 };
+
+// ── Trust tier = the level-up track (cosmetic; mirrors backend trust_tier) ──
+const TIERS = ['UNVERIFIED', 'VERIFIED', 'AUDITED', 'GOVERNED'] as const;
+type Tier = typeof TIERS[number];
+const TIER_META: Record<Tier, { color: string; icon: string; blurb: string }> = {
+  UNVERIFIED: { color: '#ffb400', icon: '◆', blurb: 'freshly forged' },
+  VERIFIED:   { color: '#5fd38a', icon: '✦', blurb: 'wired in by a human' },
+  AUDITED:    { color: '#5fb0ff', icon: '★', blurb: 'survived its tests' },
+  GOVERNED:   { color: '#c79bff', icon: '♛', blurb: 'security sign-off' },
+};
+
+// ─── small pieces ────────────────────────────────────────────────────────────
+
+function Sparks({ n = 6 }: { n?: number }) {
+  return (
+    <div style={{ position: 'relative', width: 0, height: 0 }}>
+      {Array.from({ length: n }).map((_, i) => (
+        <span key={i} className="forge-spark" style={{
+          left: (i - n / 2) * 5, bottom: 0,
+          ['--sx' as string]: `${(i - n / 2) * 4}px`,
+          animationDelay: `${(i * 0.13) % 0.9}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
+
+function TierTrack({ current }: { current: Tier }) {
+  const curIdx = TIERS.indexOf(current);
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+      {TIERS.map((t, i) => {
+        const m = TIER_META[t];
+        const earned = i <= curIdx;
+        const isCur = i === curIdx;
+        return (
+          <div key={t} style={{ display: 'flex', alignItems: 'center', flex: i < TIERS.length - 1 ? 1 : '0 0 auto' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+              <div
+                className={isCur ? 'forge-tier-pulse' : undefined}
+                style={{
+                  width: 24, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  border: `2px solid ${earned ? m.color : '#4a3422'}`,
+                  background: earned ? m.color + '22' : 'transparent',
+                  color: earned ? m.color : '#6a5440', fontSize: 13, flexShrink: 0,
+                }}
+              >{m.icon}</div>
+              <span className="forge-pixel" style={{ fontSize: 6, color: earned ? m.color : '#6a5440', whiteSpace: 'nowrap' }}>{t}</span>
+            </div>
+            {i < TIERS.length - 1 && (
+              <div style={{ flex: 1, height: 2, margin: '0 2px', marginBottom: 14, background: i < curIdx ? m.color : '#4a3422' }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── ForgeView ────────────────────────────────────────────────────────────────
 
 export function ForgeView() {
   const [mode, setMode] = useState<Mode>('generate');
   const [pendingCount, setPendingCount] = useState(0);
 
-  // Form
+  // Quest input
   const [description, setDescription] = useState('');
-  const [keywordsRaw, setKeywordsRaw]  = useState('');
+  const [keywords, setKeywords] = useState<string[]>([]);
+  const [kwDraft, setKwDraft] = useState('');
   const [exampleInput, setExampleInput] = useState('');
-  const [apiKey, setApiKeyState]        = useState(() => getForgeApiKey());
+  const [apiKey, setApiKeyState] = useState(() => getForgeApiKey());
 
   // Stage + results
-  const [stage, setStage]   = useState<Stage>('idle');
-  const [error, setError]   = useState<string | null>(null);
+  const [stage, setStage] = useState<Stage>('idle');
+  const [error, setError] = useState<string | null>(null);
   const [generated, setGenerated] = useState<ForgeGenerateResponse | null>(null);
-  const [audit, setAudit]         = useState<ForgeAuditResponse | null>(null);
+  const [audit, setAudit] = useState<ForgeAuditResponse | null>(null);
   const [savedPath, setSavedPath] = useState<string | null>(null);
-  const [rightTab, setRightTab]   = useState<'code' | 'audit'>('code');
-
-  const keywords = keywordsRaw
-    .split(/[\n,]+/)
-    .map(k => k.trim())
-    .filter(Boolean);
+  const [showCode, setShowCode] = useState(false);
 
   const canGenerate = description.trim().length > 0 && keywords.length > 0 && apiKey.trim().length > 0;
-  const canSave     = stage === 'generated' && audit?.passed === true && generated != null;
+  const canSave = stage === 'generated' && audit?.passed === true && generated != null;
+  const isLoading = stage === 'generating' || stage === 'saving';
 
-  function handleApiKeyChange(k: string) {
-    setApiKeyState(k);
-    setForgeApiKey(k);
+  function addKeyword(raw: string) {
+    const parts = raw.split(/[,\n]+/).map(k => k.trim()).filter(Boolean);
+    if (parts.length) setKeywords(prev => [...new Set([...prev, ...parts])]);
+    setKwDraft('');
   }
+  function onKwKey(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); if (kwDraft.trim()) addKeyword(kwDraft); }
+    else if (e.key === 'Backspace' && !kwDraft && keywords.length) setKeywords(prev => prev.slice(0, -1));
+  }
+
+  function handleApiKeyChange(k: string) { setApiKeyState(k); setForgeApiKey(k); }
 
   async function handleGenerate() {
     if (!canGenerate) return;
-    setStage('generating');
-    setError(null);
-    setGenerated(null);
-    setAudit(null);
-    setSavedPath(null);
-
+    setStage('generating'); setError(null); setGenerated(null); setAudit(null); setSavedPath(null); setShowCode(false);
     try {
       const result = await forgeGenerate(
         { description: description.trim(), keywords, example_input: exampleInput.trim() },
         apiKey.trim(),
       );
       setGenerated(result);
-
-      // Auto-audit after generation
       const auditResult = await forgeAudit(result.code, result.agent_class_name);
       setAudit(auditResult);
-      setRightTab(auditResult.passed ? 'code' : 'audit');
       setStage('generated');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : String(e));
@@ -80,9 +135,7 @@ export function ForgeView() {
 
   async function handleSave() {
     if (!canSave || !generated) return;
-    setStage('saving');
-    setError(null);
-
+    setStage('saving'); setError(null);
     try {
       const result = await forgeSave(
         { code: generated.code, agent_name: generated.agent_class_name, description: description.trim() },
@@ -97,430 +150,321 @@ export function ForgeView() {
   }
 
   function handleReset() {
-    setStage('idle');
-    setGenerated(null);
-    setAudit(null);
-    setSavedPath(null);
-    setError(null);
+    setStage('idle'); setGenerated(null); setAudit(null); setSavedPath(null); setError(null); setShowCode(false);
   }
 
-  const isLoading = stage === 'generating' || stage === 'saving';
+  const labelStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-pixel)', fontSize: 8, color: 'var(--ember)',
+    display: 'block', marginBottom: 6, marginTop: 2,
+  };
+  const hintStyle: React.CSSProperties = {
+    fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', marginTop: 4, lineHeight: 1.4,
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
-      {/* ── Toolbar ── */}
+      {/* ── Forge header / mode toggle ── */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8,
+        display: 'flex', alignItems: 'center', gap: 10,
         padding: '8px 16px', borderBottom: 'var(--bw)',
-        background: 'var(--paper-2)', flexShrink: 0,
+        background: 'linear-gradient(180deg, #2a1c12, #1c1510)', flexShrink: 0,
       }}>
-        <Hammer size={13} style={{ color: '#7a2900', flexShrink: 0 }} />
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#7a2900' }}>
-          AGENT FORGE
-        </span>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', marginLeft: 4 }}>
-          {mode === 'generate'
-            ? 'AI-assisted generator — BYOK · agents land in pending/ as UNVERIFIED'
-            : 'Review & promote pending agents — UNVERIFIED → VERIFIED'}
+        <span className="forge-hammer" style={{ fontSize: 16 }}>⚒</span>
+        <span className="forge-pixel" style={{ fontSize: 11, color: 'var(--heat)' }}>THE&nbsp;FORGE</span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', marginLeft: 2 }}>
+          {mode === 'generate' ? 'craft a new micro-agent · BYOK' : 'your forged roster · ascend them to live'}
         </span>
 
-        {/* Mode toggle */}
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 0, border: 'var(--bw)', flexShrink: 0 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 0, border: '1px solid var(--ember)', flexShrink: 0 }}>
           {(['generate', 'pending'] as const).map((m, i) => (
-            <button key={m} onClick={() => setMode(m)} style={{
-              padding: '4px 12px',
-              background: mode === m ? '#7a2900' : 'var(--white)',
-              color: mode === m ? '#fff' : 'var(--ink)',
-              border: 'none', borderRight: i === 0 ? '1px solid var(--paper-3)' : 'none',
-              fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-              textTransform: 'uppercase', letterSpacing: '0.05em', cursor: 'pointer',
+            <button key={m} onClick={() => setMode(m)} className="forge-pixel" style={{
+              padding: '6px 12px', fontSize: 8,
+              background: mode === m ? 'var(--ember)' : 'transparent',
+              color: mode === m ? '#fff' : 'var(--heat)',
+              border: 'none', borderRight: i === 0 ? '1px solid var(--ember)' : 'none', cursor: 'pointer',
             }}>
-              {m === 'generate' ? 'Generate' : `Pending${pendingCount ? ` (${pendingCount})` : ''}`}
+              {m === 'generate' ? 'FORGE' : `ROSTER${pendingCount ? ` ${pendingCount}` : ''}`}
             </button>
           ))}
         </div>
 
         {mode === 'generate' && (stage === 'generated' || stage === 'saved') && (
-          <button className="btn btn-sm" onClick={handleReset} style={{ flexShrink: 0 }}>
-            <RefreshCw size={10} style={{ marginRight: 4 }} />
-            New agent
+          <button onClick={handleReset} className="forge-pixel" style={{
+            fontSize: 8, padding: '6px 10px', background: 'transparent',
+            border: '1px solid var(--ember)', color: 'var(--heat)', cursor: 'pointer',
+          }}>
+            ⟳ NEW
           </button>
         )}
       </div>
 
-      {/* ── Generate mode: two-panel layout ── */}
+      {/* ── FORGE mode ── */}
       {mode === 'generate' && (
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* ── LEFT: form ── */}
-        <div style={{
-          width: 300, flexShrink: 0,
-          borderRight: 'var(--bw)',
-          display: 'flex', flexDirection: 'column',
-          overflow: 'auto',
-          background: 'var(--paper-2)',
-        }}>
-          <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* LEFT: the crafting bench (guided input) */}
+          <div style={{
+            width: 330, flexShrink: 0, borderRight: '2px solid var(--forge-line)',
+            display: 'flex', flexDirection: 'column', overflow: 'auto',
+            background: 'var(--paper-2)',
+          }}>
+            <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-            {/* Description */}
-            <div>
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                Description *
-              </label>
-              <textarea
-                className="input"
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                placeholder="Detects SQL injection patterns in user-submitted query strings"
-                rows={3}
-                disabled={isLoading}
-                style={{ width: '100%', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11, boxSizing: 'border-box' }}
-              />
-            </div>
+              <div className="forge-pixel" style={{ fontSize: 9, color: 'var(--text)', borderBottom: '2px solid var(--forge-line)', paddingBottom: 8 }}>
+                ⚒ CRAFTING BENCH
+              </div>
 
-            {/* Keywords */}
-            <div>
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                Keywords * <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(one per line or comma-sep)</span>
-              </label>
-              <textarea
-                className="input"
-                value={keywordsRaw}
-                onChange={e => setKeywordsRaw(e.target.value)}
-                placeholder={"sql injection scan\nquery validation\ndatabase input check"}
-                rows={4}
-                disabled={isLoading}
-                style={{ width: '100%', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11, boxSizing: 'border-box' }}
-              />
-              {keywords.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, marginTop: 4 }}>
+              {/* 1 · Mission */}
+              <div>
+                <label style={labelStyle}>1 · THE MISSION</label>
+                <div style={hintStyle}>What should your agent hunt for?</div>
+                <textarea
+                  className="input" value={description} onChange={e => setDescription(e.target.value)}
+                  placeholder="Detects open-redirect flaws where a redirect target comes from user input"
+                  rows={3} disabled={isLoading}
+                  style={{ width: '100%', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12, boxSizing: 'border-box', marginTop: 6 }}
+                />
+              </div>
+
+              {/* 2 · Summoning words (chip input) */}
+              <div>
+                <label style={labelStyle}>2 · SUMMONING WORDS</label>
+                <div style={hintStyle}>Phrases that trigger it. Type one and press <b>Enter</b>.</div>
+                <div
+                  onClick={() => (document.getElementById('kw-draft') as HTMLInputElement | null)?.focus()}
+                  style={{
+                    marginTop: 6, display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center',
+                    minHeight: 38, padding: '6px 8px', cursor: 'text',
+                    background: 'var(--white)', border: 'var(--bw)', boxShadow: 'inset 1px 1px 0 var(--paper-3)',
+                  }}
+                >
                   {keywords.map(k => (
-                    <span key={k} style={{
-                      fontFamily: 'var(--font-mono)', fontSize: 9,
-                      padding: '1px 5px', background: 'var(--white)',
-                      border: '1px solid var(--paper-3)',
-                      textTransform: 'uppercase', letterSpacing: '0.04em',
-                    }}>{k}</span>
+                    <span key={k} className="forge-chip">
+                      {k}
+                      <button onClick={e => { e.stopPropagation(); setKeywords(prev => prev.filter(x => x !== k)); }} disabled={isLoading}>×</button>
+                    </span>
                   ))}
+                  <input
+                    id="kw-draft" value={kwDraft}
+                    onChange={e => setKwDraft(e.target.value)} onKeyDown={onKwKey}
+                    onBlur={() => kwDraft.trim() && addKeyword(kwDraft)}
+                    disabled={isLoading}
+                    placeholder={keywords.length ? 'add another…' : 'open redirect scan'}
+                    style={{ flex: 1, minWidth: 90, border: 'none', outline: 'none', background: 'transparent',
+                      fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text)' }}
+                  />
+                </div>
+              </div>
+
+              {/* 3 · Training sample */}
+              <div>
+                <label style={labelStyle}>3 · TRAINING SAMPLE</label>
+                <div style={hintStyle}>Optional — show it an example of what it'll face.</div>
+                <textarea
+                  className="input" value={exampleInput} onChange={e => setExampleInput(e.target.value)}
+                  placeholder={'return redirect(request.args.get("next"))'}
+                  rows={2} disabled={isLoading}
+                  style={{ width: '100%', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12, boxSizing: 'border-box', marginTop: 6 }}
+                />
+              </div>
+
+              {/* Forge key */}
+              <div>
+                <label style={labelStyle}>⚷ FORGE KEY</label>
+                <div style={hintStyle}>Your Anthropic key — stored locally, never sent to our server.</div>
+                <input
+                  type="password" className="input" value={apiKey}
+                  onChange={e => handleApiKeyChange(e.target.value)} placeholder="sk-ant-…" disabled={isLoading}
+                  style={{ width: '100%', fontFamily: 'var(--font-mono)', fontSize: 12, boxSizing: 'border-box', marginTop: 6 }}
+                />
+              </div>
+
+              <button className="forge-btn forge-glow" onClick={handleGenerate} disabled={!canGenerate || isLoading}
+                style={{ marginTop: 2 }}>
+                {stage === 'generating' ? '⚒ FORGING…' : '⚒ FORGE AGENT'}
+              </button>
+              {!canGenerate && !isLoading && (
+                <div style={{ ...hintStyle, marginTop: -6, textAlign: 'center' }}>
+                  Need a mission, ≥1 summoning word, and a forge key.
+                </div>
+              )}
+
+              {error && (
+                <div style={{ padding: '8px 10px', background: '#3a1414', border: '1px solid #ff5a6a',
+                  fontFamily: 'var(--font-mono)', fontSize: 10, color: '#ff9aa6', wordBreak: 'break-all' }}>
+                  ✗ {error}
                 </div>
               )}
             </div>
+          </div>
 
-            {/* Example input */}
-            <div>
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                Example input <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(optional)</span>
-              </label>
-              <textarea
-                className="input"
-                value={exampleInput}
-                onChange={e => setExampleInput(e.target.value)}
-                placeholder="SELECT * FROM users WHERE id = '1' OR '1'='1'"
-                rows={2}
-                disabled={isLoading}
-                style={{ width: '100%', resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 11, boxSizing: 'border-box' }}
-              />
-            </div>
+          {/* RIGHT: the anvil (dark forge interior) */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', background: 'var(--forge-bg)' }}>
 
-            {/* API Key */}
-            <div>
-              <label style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
-                Anthropic API key * <span style={{ fontWeight: 400, color: 'var(--text-muted)' }}>(BYOK · stored locally)</span>
-              </label>
-              <input
-                type="password"
-                className="input"
-                value={apiKey}
-                onChange={e => handleApiKeyChange(e.target.value)}
-                placeholder="sk-ant-…"
-                disabled={isLoading}
-                style={{ width: '100%', fontFamily: 'var(--font-mono)', fontSize: 11, boxSizing: 'border-box' }}
-              />
-            </div>
-
-            {/* Generate button */}
-            <button
-              className="btn"
-              onClick={handleGenerate}
-              disabled={!canGenerate || isLoading}
-              style={{
-                background: canGenerate && !isLoading ? 'linear-gradient(to right, #7a2900, #aa3a00)' : undefined,
-                color: canGenerate && !isLoading ? '#fff' : undefined,
-                fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              }}
-            >
-              {stage === 'generating' ? (
-                <>⚙ Generating…</>
-              ) : (
-                <><Hammer size={11} /> Generate agent</>
-              )}
-            </button>
-
-            {error && (
-              <div style={{
-                padding: '8px 10px', background: '#fff0f0',
-                border: '1px solid #ffaaaa',
-                fontFamily: 'var(--font-mono)', fontSize: 10, color: '#cc0022',
-                wordBreak: 'break-all',
-              }}>
-                {error}
+            {/* idle */}
+            {stage === 'idle' && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14, padding: 24, minHeight: 240 }}>
+                <span className="forge-heat" style={{ fontSize: 52 }}>🔥</span>
+                <div className="forge-pixel" style={{ fontSize: 13, color: 'var(--heat)' }}>THE FORGE AWAITS</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#c9a784', textAlign: 'center', maxWidth: 360, lineHeight: 1.6 }}>
+                  Fill the bench, then strike the anvil. Claude hammers out a real micro-agent,
+                  it's tested by <b style={{ color: 'var(--heat)' }}>trial by fire</b>, and lands in your roster as
+                  <span style={{ color: '#ffb400' }}> ◆ UNVERIFIED</span>.
+                </div>
               </div>
             )}
 
-            {/* Trust tier explainer */}
-            <div style={{
-              padding: '8px 10px',
-              border: '1px solid var(--paper-3)',
-              background: 'var(--white)',
-              fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)',
-              lineHeight: 1.5,
-            }}>
-              <div style={{ fontWeight: 700, marginBottom: 3, color: 'var(--text)' }}>Trust lifecycle</div>
-              <div><span style={{ color: '#cc8800' }}>UNVERIFIED</span> → AI-generated, pending/</div>
-              <div><span style={{ color: '#226600' }}>VERIFIED</span> → human review passed</div>
-              <div><span style={{ color: '#005599' }}>AUDITED</span> → tests pass</div>
-              <div><span style={{ color: 'var(--text)' }}>GOVERNED</span> → security sign-off</div>
-            </div>
-          </div>
-        </div>
-
-        {/* ── RIGHT: output ── */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-
-          {/* right toolbar with tabs */}
-          {stage === 'generated' || stage === 'saved' || stage === 'saving' ? (
-            <>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 0,
-                padding: '0 12px', borderBottom: 'var(--bw)',
-                background: 'var(--paper-2)', flexShrink: 0, minHeight: 34,
-              }}>
-                {(['code', 'audit'] as const).map((t, i) => (
-                  <button
-                    key={t}
-                    onClick={() => setRightTab(t)}
-                    style={{
-                      padding: '6px 14px',
-                      background: rightTab === t ? 'var(--white)' : 'transparent',
-                      border: 'none',
-                      borderRight: i === 0 ? '1px solid var(--paper-3)' : 'none',
-                      fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                      letterSpacing: '0.05em', textTransform: 'uppercase',
-                      color: rightTab === t ? 'var(--ink)' : '#888',
-                      cursor: 'pointer',
-                      display: 'flex', alignItems: 'center', gap: 5,
-                    }}
-                  >
-                    {t === 'code' ? <Eye size={10} /> : <ShieldCheck size={10} />}
-                    {t}
-                    {t === 'audit' && audit && (
-                      <span style={{
-                        marginLeft: 3, padding: '0 4px',
-                        background: audit.passed ? '#d4edda' : '#f8d7da',
-                        color: audit.passed ? '#155724' : '#721c24',
-                        fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
-                        border: `1px solid ${audit.passed ? '#c3e6cb' : '#f5c6cb'}`,
-                      }}>
-                        {audit.passed ? 'PASS' : 'FAIL'}
-                      </span>
-                    )}
-                  </button>
-                ))}
-
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {generated && (
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
-                      {generated.agent_class_name} · {generated.model_used}
-                    </span>
-                  )}
-                  {stage === 'saved' ? (
-                    <span style={{
-                      fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                      color: '#155724', padding: '3px 8px',
-                      background: '#d4edda', border: '1px solid #c3e6cb',
-                    }}>
-                      ✓ saved · {savedPath}
-                    </span>
-                  ) : (
-                    <button
-                      className="btn btn-sm"
-                      onClick={handleSave}
-                      disabled={!canSave || stage === 'saving'}
-                      style={{
-                        background: canSave ? 'linear-gradient(to right, #7a2900, #aa3a00)' : undefined,
-                        color: canSave ? '#fff' : undefined,
-                        display: 'flex', alignItems: 'center', gap: 5,
-                      }}
-                    >
-                      {stage === 'saving' ? (
-                        <>⚙ Saving…</>
-                      ) : (
-                        <><Save size={10} /> Save to pending/</>
-                      )}
-                    </button>
-                  )}
+            {/* forging animation */}
+            {stage === 'generating' && (
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, padding: 24, minHeight: 240 }}>
+                <div style={{ position: 'relative', fontSize: 56, display: 'flex', alignItems: 'flex-end', gap: 4 }}>
+                  <span className="forge-hammer" style={{ fontSize: 40 }}>🔨</span>
+                  <span style={{ fontSize: 50 }}>🟧</span>
+                  <div style={{ position: 'absolute', left: 46, top: 6 }}><Sparks n={7} /></div>
+                </div>
+                <div className="forge-pixel forge-heat" style={{ fontSize: 12, color: 'var(--heat)' }}>⚒ FORGING…</div>
+                <div className="forge-bar" style={{ width: 240 }} />
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c9a784' }}>
+                  Claude is hammering out your agent + running the trial…
                 </div>
               </div>
+            )}
 
-              <div style={{ flex: 1, overflow: 'auto' }}>
+            {/* crafted result */}
+            {(stage === 'generated' || stage === 'saving' || stage === 'saved') && generated && (
+              <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-                {/* Code tab */}
-                {rightTab === 'code' && generated && (
-                  <div style={{ minHeight: '100%', background: 'var(--white)' }}>
-                    <pre style={{
-                      margin: 0, padding: 16,
-                      fontFamily: 'var(--font-mono)', fontSize: 11,
-                      lineHeight: 1.55, color: 'var(--ink)',
-                      tabSize: 4,
-                      whiteSpace: 'pre',
-                      overflowX: 'auto',
-                    }}>
+                {/* item card */}
+                <div className="forge-glow" style={{ border: '2px solid var(--ember)', background: 'var(--forge-bg2)', padding: 16 }}>
+                  {(() => { const t = agentTypeOf(generated.agent_class_name, keywords); return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                    <div style={{ width: 48, height: 48, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#120d0a', border: `1px solid ${t.color}` }}>
+                      <Creature seed={generated.agent_class_name} color={t.color} size={40} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="forge-pixel" style={{ fontSize: 12, color: '#fff' }}>{generated.agent_class_name}</div>
+                      <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: t.color, marginTop: 5 }}>{t.emoji} {t.label}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', marginTop: 3 }}>forged by {generated.model_used}</div>
+                    </div>
+                    <span className="forge-pixel" style={{ fontSize: 8, color: '#1c1510', background: '#ffb400', padding: '4px 7px' }}>◆ UNVERIFIED</span>
+                  </div>
+                  ); })()}
+
+                  {/* level track */}
+                  <div style={{ padding: '6px 4px 2px' }}>
+                    <TierTrack current="UNVERIFIED" />
+                  </div>
+
+                  {/* summoned by */}
+                  <div style={{ marginTop: 12 }}>
+                    <div className="forge-pixel" style={{ fontSize: 7, color: 'var(--ember)', marginBottom: 6 }}>SUMMONED BY</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                      {keywords.map(k => <span key={k} className="forge-chip" style={{ paddingRight: 8 }}>{k}</span>)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* TRIAL BY FIRE (audit) */}
+                {audit && (
+                  <div style={{ border: `2px solid ${audit.passed ? '#5fd38a' : '#ff5a6a'}`, background: 'var(--forge-bg2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderBottom: '1px solid var(--forge-line)' }}>
+                      <span style={{ fontSize: 18 }}>⚔</span>
+                      <div className="forge-pixel" style={{ fontSize: 10, color: audit.passed ? '#5fd38a' : '#ff5a6a', flex: 1 }}>
+                        TRIAL BY FIRE — {audit.passed ? 'SURVIVED' : 'CRACKED'}
+                      </div>
+                      {audit.passed && <Sparks n={5} />}
+                    </div>
+                    <div style={{ padding: '10px 14px' }}>
+                      {/* structural checks */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: audit.findings.length ? 10 : 0 }}>
+                        {Object.entries(audit.structural_checks).map(([key, ok]) => (
+                          <span key={key} style={{
+                            fontFamily: 'var(--font-mono)', fontSize: 10, padding: '2px 7px',
+                            color: ok ? '#5fd38a' : '#ff9aa6',
+                            border: `1px solid ${ok ? '#2e6b46' : '#7d2e3a'}`, background: ok ? '#163521' : '#3a1620',
+                          }}>{ok ? '✓' : '✗'} {key}</span>
+                        ))}
+                      </div>
+                      {/* flaws */}
+                      {audit.findings.map((f, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '5px 0' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: SEVERITY_COLOR[f.severity] ?? '#ccc', flexShrink: 0, paddingTop: 1 }}>{f.severity}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#e6d6c8', lineHeight: 1.4 }}>{f.message}</span>
+                        </div>
+                      ))}
+                      {audit.passed && (
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#9ad36a' }}>
+                          No flaws — ready to enter your roster.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* actions */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <button onClick={() => setShowCode(s => !s)} style={{
+                    display: 'flex', alignItems: 'center', gap: 5, padding: '6px 10px',
+                    background: 'transparent', border: '1px solid var(--forge-line)', color: '#c9a784',
+                    fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer',
+                  }}>
+                    {showCode ? <ChevronDown size={12} /> : <ChevronRight size={12} />} <Eye size={11} /> code &amp; wiring
+                  </button>
+                  <div style={{ marginLeft: 'auto' }}>
+                    {stage === 'saved' ? (
+                      <span className="forge-pixel" style={{ fontSize: 9, color: '#1c1510', background: '#5fd38a', padding: '7px 10px' }}>
+                        ✓ ADDED TO ROSTER
+                      </span>
+                    ) : (
+                      <button className="forge-btn" onClick={handleSave} disabled={!canSave} style={{ fontSize: 9, padding: '8px 14px' }}>
+                        {stage === 'saving' ? '⚒ SAVING…' : <><Save size={10} style={{ marginRight: 5, verticalAlign: -1 }} />ADD TO ROSTER</>}
+                      </button>
+                    )}
+                  </div>
+                </div>
+                {!canSave && stage === 'generated' && (
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#ff9aa6', marginTop: -8 }}>
+                    Fix the flaws above before it can join your roster.
+                  </div>
+                )}
+
+                {/* code + wiring */}
+                {showCode && (
+                  <div style={{ border: '1px solid var(--forge-line)' }}>
+                    <pre style={{ margin: 0, padding: 14, background: '#120d0a', color: '#d8e0a0',
+                      fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.55, whiteSpace: 'pre', overflowX: 'auto', maxHeight: 320 }}>
                       {generated.code}
                     </pre>
-
-                    {/* Wiring recipe — what a human reviewer does after audit passes */}
-                    <div style={{ borderTop: '1px solid var(--paper-3)', background: 'var(--paper-2)' }}>
-                      <div style={{
-                        padding: '8px 16px 4px',
-                        fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
-                        textTransform: 'uppercase', letterSpacing: '0.06em', color: '#7a2900',
-                      }}>
-                        Wiring — after audit + human review (UNVERIFIED → VERIFIED)
+                    <div style={{ borderTop: '1px solid var(--forge-line)', background: '#1c1510' }}>
+                      <div className="forge-pixel" style={{ fontSize: 7, color: 'var(--ember)', padding: '8px 14px 2px' }}>
+                        ⚒ WIRING — HOW TO ASCEND IT
                       </div>
-                      <pre style={{
-                        margin: 0, padding: '4px 16px 16px',
-                        fontFamily: 'var(--font-mono)', fontSize: 10.5,
-                        lineHeight: 1.5, color: 'var(--text-muted)',
-                        whiteSpace: 'pre',
-                        overflowX: 'auto',
-                      }}>
+                      <pre style={{ margin: 0, padding: '4px 14px 14px', color: '#c9a784',
+                        fontFamily: 'var(--font-mono)', fontSize: 10.5, lineHeight: 1.5, whiteSpace: 'pre', overflowX: 'auto' }}>
                         {generated.router_snippet}
                       </pre>
                     </div>
                   </div>
                 )}
-
-                {/* Audit tab */}
-                {rightTab === 'audit' && audit && (
-                  <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-                    {/* Overall verdict */}
-                    <div style={{
-                      padding: '10px 14px',
-                      background: audit.passed ? '#d4edda' : '#f8d7da',
-                      border: `1px solid ${audit.passed ? '#c3e6cb' : '#f5c6cb'}`,
-                      fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700,
-                      color: audit.passed ? '#155724' : '#721c24',
-                    }}>
-                      {audit.passed ? '✓ Audit passed — safe to save' : '✗ Audit failed — fix issues before saving'}
-                    </div>
-
-                    {/* Structural checks */}
-                    <div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>
-                        Structural checks
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                        {Object.entries(audit.structural_checks).map(([key, ok]) => (
-                          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 10 }}>
-                            <span style={{ color: ok ? '#155724' : '#721c24', fontWeight: 700 }}>
-                              {ok ? '✓' : '✗'}
-                            </span>
-                            <span style={{ color: ok ? '#155724' : '#721c24' }}>{key}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Findings */}
-                    {audit.findings.length > 0 && (
-                      <div>
-                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)', marginBottom: 6 }}>
-                          Findings ({audit.findings.length})
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                          {audit.findings.map((f, i) => (
-                            <div key={i} style={{
-                              display: 'flex', alignItems: 'flex-start', gap: 8,
-                              padding: '6px 10px',
-                              background: 'var(--paper-2)',
-                              border: `1px solid ${SEVERITY_COLOR[f.severity] ?? '#ccc'}22`,
-                              borderLeft: `3px solid ${SEVERITY_COLOR[f.severity] ?? '#ccc'}`,
-                            }}>
-                              <span style={{
-                                fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700,
-                                color: SEVERITY_COLOR[f.severity] ?? '#888',
-                                flexShrink: 0, paddingTop: 1,
-                              }}>
-                                {f.severity}
-                              </span>
-                              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink)', lineHeight: 1.4 }}>
-                                {f.message}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {audit.findings.length === 0 && (
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#155724', padding: '8px 12px', background: '#d4edda', border: '1px solid #c3e6cb' }}>
-                        No findings — code is clean
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
-            </>
-          ) : (
-            /* Empty state */
-            <div style={{
-              flex: 1, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center',
-              color: 'var(--text-muted)', gap: 10,
-            }}>
-              {stage === 'generating' ? (
-                <>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: '#7a2900' }}>
-                    ⚙ Generating micro-agent…
-                  </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
-                    Claude is writing your agent code and audit will follow automatically
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Hammer size={36} style={{ color: '#d4a070', opacity: 0.5 }} />
-                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700, color: '#7a2900' }}>
-                    Agent Forge
-                  </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', maxWidth: 320, lineHeight: 1.5 }}>
-                    Fill in the form on the left and click Generate.<br />
-                    Claude will produce a new micro-agent following the PI Platform architecture.<br />
-                    The code will be audited automatically before you can save it.
-                  </div>
-                </>
-              )}
-            </div>
-          )}
+            )}
+          </div>
         </div>
-      </div>
       )}
 
-      {/* ── Pending mode: review & promote ── */}
-      {mode === 'pending' && <PendingPanel onCount={setPendingCount} />}
+      {/* ── ROSTER mode ── */}
+      {mode === 'pending' && <RosterPanel onCount={setPendingCount} />}
     </div>
   );
 }
 
-// ─── PendingPanel ───────────────────────────────────────────────────────────
+// ─── RosterPanel (pending review + ascend) ─────────────────────────────────────
 
-function PendingPanel({ onCount }: { onCount: (n: number) => void }) {
-  const [agents, setAgents]   = useState<ForgePendingAgent[]>([]);
+function RosterPanel({ onCount }: { onCount: (n: number) => void }) {
+  const [agents, setAgents] = useState<ForgePendingAgent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [promoting, setPromoting] = useState<string | null>(null);
   const [promoteErr, setPromoteErr] = useState<Record<string, string>>({});
@@ -535,9 +479,8 @@ function PendingPanel({ onCount }: { onCount: (n: number) => void }) {
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
 
-  async function promote(filename: string) {
-    setPromoting(filename);
-    setPromoteErr(p => ({ ...p, [filename]: '' }));
+  async function ascend(filename: string) {
+    setPromoting(filename); setPromoteErr(p => ({ ...p, [filename]: '' }));
     try {
       const res = await forgePromote(filename);
       setPromoted(p => [res, ...p]);
@@ -551,139 +494,100 @@ function PendingPanel({ onCount }: { onCount: (n: number) => void }) {
   }
 
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+    <div style={{ flex: 1, overflow: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 14, background: 'var(--forge-bg)' }}>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Pending agents
-        </span>
-        <button className="btn btn-sm" onClick={load} disabled={loading} style={{ flexShrink: 0 }}>
-          <RefreshCw size={10} style={{ marginRight: 4 }} /> Reload
-        </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span className="forge-pixel" style={{ fontSize: 10, color: 'var(--heat)' }}>⬢ YOUR FORGED ROSTER</span>
+        <button onClick={load} disabled={loading} className="forge-pixel" style={{
+          fontSize: 7, padding: '5px 9px', background: 'transparent', border: '1px solid var(--ember)', color: 'var(--heat)', cursor: 'pointer', flexShrink: 0,
+        }}>⟳ RELOAD</button>
       </div>
 
-      {/* Just-promoted success cards */}
+      {/* just ascended */}
       {promoted.map(p => (
-        <div key={p.agent_name} style={{ border: '1px solid #c3e6cb', background: '#d4edda', padding: '10px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-            <CheckCircle2 size={13} style={{ color: '#155724' }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: '#155724' }}>
-              {p.agent_name} promoted → {p.trust_tier}
-            </span>
+        <div key={p.agent_name} className="forge-glow" style={{ border: '2px solid #5fd38a', background: 'var(--forge-bg2)', padding: '12px 14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <Sparks n={5} />
+            <span className="forge-pixel" style={{ fontSize: 9, color: '#5fd38a' }}>{p.agent_name} ASCENDED → ✦ {p.trust_tier}</span>
           </div>
-          <pre style={{
-            margin: 0, padding: 8, background: 'var(--white)', border: '1px solid #c3e6cb',
-            fontFamily: 'var(--font-mono)', fontSize: 10, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowX: 'auto',
-          }}>
-{`# router.py
-${p.router_edit}
-
-# consensus.py (run_single_perturbed)
-${p.consensus_edit}
-
-# file → ${p.promoted_path}`}
+          <div style={{ marginBottom: 8 }}><TierTrack current="VERIFIED" /></div>
+          <pre style={{ margin: 0, padding: 10, background: '#120d0a', border: '1px solid var(--forge-line)', color: '#c9a784',
+            fontFamily: 'var(--font-mono)', fontSize: 10, lineHeight: 1.5, whiteSpace: 'pre-wrap', overflowX: 'auto' }}>
+{`# router.py\n${p.router_edit}\n\n# consensus.py (run_single_perturbed)\n${p.consensus_edit}\n\n# file → ${p.promoted_path}`}
           </pre>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#155724', marginTop: 4 }}>
-            ✓ import chain validated in an isolated subprocess
-          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#5fd38a', marginTop: 4 }}>✓ import chain validated in an isolated subprocess</div>
         </div>
       ))}
 
-      {loading && (
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', padding: 24 }}>
-          loading…
-        </div>
-      )}
-
+      {loading && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c9a784', textAlign: 'center', padding: 24 }}>loading roster…</div>}
       {!loading && error && (
-        <div style={{ padding: '10px 12px', background: '#fff0f0', border: '1px solid #ffaaaa', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#cc0022' }}>
-          {error}
-        </div>
+        <div style={{ padding: '10px 12px', background: '#3a1414', border: '1px solid #ff5a6a', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#ff9aa6' }}>{error}</div>
       )}
 
       {!loading && !error && agents.length === 0 && (
-        <div style={{ textAlign: 'center', padding: 36, color: 'var(--text-muted)' }}>
-          <Hammer size={32} style={{ color: '#d4a070', opacity: 0.5 }} />
-          <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: '#7a2900', marginTop: 8 }}>
-            No pending agents
-          </div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
-            Generate one in the Generate tab — it'll land here for review &amp; promotion.
-          </div>
+        <div style={{ textAlign: 'center', padding: 40 }}>
+          <div style={{ fontSize: 40 }}>🗡️</div>
+          <div className="forge-pixel" style={{ fontSize: 10, color: 'var(--heat)', marginTop: 10 }}>EMPTY ROSTER</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c9a784', marginTop: 6 }}>Forge an agent — it'll appear here to review &amp; ascend.</div>
         </div>
       )}
 
-      {/* Pending agent cards */}
+      {/* roster items */}
       {agents.map(a => {
         const open = expanded === a.filename;
         const busy = promoting === a.filename;
         const err = promoteErr[a.filename];
         return (
-          <div key={a.filename} style={{ border: '1px solid var(--paper-3)', background: 'var(--white)' }}>
-            {/* header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: open ? '1px solid var(--paper-3)' : 'none', background: 'var(--paper-2)' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, background: '#cc8800', color: '#fff', padding: '1px 5px' }}>
-                UNVERIFIED
-              </span>
-              <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>{a.agent_name}</span>
-              <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, padding: '1px 5px',
-                background: a.audit_passed ? '#d4edda' : '#f8d7da', color: a.audit_passed ? '#155724' : '#721c24',
-                border: `1px solid ${a.audit_passed ? '#c3e6cb' : '#f5c6cb'}`,
-              }}>
-                AUDIT {a.audit_passed ? 'PASS' : 'FAIL'}
-              </span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)' }}>{a.filename} · .{a.method_name}()</span>
+          <div key={a.filename} style={{ border: '2px solid var(--forge-line)', background: 'var(--forge-bg2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px' }}>
+              <Creature seed={a.agent_name} color={agentTypeOf(a.agent_name, a.keywords).color} size={30} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="forge-pixel" style={{ fontSize: 9, color: '#fff' }}>{a.agent_name}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {a.filename} · .{a.method_name}()
+                </div>
+              </div>
+              <span className="forge-pixel" style={{ fontSize: 7, color: '#1c1510', background: '#ffb400', padding: '4px 6px' }}>◆ UNVERIFIED</span>
+              <span className="forge-pixel" style={{
+                fontSize: 7, padding: '4px 6px',
+                color: a.audit_passed ? '#5fd38a' : '#ff9aa6',
+                border: `1px solid ${a.audit_passed ? '#2e6b46' : '#7d2e3a'}`,
+              }}>{a.audit_passed ? '⚔ TRIAL ✓' : '⚔ TRIAL ✗'}</span>
 
               <button onClick={() => setExpanded(open ? null : a.filename)} style={{
-                marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer',
-                color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 3,
-                fontFamily: 'var(--font-mono)', fontSize: 10,
-              }}>
-                {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />} Code
-              </button>
-              <button
-                onClick={() => promote(a.filename)}
-                disabled={!a.audit_passed || busy}
-                title={a.audit_passed ? 'Wire into router + dispatch (→ VERIFIED)' : 'Fix audit findings first'}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5, padding: '4px 12px',
-                  background: a.audit_passed && !busy ? 'linear-gradient(to right, #1a6633, #228844)' : 'var(--paper-2)',
-                  color: a.audit_passed && !busy ? '#fff' : '#aaa',
-                  border: 'var(--bw)', cursor: a.audit_passed && !busy ? 'pointer' : 'default',
-                  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700,
+                background: 'none', border: 'none', cursor: 'pointer', color: '#c9a784',
+                display: 'flex', alignItems: 'center', gap: 3, fontFamily: 'var(--font-mono)', fontSize: 10,
+              }}>{open ? <ChevronDown size={12} /> : <ChevronRight size={12} />} code</button>
+
+              <button onClick={() => ascend(a.filename)} disabled={!a.audit_passed || busy}
+                className="forge-btn" style={{
+                  fontSize: 8, padding: '7px 11px',
+                  ...(a.audit_passed ? {} : { filter: 'grayscale(.7) brightness(.8)', cursor: 'default', opacity: .6 }),
                 }}
-              >
-                <ArrowUpCircle size={11} /> {busy ? 'Promoting…' : 'Promote'}
+                title={a.audit_passed ? 'Wire into the live router + dispatch (→ VERIFIED)' : 'Fix the trial flaws first'}>
+                {busy ? '⚒ ASCENDING…' : '▲ ASCEND'}
               </button>
             </div>
 
-            {/* keywords */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3, padding: '6px 12px' }}>
-              {a.keywords.map(k => (
-                <span key={k} style={{ fontFamily: 'var(--font-mono)', fontSize: 9, padding: '1px 5px', background: 'var(--paper-2)', border: '1px solid var(--paper-3)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{k}</span>
-              ))}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, padding: '0 14px 10px' }}>
+              {a.keywords.map(k => <span key={k} className="forge-chip" style={{ paddingRight: 8 }}>{k}</span>)}
             </div>
 
             {err && (
-              <div style={{ margin: '0 12px 8px', padding: '6px 10px', background: '#fff0f0', border: '1px solid #ffaaaa', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#cc0022', whiteSpace: 'pre-wrap' }}>
-                {err}
-              </div>
+              <div style={{ margin: '0 14px 10px', padding: '6px 10px', background: '#3a1414', border: '1px solid #ff5a6a', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#ff9aa6', whiteSpace: 'pre-wrap' }}>{err}</div>
             )}
-
             {open && (
-              <pre style={{ margin: 0, padding: 12, borderTop: '1px solid var(--paper-3)', background: 'var(--white)', fontFamily: 'var(--font-mono)', fontSize: 10.5, lineHeight: 1.5, whiteSpace: 'pre', overflowX: 'auto' }}>
-                {a.code}
-              </pre>
+              <pre style={{ margin: 0, padding: 12, borderTop: '1px solid var(--forge-line)', background: '#120d0a', color: '#d8e0a0',
+                fontFamily: 'var(--font-mono)', fontSize: 10.5, lineHeight: 1.5, whiteSpace: 'pre', overflowX: 'auto' }}>{a.code}</pre>
             )}
           </div>
         );
       })}
 
       {!loading && agents.length > 0 && (
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.5, padding: '4px 2px' }}>
-          Promote moves the file out of <code>pending/</code>, adds the router import + a <code>consensus.py</code> dispatch
-          branch, and validates the whole import chain in an isolated subprocess. Any failure rolls back automatically.
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', lineHeight: 1.5 }}>
+          <b style={{ color: 'var(--heat)' }}>Ascend</b> moves the file out of <code>pending/</code>, wires it into the live router +
+          dispatch, and validates the whole import chain in a subprocess — rolling back on any failure.
         </div>
       )}
     </div>

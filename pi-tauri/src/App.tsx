@@ -31,14 +31,14 @@ const NAV: NavItem[] = [
     tip: 'Ledger\nHash-chained audit log of every agent execution.\nView traces, risk scores, and anomaly alerts.',
   },
   {
-    id: 'agents', label: 'Agents',
+    id: 'agents', label: 'Agentdex',
     icon: <Grid3x3 size={14} />, color: '#1a6633', tabColor: '#228844', titleClass: 'registry',
-    tip: 'Agents\nBrowse all 248 security micro-agents.\nFilter by trust tier, runtime, or capability.',
+    tip: 'Agentdex\nBrowse all 248 agents, grouped by type (like a Pokédex).\nEach one scans for a specific kind of vulnerability.',
   },
   {
     id: 'builder', label: 'Builder',
     icon: <Zap size={14} />, color: '#006677', tabColor: '#0088aa', titleClass: 'ai',
-    tip: 'Agent Builder\nChoose a workflow template, describe your goal,\nthen simulate and run in one click.',
+    tip: 'Builder — your scan team\nPick agents, drop in a file, and run them together.\nSee exactly what each one catches.',
   },
   {
     id: 'compose', label: 'Compose',
