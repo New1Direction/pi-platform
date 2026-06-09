@@ -221,6 +221,31 @@ export interface ForgePromoteResponse {
   validated: boolean;
 }
 
+export interface ForgeTestSample {
+  label: string;
+  content: string;
+  expect_finding: boolean;
+}
+
+export interface ForgeSampleResult {
+  label: string;
+  expect_finding: boolean;
+  flagged: boolean;
+  risk_score: number;
+  findings: string[];
+  passed: boolean;
+  error: string;
+}
+
+export interface ForgeTestResponse {
+  agent_name: string;
+  samples: ForgeSampleResult[];
+  caught: number;
+  total: number;
+  robustness: { runs: number; stable: boolean; verdicts: boolean[] };
+  ready: boolean;
+}
+
 export interface LedgerSummaryResponse {
   total_traces: number;
   success_rate: number;

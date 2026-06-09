@@ -9,6 +9,8 @@ import type {
   ForgeGenerateResponse,
   ForgePendingAgent,
   ForgePromoteResponse,
+  ForgeTestSample,
+  ForgeTestResponse,
   ForgeSaveRequest,
   ForgeSaveResponse,
   MarketplaceCapability,
@@ -174,4 +176,14 @@ export const forgePromote = (filename: string) =>
   }).then(async r => {
     if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error((d as any).detail ?? `${r.status}`); }
     return r.json() as Promise<ForgePromoteResponse>;
+  });
+
+export const forgeTest = (filename: string, samples: ForgeTestSample[]) =>
+  fetch(`${API_BASE}/forge/test`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Tenant-ID': _tenantId },
+    body: JSON.stringify({ filename, samples }),
+  }).then(async r => {
+    if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error((d as any).detail ?? `${r.status}`); }
+    return r.json() as Promise<ForgeTestResponse>;
   });

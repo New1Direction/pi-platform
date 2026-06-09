@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Eye, Save, RefreshCw, ChevronDown, ChevronRight, X } from 'lucide-react';
+import { Eye, Save, RefreshCw, ChevronDown, ChevronRight, X, FlaskConical } from 'lucide-react';
 import {
   forgeGenerate,
   forgeAudit,
   forgeSave,
   forgeListPending,
   forgePromote,
+  forgeTest,
   getForgeApiKey,
   setForgeApiKey,
 } from '../lib/api';
 import { agentTypeOf } from '../lib/agentdex';
 import { Creature } from '../components/Creature';
-import type { ForgeGenerateResponse, ForgeAuditResponse, ForgePendingAgent, ForgePromoteResponse } from '../types';
+import type {
+  ForgeGenerateResponse, ForgeAuditResponse, ForgePendingAgent, ForgePromoteResponse,
+  ForgeTestSample, ForgeTestResponse,
+} from '../types';
 
 type Stage = 'idle' | 'generating' | 'generated' | 'saving' | 'saved';
 type Mode = 'generate' | 'pending';
@@ -459,6 +463,134 @@ export function ForgeView() {
   );
 }
 
+// ─── TestBench (trial a pending agent before ascending) ────────────────────────
+
+function TestBench({ filename }: { filename: string }) {
+  const [open, setOpen] = useState(false);
+  const [samples, setSamples] = useState<ForgeTestSample[]>([
+    { label: 'vulnerable', content: '', expect_finding: true },
+    { label: 'clean', content: '', expect_finding: false },
+  ]);
+  const [result, setResult] = useState<ForgeTestResponse | null>(null);
+  const [running, setRunning] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const canRun = samples.some(s => s.content.trim().length > 0);
+
+  const update = (i: number, patch: Partial<ForgeTestSample>) =>
+    setSamples(prev => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
+  const addSample = () => setSamples(prev => [...prev, { label: '', content: '', expect_finding: true }]);
+  const removeSample = (i: number) => setSamples(prev => prev.filter((_, idx) => idx !== i));
+
+  async function run() {
+    setRunning(true); setErr(null); setResult(null);
+    try {
+      const usable = samples.filter(s => s.content.trim().length > 0)
+        .map(s => ({ ...s, label: s.label || (s.expect_finding ? 'vulnerable' : 'clean') }));
+      setResult(await forgeTest(filename, usable));
+    } catch (e: unknown) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid var(--forge-line)' }}>
+      <button onClick={() => setOpen(o => !o)} style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
+        background: 'transparent', border: 'none', cursor: 'pointer', color: '#c9a784',
+        fontFamily: 'var(--font-mono)', fontSize: 10, textAlign: 'left',
+      }}>
+        {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <FlaskConical size={11} style={{ color: 'var(--heat)' }} />
+        <span className="forge-pixel" style={{ fontSize: 7, color: 'var(--heat)' }}>TEST BENCH</span>
+        <span>— trial it before you ascend</span>
+        {result && (
+          <span className="forge-pixel" style={{
+            marginLeft: 'auto', fontSize: 7, padding: '3px 6px',
+            color: result.ready ? '#1c1510' : '#fff', background: result.ready ? '#5fd38a' : '#ff5a6a',
+          }}>
+            {result.caught}/{result.total} {result.ready ? '✓ PROVEN' : 'NOT READY'}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 14px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784', lineHeight: 1.4 }}>
+            Add sample inputs and mark whether each <b>should</b> be flagged. Runs the agent in an isolated sandbox and
+            checks it stays stable across input perturbations.
+          </div>
+
+          {samples.map((s, i) => (
+            <div key={i} style={{ border: '1px solid var(--forge-line)', background: '#120d0a' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', borderBottom: '1px solid var(--forge-line)' }}>
+                <button onClick={() => update(i, { expect_finding: !s.expect_finding })} style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, padding: '3px 7px', cursor: 'pointer', border: 'none',
+                  background: s.expect_finding ? '#3a1620' : '#163521', color: s.expect_finding ? '#ff9aa6' : '#5fd38a',
+                }}>
+                  {s.expect_finding ? '⚠ SHOULD FLAG' : '✓ SHOULD BE CLEAN'}
+                </button>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#7a6450' }}>tap to toggle</span>
+                <button onClick={() => removeSample(i)} disabled={samples.length <= 1}
+                  style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#c9a784', cursor: 'pointer', opacity: samples.length <= 1 ? 0.3 : 1 }}>
+                  <X size={12} />
+                </button>
+              </div>
+              <textarea
+                value={s.content} onChange={e => update(i, { content: e.target.value })}
+                placeholder={s.expect_finding ? 'a sample that SHOULD trip the agent…' : 'a clean sample it should pass…'}
+                style={{
+                  width: '100%', minHeight: 44, resize: 'vertical', boxSizing: 'border-box', border: 'none', outline: 'none',
+                  background: 'transparent', color: '#d8e0a0', fontFamily: 'var(--font-mono)', fontSize: 11, padding: 8,
+                }}
+              />
+            </div>
+          ))}
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button onClick={addSample} style={{
+              padding: '5px 9px', background: 'transparent', border: '1px solid var(--forge-line)', color: '#c9a784',
+              fontFamily: 'var(--font-mono)', fontSize: 10, cursor: 'pointer',
+            }}>+ add sample</button>
+            <button className="forge-btn" onClick={run} disabled={!canRun || running} style={{ marginLeft: 'auto', fontSize: 8, padding: '8px 13px' }}>
+              {running ? '⚗ TESTING…' : '▶ RUN TRIALS'}
+            </button>
+          </div>
+
+          {err && (
+            <div style={{ padding: '6px 10px', background: '#3a1414', border: '1px solid #ff5a6a', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#ff9aa6', whiteSpace: 'pre-wrap' }}>{err}</div>
+          )}
+
+          {result && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div className="forge-pixel" style={{
+                fontSize: 8, padding: '7px 9px', lineHeight: 1.5,
+                color: result.ready ? '#1c1510' : '#fff', background: result.ready ? '#5fd38a' : '#ff5a6a',
+              }}>
+                {result.ready ? '✓ PROVEN — READY TO ASCEND' : '✗ NOT READY'} · caught {result.caught}/{result.total} · {result.robustness.stable ? 'stable' : 'UNSTABLE'} across {result.robustness.runs} perturbations
+              </div>
+              {result.samples.map((sr, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '5px 8px', background: '#120d0a', border: '1px solid var(--forge-line)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: sr.passed ? '#5fd38a' : '#ff5a6a', flexShrink: 0 }}>{sr.passed ? '✓' : '✗'}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#e6d6c8' }}>
+                      {sr.label} — expected {sr.expect_finding ? 'flag' : 'clean'}, agent {sr.flagged ? 'flagged' : 'passed'} (risk {sr.risk_score.toFixed(0)})
+                    </div>
+                    {sr.error && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#ff9aa6' }}>error: {sr.error}</div>}
+                    {sr.findings.length > 0 && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#c9a784' }}>{sr.findings.join(' · ')}</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── RosterPanel (pending review + ascend) ─────────────────────────────────────
 
 function RosterPanel({ onCount }: { onCount: (n: number) => void }) {
@@ -572,6 +704,8 @@ function RosterPanel({ onCount }: { onCount: (n: number) => void }) {
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, padding: '0 14px 10px' }}>
               {a.keywords.map(k => <span key={k} className="forge-chip" style={{ paddingRight: 8 }}>{k}</span>)}
             </div>
+
+            <TestBench filename={a.filename} />
 
             {err && (
               <div style={{ margin: '0 14px 10px', padding: '6px 10px', background: '#3a1414', border: '1px solid #ff5a6a', fontFamily: 'var(--font-mono)', fontSize: 10, color: '#ff9aa6', whiteSpace: 'pre-wrap' }}>{err}</div>
