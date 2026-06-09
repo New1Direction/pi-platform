@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Search, Play, Send, AlertTriangle, CheckCircle2, XCircle, ChevronRight, X, FileUp, Compass } from 'lucide-react';
-import { listAllCapabilities, simulateComposition, submitComposition, getTenantId } from '../lib/api';
+import { listAllCapabilities, simulateComposition, submitComposition, getTenantId, getLedgerTraces } from '../lib/api';
 import { humanizeAgentName } from '../lib/humanize';
 import { agentTypeOf, TYPES } from '../lib/agentdex';
 import { planRoute, contentHeading } from '../lib/orientation';
+import { distillInstincts } from '../lib/instincts';
+import type { Instincts } from '../lib/instincts';
 import { Creature } from '../components/Creature';
 import type { MarketplaceCapability, SimulationReport } from '../types';
 import { Tooltip } from '../components/Tooltip';
@@ -149,6 +151,20 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
   const [error, setError] = useState<string | null>(null);
 
   const [agentError, setAgentError] = useState<string | null>(null);
+
+  // Phase 3 — migratory instincts distilled from past runs. Only fetched in
+  // compass mode; a cold/empty ledger leaves this null → planRoute falls back
+  // to the pure Phase 2 content ordering.
+  const [instincts, setInstincts] = useState<Instincts | null>(null);
+
+  useEffect(() => {
+    if (govMode !== 'compass') return;
+    let alive = true;
+    getLedgerTraces(200, 0)
+      .then(r => { if (alive) setInstincts(distillInstincts(r.traces)); })
+      .catch(() => { if (alive) setInstincts(null); });
+    return () => { alive = false; };
+  }, [govMode]);
 
   const loadAgents = () => {
     setAgentsLoading(true);
@@ -355,8 +371,9 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
           {govMode === 'compass' && pipeline.length >= 2 && (() => {
             const routeContent = pipeline.map(n => n.content).join('\n').trim();
             const head = contentHeading(routeContent);
-            const planned = planRoute(pipeline, routeContent);
+            const planned = planRoute(pipeline, routeContent, instincts);
             const sameOrder = planned.every((p, i) => p.agent.id === pipeline[i].id);
+            const learned = !!instincts?.learned;
             return (
               <div style={{ border: '2px solid #0088aa', background: 'var(--surface)', boxShadow: '2px 2px 0 var(--chrome-dd)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--chrome-dd)', background: 'var(--surface-2)' }}>
@@ -377,8 +394,16 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
                           <span key={h.key} style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: m?.color }}>{m?.emoji} {m?.label} {(h.score * 100).toFixed(0)}%</span>
                         ); })}
                       </div>
+                      {learned && (
+                        <Tooltip tip={`Instinct is distilled from your last ${instincts!.totalRuns} runs.\nTypes that found risk before get a small nudge to lead ties —\nit can never outrank the file's concrete signal, only break a tie within it.`}>
+                          <div style={{ fontFamily: 'var(--font-ui)', fontSize: 10.5, color: '#7a5cff', cursor: 'help', display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <span>🦋</span>
+                            <span><strong>Instinct</strong> — learned from {instincts!.totalRuns} past run{instincts!.totalRuns !== 1 ? 's' : ''}; proven finders break ties.</span>
+                          </div>
+                        </Tooltip>
+                      )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {planned.map((p, i) => { const t = TYPE_LABEL[p.typeKey]; return (
+                        {planned.map((p, i) => { const t = TYPE_LABEL[p.typeKey]; const showInstinct = learned && p.instinct !== 0.5 && !!p.instinctNote; return (
                           <div key={p.agent.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#0088aa', width: 14, flexShrink: 0 }}>{i + 1}</span>
                             <Creature seed={p.agent.seed} color={t?.color ?? '#888'} size={18} />
@@ -386,15 +411,24 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
                             <div style={{ width: 90, height: 5, background: 'var(--paper-3)', flexShrink: 0 }}>
                               <div style={{ width: `${p.affinity * 100}%`, height: '100%', background: t?.color ?? '#888' }} />
                             </div>
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {p.affinity > 0 ? `matched: ${p.matched}` : 'no signal · runs last'}
                             </span>
+                            {showInstinct && (
+                              <Tooltip tip={`Instinct: ${p.instinctNote}`}>
+                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: p.instinct > 0.5 ? '#7a5cff' : 'var(--text-muted)', flexShrink: 0, cursor: 'help' }}>
+                                  🦋 {p.instinct > 0.5 ? 'proven' : 'quiet'}
+                                </span>
+                              </Tooltip>
+                            )}
                           </div>
                         ); })}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          The order emerged from the file, not a fixed sequence — then runs through the same gate.
+                          {learned
+                            ? 'The order emerged from the file and what past runs learned — then runs through the same gate.'
+                            : 'The order emerged from the file, not a fixed sequence — then runs through the same gate.'}
                         </span>
                         <button
                           onClick={() => applyRoute(planned.map(p => p.agent))}

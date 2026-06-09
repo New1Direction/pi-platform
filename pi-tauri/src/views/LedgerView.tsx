@@ -1,12 +1,17 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { RefreshCw, Search, AlertTriangle, CheckCircle2, XCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { Tooltip } from '../components/Tooltip';
 import { getLedgerTraces, getLedgerSummary, getLedgerTraceDetail } from '../lib/api';
-import { agentTypeOf } from '../lib/agentdex';
+import { agentTypeOf, TYPES } from '../lib/agentdex';
 import { humanizeAgentName } from '../lib/humanize';
+import { distillInstincts, watchedTypes } from '../lib/instincts';
 import { Creature } from '../components/Creature';
 import { GovernanceCompass } from '../components/GovernanceCompass';
 import type { TraceListItem, LedgerSummaryResponse, TraceDetailResponse } from '../types';
+
+const TYPE_META: Record<string, { label: string; color: string; emoji: string }> = Object.fromEntries(
+  TYPES.map(t => [t.key, { label: t.label, color: t.color, emoji: t.emoji }]),
+);
 import { format } from 'date-fns';
 
 function riskChip(score?: number) {
@@ -88,6 +93,58 @@ function BattleHistory({ traces, avgRisk, selectedId, onSelect }: {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Phase 3 — "what the swarm has learned." The same distilled instincts that
+// bias the Party's route, shown here as a readout: the types history has taught
+// the field to watch hardest. A lens over the ledger — it explains the route's
+// instinct nudge; it enforces nothing.
+function InstinctsReadout({ traces }: { traces: TraceListItem[] }) {
+  const instincts = useMemo(() => distillInstincts(traces), [traces]);
+  const watched = watchedTypes(instincts);
+  if (!instincts.learned) return null;
+
+  return (
+    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--paper-3)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 7 }}>
+        <span style={{ fontSize: 13 }}>🦋</span>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text)' }}>
+          Migratory instincts
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
+          learned from {instincts.totalRuns} run{instincts.totalRuns !== 1 ? 's' : ''}
+        </span>
+      </div>
+      {watched.length === 0 ? (
+        <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+          Quiet seas so far — no type has found enough risk to earn a nudge. The field keeps watching.
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+            {watched.slice(0, 5).map(w => { const m = TYPE_META[w.key]; return (
+              <Tooltip key={w.key} tip={`${m?.label}: ${w.note}.\nReliability ${(w.reliability * 100).toFixed(0)}%. This nudges its agents to lead ties in the Party route.`} pos="right">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'help' }}>
+                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, color: m?.color, width: 116, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {m?.emoji} {m?.label}
+                  </span>
+                  <div style={{ flex: 1, height: 6, background: 'var(--paper-3)', minWidth: 60 }}>
+                    <div style={{ width: `${w.pull * 100}%`, height: '100%', background: m?.color ?? '#7a5cff' }} />
+                  </div>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', width: 150, flexShrink: 0, textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {w.note}
+                  </span>
+                </div>
+              </Tooltip>
+            ); })}
+          </div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', marginTop: 7, lineHeight: 1.4 }}>
+            The field inherits these from past migrations — in compass mode they nudge the Party's route, never the gate.
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -184,6 +241,7 @@ export function LedgerView({ govMode = 'gate' }: { govMode?: 'gate' | 'compass' 
             }}
             caption="North = Safe. The needle is the resultant pull across every run. A lens only — the gate still enforces pass/fail underneath."
           />
+          <InstinctsReadout traces={traces} />
         </div>
       )}
       {summary && govMode === 'gate' && (
@@ -289,7 +347,7 @@ export function LedgerView({ govMode = 'gate' }: { govMode?: 'gate' | 'compass' 
                   <td style={{ fontSize: 11 }}>
                     {t.routed_agent ? (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <Creature seed={t.routed_agent} color={agentTypeOf(t.routed_agent, []).color} size={18} />
+                        <Creature seed={t.routed_agent} color={agentTypeOf(humanizeAgentName(t.routed_agent), []).color} size={18} />
                         {humanizeAgentName(t.routed_agent)}
                       </span>
                     ) : '—'}

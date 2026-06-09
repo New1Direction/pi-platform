@@ -7,6 +7,8 @@
 // affinity shows the exact signal it matched.
 
 import { agentTypeOf } from './agentdex';
+import { instinctPull } from './instincts';
+import type { Instincts } from './instincts';
 
 // Cheap, transparent signals that the CONTENT points toward a given type.
 // (Distinct from agentdex's matchers, which classify an agent by its name.)
@@ -86,21 +88,57 @@ export interface PlannedStep<T> {
   typeKey: string;
   affinity: number; // 0..1 — how strongly the content points at this agent's type
   matched: string; // the signal that drew it (empty if none)
+  instinct: number; // 0..1 — learned pull from history; 0.5 = neutral / no history
+  instinctNote: string; // why history weighted it (empty when nothing learned)
+  blended: number; // the score actually sorted on (content-dominant)
 }
 
-// Order a party so the agent the content points hardest toward leads.
-// Stable: ties (and zero-affinity agents) keep their original order.
+// Content dominates; instinct is a quarter-weight nudge. This split is load-
+// bearing for safety: a content-matched agent (affinity 1 → blended ≥ 0.75)
+// always outranks a non-matched one (affinity 0 → blended ≤ 0.25), so instinct
+// can only re-order agents that share the SAME content tier — never override
+// the concrete signal the file gives us.
+const W_CONTENT = 0.75;
+const W_INSTINCT = 0.25;
+
+// Order a party so the agent the content points hardest toward leads. When the
+// field has learned instincts (Phase 3), they break ties within a content tier:
+// types that have found risk in past runs lead types that have stayed quiet.
+// Stable: equal blended scores keep their original order. Pass no instincts (or
+// an unlearned field) and this is byte-for-byte the Phase 2 content ordering.
 export function planRoute<T extends { seed: string; tags: string[] }>(
   agents: T[],
   content: string,
+  instincts?: Instincts | null,
 ): PlannedStep<T>[] {
   const heading = contentHeading(content);
   const scoreOf = (k: string) => heading.find(h => h.key === k);
+  const learned = !!instincts?.learned;
   const steps = agents.map((agent, i) => {
     const typeKey = agentTypeOf(agent.seed, agent.tags).key;
     const h = scoreOf(typeKey);
-    return { agent, typeKey, affinity: h?.score ?? 0, matched: h?.matched ?? '', _i: i };
+    const affinity = h?.score ?? 0;
+    const pull = instinctPull(instincts, typeKey);
+    const blended = learned ? affinity * W_CONTENT + pull * W_INSTINCT : affinity;
+    return {
+      agent,
+      typeKey,
+      affinity,
+      matched: h?.matched ?? '',
+      instinct: pull,
+      instinctNote: learned ? (instincts!.byType[typeKey]?.note ?? '') : '',
+      blended,
+      _i: i,
+    };
   });
-  steps.sort((a, b) => (b.affinity - a.affinity) || (a._i - b._i));
-  return steps.map(({ agent, typeKey, affinity, matched }) => ({ agent, typeKey, affinity, matched }));
+  steps.sort((a, b) => b.blended - a.blended || a._i - b._i);
+  return steps.map(({ agent, typeKey, affinity, matched, instinct, instinctNote, blended }) => ({
+    agent,
+    typeKey,
+    affinity,
+    matched,
+    instinct,
+    instinctNote,
+    blended,
+  }));
 }
