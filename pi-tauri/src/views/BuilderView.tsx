@@ -62,6 +62,33 @@ function buildRequest(pipeline: PipelineNode[], sessionId: string) {
   };
 }
 
+function makeNode(cap: MarketplaceCapability, idx: number): PipelineNode {
+  return {
+    id: `n${idx + 1}`, capId: cap.capability_id, name: agentName(cap),
+    tags: cap.compatibility_tags, goal: cap.compatibility_tags[0] ?? '',
+    content: '', filename: '', seed: seedOf(cap),
+  };
+}
+
+// Ready-made "parties" — curated teams so a newcomer picks one instead of
+// facing 248 agents. `picks` are agent-name substrings, matched against the
+// live registry (missing ones are skipped, so this can't break).
+type Playbook = { key: string; name: string; emoji: string; color: string; desc: string; picks: string[] };
+const PLAYBOOKS: Playbook[] = [
+  { key: 'solidity', name: 'Solidity Audit', emoji: '🔮', color: '#a368ff', desc: 'Smart-contract security sweep',
+    picks: ['Reentrancy', 'AccessControl', 'Arithmetic', 'FlashLoan', 'DelegateCall'] },
+  { key: 'secrets', name: 'Secrets Sweep', emoji: '🔑', color: '#ffb400', desc: 'Hunt leaked keys & credentials',
+    picks: ['HardcodedSecret', 'GitSecretLeak', 'PromptLeak', 'SecretsManager'] },
+  { key: 'llm', name: 'LLM Safety', emoji: '🧠', color: '#ff6ec7', desc: 'Prompt-injection & output checks',
+    picks: ['PromptInjectionSentry', 'HallucinationDetector', 'OutputSanitizer', 'SystemPromptHijack'] },
+  { key: 'web', name: 'Web & API', emoji: '🌐', color: '#3aa0ff', desc: 'OWASP-style web/API scan',
+    picks: ['APIOWASPScanner', 'WebVulnScanner', 'PhishingShield', 'TxOriginSentry'] },
+  { key: 'supply', name: 'Supply Chain', emoji: '📦', color: '#ff8a3a', desc: 'Deps, SBOM & signing',
+    picks: ['GitSecScanner', 'DependencyVuln', 'SBOMValidator', 'SupplyChain', 'CodeSigning'] },
+  { key: 'infra', name: 'Container & Infra', emoji: '🐳', color: '#5fd38a', desc: 'Docker, K8s & IaC',
+    picks: ['DockerImageScanner', 'KubernetesSecurity', 'IaCScanner', 'FirewallRule', 'ContainerEscape'] },
+];
+
 // ─── AgentCard ────────────────────────────────────────────────────────────────
 
 function AgentCard({ cap, onAdd }: { cap: MarketplaceCapability; onAdd: (c: MarketplaceCapability) => void }) {
@@ -138,22 +165,24 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
     : agents;
 
   const addAgent = (cap: MarketplaceCapability) => {
-    setPipeline(prev => {
-      const idx = prev.length;
-      return [...prev, {
-        id: `n${idx + 1}`,
-        capId: cap.capability_id,
-        name: agentName(cap),
-        tags: cap.compatibility_tags,
-        goal: cap.compatibility_tags[0] ?? '',
-        content: '',
-        filename: '',
-        seed: seedOf(cap),
-      }];
-    });
+    setPipeline(prev => [...prev, makeNode(cap, prev.length)]);
     setPhase('configure');
     setReport(null);
     setError(null);
+  };
+
+  const loadPlaybook = (pb: Playbook) => {
+    const picked: MarketplaceCapability[] = [];
+    for (const pat of pb.picks) {
+      const cap = agents.find(c => (c.agent_name || '').toLowerCase().includes(pat.toLowerCase()) && !picked.includes(c));
+      if (cap) picked.push(cap);
+    }
+    if (picked.length) {
+      setPipeline(picked.map((c, i) => makeNode(c, i)));
+      setPhase('configure');
+      setReport(null);
+      setError(null);
+    }
   };
 
   const removeNode = (id: string) =>
@@ -310,18 +339,53 @@ export function BuilderView({ sessionId }: { sessionId: string | null }) {
 
         <div style={{ flex: 1, overflow: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
 
-          {/* Empty state */}
+          {/* Empty state — starter parties */}
           {pipeline.length === 0 && (
-            <div style={{
-              padding: '36px 28px', textAlign: 'center',
-              border: '1px dashed var(--chrome-dd)',
-              fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text)',
-              lineHeight: 1.8,
-            }}>
-              Browse the registry on the left and click any agent to add it here.
-              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text)' }}>
-                Each agent is identified by the keywords in its goal text.<br />
-                The router dispatches the goal to the matching agent automatically.
+            <div>
+              <div style={{
+                fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: 'var(--text)', marginBottom: 4,
+              }}>
+                Start with a ready-made party
+              </div>
+              <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+                One click picks a proven team — or pick agents yourself on the left.
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
+                {PLAYBOOKS.map(pb => {
+                  const found = pb.picks.filter(pat => agents.some(c => (c.agent_name || '').toLowerCase().includes(pat.toLowerCase()))).length;
+                  return (
+                    <button
+                      key={pb.key}
+                      onClick={() => loadPlaybook(pb)}
+                      disabled={agentsLoading || found === 0}
+                      style={{
+                        textAlign: 'left', cursor: found ? 'pointer' : 'default',
+                        padding: '10px 12px', background: 'var(--surface)',
+                        border: `2px solid ${pb.color}`, borderLeft: `5px solid ${pb.color}`,
+                        display: 'flex', flexDirection: 'column', gap: 4, opacity: found ? 1 : 0.5,
+                        transition: 'transform 80ms, box-shadow 80ms',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.boxShadow = `0 0 12px ${pb.color}66`; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span style={{ fontSize: 18 }}>{pb.emoji}</span>
+                        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{pb.name}</span>
+                        <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: pb.color }}>×{found}</span>
+                      </div>
+                      <div style={{ fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.35 }}>{pb.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div style={{
+                marginTop: 16, padding: '10px 14px', textAlign: 'center',
+                border: '1px dashed var(--chrome-dd)',
+                fontFamily: 'var(--font-ui)', fontSize: 11.5, color: 'var(--text-muted)', lineHeight: 1.6,
+              }}>
+                Each agent then takes a file/paste to scan; hit Simulate, then Run.
               </div>
             </div>
           )}
