@@ -80,11 +80,14 @@ NONE = "none"
 CLASSIFIER_ID = "content-signals@1"
 
 # Provenance for terrain recovered from pre-provenance traces (PR #30): we have
-# the class but NOT a record of which classifier produced it. We assert ignorance
-# rather than backfilling a version we can't vouch for — labeling a legacy trace
-# as `content-signals@1` would relaunder an interpretation as a known fact, the
-# exact bug provenance exists to prevent.
+# the recorded `class`, but NOT a record of which classifier produced it OR at
+# which stage. Both reconstructed fields assert ignorance rather than backfilling
+# values we can't vouch for — labeling a legacy trace as `content-signals@1` (or
+# even asserting the structurally-likely `submit`) would relaunder an
+# interpretation as a known fact, the exact bug provenance exists to prevent.
+# Only `class` (actually stored) is asserted; `by`/`at` say "unrecorded".
 LEGACY_CLASSIFIER = "unknown@pre-provenance"
+LEGACY_STAGE = "unknown"
 
 
 def classify_terrain(content: str) -> str:
