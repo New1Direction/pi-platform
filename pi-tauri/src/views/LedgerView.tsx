@@ -24,6 +24,73 @@ function KpiCard({ label, value, accent }: { label: string; value: string | numb
   );
 }
 
+function riskColor(score?: number): string {
+  if (score == null) return '#9aa6b0';
+  if (score >= 80) return '#cc2200';
+  if (score >= 65) return '#e07000';
+  if (score >= 50) return '#c9a200';
+  return '#2a9d4a';
+}
+
+// Battle History — a bar per run (oldest→newest), height = risk, color = severity.
+// Click a bar to open that trace. Pure SVG-free bars so it scales crisply.
+function BattleHistory({ traces, avgRisk, selectedId, onSelect }: {
+  traces: TraceListItem[]; avgRisk: number; selectedId: string | null; onSelect: (id: string) => void;
+}) {
+  const MAX = 60;
+  const H = 60;
+  const chron = [...traces].sort((a, b) => a.timestamp.localeCompare(b.timestamp)).slice(-MAX);
+  if (chron.length === 0) return null;
+
+  const Legend = ({ c, label }: { c: string; label: string }) => (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+      <span style={{ width: 8, height: 8, background: c, display: 'inline-block' }} /> {label}
+    </span>
+  );
+
+  return (
+    <div style={{ padding: '10px 16px', borderBottom: 'var(--bw)', flexShrink: 0, background: 'var(--surface)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text)' }}>
+          ⚔ Battle History
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
+          last {chron.length} runs · taller = higher risk · click a bar
+        </span>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 10, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--text-muted)' }}>
+          <Legend c="#2a9d4a" label="safe" /><Legend c="#c9a200" label="elevated" /><Legend c="#cc2200" label="critical" />
+        </div>
+      </div>
+      <div style={{
+        position: 'relative', height: H, display: 'flex', alignItems: 'flex-end', gap: 2, padding: '0 2px',
+        background: 'linear-gradient(var(--paper-2), var(--surface))', border: '1px solid var(--paper-3)',
+      }}>
+        {/* average-risk line */}
+        <div title={`avg risk ${avgRisk.toFixed(0)}`} style={{
+          position: 'absolute', left: 0, right: 0, bottom: (avgRisk / 100) * H, borderTop: '1px dashed var(--text-muted)', opacity: 0.55,
+        }} />
+        {chron.map(t => {
+          const r = t.risk_score ?? 0;
+          const sel = t.trace_id === selectedId;
+          const anom = (t.anomalies_detected?.length ?? 0) > 0;
+          return (
+            <div
+              key={t.id}
+              title={`${t.routed_agent || '—'} · risk ${r.toFixed(0)}${anom ? ' · ⚠ anomaly' : ''}\n${new Date(t.timestamp).toLocaleString()}`}
+              onClick={() => onSelect(t.trace_id)}
+              style={{
+                flex: 1, minWidth: 3, height: Math.max(5, (r / 100) * H), background: riskColor(r),
+                cursor: 'pointer', opacity: t.success === false ? 0.5 : 1,
+                outline: sel ? '2px solid var(--text)' : 'none', outlineOffset: -1,
+              }}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TraceDetail({ traceId }: { traceId: string }) {
   const [detail, setDetail] = useState<TraceDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -123,6 +190,14 @@ export function LedgerView() {
           </Tooltip>
         </div>
       )}
+
+      {/* ── Battle History graph ── */}
+      <BattleHistory
+        traces={traces}
+        avgRisk={summary?.avg_risk_score ?? 0}
+        selectedId={selected}
+        onSelect={id => setSelected(s => (s === id ? null : id))}
+      />
 
       {/* ── Toolbar ── */}
       <div style={{
