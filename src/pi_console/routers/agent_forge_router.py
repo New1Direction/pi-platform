@@ -11,6 +11,8 @@ Endpoints:
 from __future__ import annotations
 
 import ast
+import json
+import os
 import re
 import shutil
 import subprocess
@@ -142,6 +144,44 @@ class PromoteResponse(BaseModel):
     router_edit: str
     consensus_edit: str
     validated: bool
+
+
+class TestSample(BaseModel):
+    label: str = ""
+    content: str
+    expect_finding: bool = Field(
+        ..., description="True if this sample SHOULD be flagged (vulnerable); False if it should stay clean"
+    )
+
+
+class TestRequest(BaseModel):
+    filename: str = Field(..., description="Pending module filename, e.g. pi_sql_injection_detector.py")
+    samples: List[TestSample] = Field(..., min_length=1, description="Inputs to trial the agent against")
+
+
+class SampleResult(BaseModel):
+    label: str
+    expect_finding: bool
+    flagged: bool
+    risk_score: float
+    findings: List[str]
+    passed: bool
+    error: str = ""
+
+
+class RobustnessResult(BaseModel):
+    runs: int
+    stable: bool
+    verdicts: List[bool]
+
+
+class TestResponse(BaseModel):
+    agent_name: str
+    samples: List[SampleResult]
+    caught: int
+    total: int
+    robustness: RobustnessResult
+    ready: bool
 
 
 # ---------------------------------------------------------------------------
@@ -498,4 +538,164 @@ async def promote_agent(req: PromoteRequest) -> PromoteResponse:
         router_edit=import_line,
         consensus_edit=branch.strip(),
         validated=True,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Test bench — run a pending agent against samples in an ISOLATED subprocess.
+# This never imports the agent into the running backend or touches the live
+# orchestrator/router; it spawns a fresh interpreter, loads the file by path,
+# runs scan() on each sample, and reports. Audit must pass first.
+# ---------------------------------------------------------------------------
+
+_TEST_DRIVER = r"""
+import sys, json, importlib.util
+
+def main():
+    job = json.load(sys.stdin)
+    path = job["module_path"]; cls = job["class_name"]; method = job["method_name"]
+    spec = importlib.util.spec_from_file_location("pending_under_test", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+
+    AgentClass = getattr(mod, cls)
+    InputClass = getattr(mod, cls + "Input", None)
+    if InputClass is None:
+        try:
+            from pydantic import BaseModel
+            for name in dir(mod):
+                obj = getattr(mod, name)
+                if isinstance(obj, type) and issubclass(obj, BaseModel) and name.endswith("Input"):
+                    InputClass = obj; break
+        except Exception:
+            InputClass = None
+
+    def field_name():
+        try:
+            fields = list(InputClass.model_fields.keys())
+        except Exception:
+            fields = []
+        if "content" in fields:
+            return "content"
+        return fields[0] if fields else "content"
+
+    fn = field_name()
+    agent = AgentClass()
+
+    def run_one(content):
+        try:
+            inp = InputClass(**{fn: content}) if InputClass is not None else content
+            out = getattr(agent, method)(inp)
+            is_secure = getattr(out, "is_secure", None)
+            risk = getattr(out, "risk_score", 0.0) or 0.0
+            findings = getattr(out, "flagged_issues", None)
+            if findings is None:
+                findings = getattr(out, "flagged_findings", None)
+            if findings is None:
+                findings = []
+            if not isinstance(findings, list):
+                findings = [str(findings)]
+            flagged = (is_secure is False) or (len(findings) > 0)
+            return {"flagged": bool(flagged), "risk_score": float(risk),
+                    "findings": [str(x) for x in findings][:10], "error": ""}
+        except Exception as e:
+            return {"flagged": False, "risk_score": 0.0, "findings": [], "error": type(e).__name__ + ": " + str(e)}
+
+    results = [run_one(c) for c in job["samples"]]
+    robustness = []
+    target = job.get("perturb")
+    if target is not None:
+        for p in [target, target + "\n ", "  " + target, target + " "]:
+            robustness.append(run_one(p)["flagged"])
+    print(json.dumps({"results": results, "robustness": robustness}))
+
+main()
+"""
+
+
+@router.post("/test", response_model=TestResponse)
+async def test_agent(req: TestRequest) -> TestResponse:
+    """Trial a pending agent against vulnerable/clean samples + a robustness check.
+
+    Runs the agent's scan() in a fresh, isolated subprocess (timeout-capped).
+    The live backend is never touched. Audit must pass before a test runs.
+    """
+    src = _safe_pending_path(req.filename)
+    if not src.exists():
+        raise HTTPException(status_code=404, detail=f"{req.filename} not found in pending/")
+
+    code = src.read_text(encoding="utf-8")
+    audit = _run_audit(code)
+    if not audit.passed:
+        bad = [f.message for f in audit.findings if f.severity in ("CRITICAL", "HIGH")]
+        raise HTTPException(status_code=422, detail=f"Audit must pass before testing: {bad}")
+
+    meta = _parse_agent_metadata(code)
+    if not meta:
+        raise HTTPException(status_code=422, detail="Could not parse agent class/method from AgentRouter.register")
+
+    # Perturb the first vulnerable sample (else the first sample) for the
+    # robustness check — whitespace variants should not flip the verdict.
+    target = next((s.content for s in req.samples if s.expect_finding), req.samples[0].content)
+    job = {
+        "module_path": str(src),
+        "class_name": meta["class_name"],
+        "method_name": meta["method_name"],
+        "samples": [s.content for s in req.samples],
+        "perturb": target,
+    }
+
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-c", _TEST_DRIVER],
+            input=json.dumps(job),
+            cwd=str(REPO_ROOT),
+            env={"PYTHONPATH": str(SRC_DIR), "PATH": os.environ.get("PATH", "")},
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise HTTPException(status_code=504, detail="Agent test timed out (30s) — possible infinite loop") from exc
+
+    if proc.returncode != 0:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-5:]
+        raise HTTPException(status_code=500, detail="Test harness failed:\n" + "\n".join(tail))
+
+    try:
+        out = json.loads(proc.stdout.strip().splitlines()[-1])
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Could not parse test output: {exc}") from exc
+
+    results: List[SampleResult] = []
+    caught = 0
+    for sample, r in zip(req.samples, out["results"]):
+        flagged = bool(r["flagged"])
+        passed = (flagged == sample.expect_finding) and not r["error"]
+        if passed:
+            caught += 1
+        results.append(
+            SampleResult(
+                label=sample.label or ("vulnerable" if sample.expect_finding else "clean"),
+                expect_finding=sample.expect_finding,
+                flagged=flagged,
+                risk_score=float(r["risk_score"]),
+                findings=list(r["findings"]),
+                passed=passed,
+                error=str(r["error"]),
+            )
+        )
+
+    verdicts = [bool(v) for v in out.get("robustness", [])]
+    stable = len(set(verdicts)) <= 1
+    robustness = RobustnessResult(runs=len(verdicts), stable=stable, verdicts=verdicts)
+    ready = caught == len(results) and stable and len(results) > 0
+
+    return TestResponse(
+        agent_name=str(meta["agent_name"]),
+        samples=results,
+        caught=caught,
+        total=len(results),
+        robustness=robustness,
+        ready=ready,
     )
