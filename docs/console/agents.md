@@ -25,9 +25,29 @@ fallback). The Type drives the creature's color everywhere it appears:
   <span class="pi-chip" style="color:var(--t-runtime)">⚙️ Runtime</span>
 </div>
 
-Stats are flavor (it's a game) but **deterministic** — a given agent always renders the
-same Type, stats, and creature, because everything is seeded from its name. That's a
-recognizability layer, not random art: drop in real sprites later and the seeding stays.
+The **Type and creature** are seeded from the agent's name — a deterministic
+recognizability layer (the same agent looks identical everywhere; drop in real sprites
+later and the seeding stays).
+
+The **stats are real**, aggregated live from the [Battle Log](ledger.md):
+
+- **Runs** — how many times this agent has actually executed.
+- **Find rate** — share of its runs that surfaced real risk (≥50) or an anomaly.
+- **Avg risk** — mean risk score it has returned.
+- **Reliability** — share of runs that completed without failure.
+- **⚠ Routing ambiguity** — a structural flag: when an agent shares a keyword with
+  others, routing by that keyword may land elsewhere. Derived from the registry, not the
+  ledger.
+
+Agents that haven't run yet read **"no ledger runs yet"** — truth over flavor; a fresh
+ledger genuinely has nothing to show.
+
+!!! note "Not shown yet: concentration / terrain"
+    A *specialist* (fires on one terrain) and a *generalist* (fires everywhere) can have
+    identical find-rates — the difference is **concentration across terrain.** That needs
+    a terrain label recorded per run, which the ledger doesn't store yet, so it is
+    deliberately **not** computed: a faithful concentration score can't be faked from data
+    we don't have. It's the next step toward the Migration Map, not this slice.
 
 ## What a capability looks like
 
