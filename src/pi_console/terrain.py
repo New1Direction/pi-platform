@@ -1,13 +1,19 @@
-"""Terrain classification for execution traces.
+"""Terrain inference for execution traces.
 
-A run's *terrain* is the dominant content-type of the artifact it scanned —
-the conditioning variable a Migration Map needs ("which agent wins *here*",
-not just "who wins"). It is recorded per run so that, as real history
-accumulates, instinct can become terrain-conditioned instead of global.
+A run's *terrain* is an **interpretation**, not a property of the input: it is
+the content-class our classifier *assigns* to the artifact — a different
+classifier could assign a different one. It belongs to the mutable, fallible
+interpretation layer, never the immutable ground-truth layer (input / output /
+gate decision). We stamp it with provenance (``by`` = classifier id, ``at`` =
+stage) precisely so it can never be mistaken for truth, and so divergence
+between classifiers/versions stays measurable later.
+
+It is the conditioning variable a Migration Map would need ("which agent wins
+*here*", not just "who wins"), recorded per run while it's cheap to log.
 
 These signals mirror the frontend's ``orientation.ts`` ``CONTENT_SIGNALS`` so
-the console and the desktop app agree on what a file "looks like". Pure and
-deterministic: same content in, same label out. Metadata only — terrain never
+the console and the desktop app agree on the lens. Pure and deterministic: same
+content + same classifier in, same label out. Metadata only — terrain never
 enters any content-addressed hash or the gate; it is observability.
 """
 
@@ -68,6 +74,11 @@ _SIGNALS: Dict[str, List[Pattern[str]]] = {
 
 NONE = "none"
 
+# Bump when the signal set / taxonomy changes. Stamped onto every terrain tag so
+# that, when the lens moves, disagreement between versions becomes detectable
+# rather than silently overwriting history.
+CLASSIFIER_ID = "content-signals@1"
+
 
 def classify_terrain(content: str) -> str:
     """Return the dominant terrain key for ``content`` (or ``"none"``).
@@ -87,18 +98,20 @@ def classify_terrain(content: str) -> str:
     return best_key
 
 
-def stamp_terrain(raw_output_json: str, terrain: str) -> str:
-    """Inject the terrain label into a trace's raw_output JSON (best-effort).
+def stamp_terrain(raw_output_json: str, terrain: str, *, stage: str = "submit") -> str:
+    """Stamp a provenance-tagged terrain interpretation onto a trace's raw_output.
 
-    raw_output is the trace's data bag (where routed_agent/risk_score/anomalies
-    already live), parsed loosely at read time — so terrain rides alongside its
-    siblings. Never touches any hash; on malformed JSON the original is returned
-    unchanged.
+    The tag is a structured object — ``{"class", "by", "at"}`` — not a bare
+    scalar, so it self-labels as a fallible interpretation rather than masquerading
+    as part of the agent's ground-truth output (``risk_score``/``anomalies``) that
+    shares this JSON. ``by`` records the classifier version and ``at`` the stage,
+    which is the substrate a future cross-classifier / drift disagreement analysis
+    needs. Never touches any hash; on malformed JSON the original is returned.
     """
     try:
         data = json.loads(raw_output_json)
         if isinstance(data, dict):
-            data["terrain"] = terrain
+            data["terrain"] = {"class": terrain, "by": CLASSIFIER_ID, "at": stage}
             return json.dumps(data, default=str)
     except (ValueError, TypeError):
         pass

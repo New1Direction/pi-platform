@@ -576,8 +576,10 @@ class CoreAdapter:
             # orchestrator routes on a synthetic descriptor and always falls back
             # to PiMasterGeneralistFallback.
             goal = artifact.get("goal") or f"{node.operation} on {node.runtime} for {node.node_id}"
-            # Terrain of the scanned content — the conditioning variable for a
-            # future Migration Map. Recorded per run; metadata only.
+            # Terrain = the content-class our classifier *infers* for this input
+            # (an interpretation, not a property of the input). Stamped with
+            # provenance so it stays in the fallible interpretation layer; metadata
+            # only — never enters a hash or the gate.
             _content = artifact.get("content")
             terrain = classify_terrain(_content if isinstance(_content, str) else "")
             ctx: Dict[str, Any] = {

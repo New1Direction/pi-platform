@@ -37,7 +37,9 @@ class TraceListItem(BaseModel):
     risk_score: Optional[float] = None
     output_summary: Optional[str] = None
     anomalies_detected: List[str] = Field(default_factory=list)
-    terrain: Optional[str] = None  # dominant content-type of the scanned input
+    # Interpretation layer (fallible, classifier-assigned) — NOT a property of the
+    # input. {"class", "by" (classifier id), "at" (stage)}. None when never stamped.
+    terrain: Optional[Dict[str, Any]] = None
 
 
 class PaginatedTracesResponse(BaseModel):
@@ -85,6 +87,20 @@ def parse_raw_output(raw_str: str) -> Dict[str, Any]:
         return json.loads(raw_str)
     except Exception:
         return {}
+
+
+def _norm_terrain(val: Any) -> Optional[Dict[str, Any]]:
+    """Normalize a stored terrain tag to the provenance-bearing object form.
+
+    New traces store ``{"class", "by", "at"}``; pre-provenance traces stored a
+    bare ``"class"`` string. Coerce the latter so the read surface is uniform and
+    callers never have to special-case the legacy shape.
+    """
+    if isinstance(val, dict):
+        return val
+    if isinstance(val, str):
+        return {"class": val, "by": "legacy", "at": "submit"}
+    return None
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────
@@ -186,7 +202,7 @@ async def get_traces(
                 risk_score=risk,
                 output_summary=parsed.get("output_summary"),
                 anomalies_detected=parsed.get("anomalies_detected", []),
-                terrain=parsed.get("terrain"),
+                terrain=_norm_terrain(parsed.get("terrain")),
             )
         )
 

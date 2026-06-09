@@ -349,10 +349,10 @@ export function LedgerView({ govMode = 'gate' }: { govMode?: 'gate' | 'compass' 
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Creature seed={t.routed_agent} color={agentTypeOf(humanizeAgentName(t.routed_agent), []).color} size={18} />
                         {humanizeAgentName(t.routed_agent)}
-                        {t.terrain && t.terrain !== 'none' && TYPE_META[t.terrain] && (
-                          <Tooltip tip={`Terrain — the scanned input looked like ${TYPE_META[t.terrain].label}. The conditioning variable for the Migration Map.`}>
-                            <span style={{ fontSize: 10, color: TYPE_META[t.terrain].color, fontWeight: 700, cursor: 'help' }}>
-                              {TYPE_META[t.terrain].emoji}
+                        {t.terrain?.class && t.terrain.class !== 'none' && TYPE_META[t.terrain.class] && (
+                          <Tooltip tip={`Terrain — a classifier (${t.terrain.by ?? 'unknown'}) read this input as ${TYPE_META[t.terrain.class].label}. An interpretation, not a property of the input.`}>
+                            <span style={{ fontSize: 10, color: TYPE_META[t.terrain.class].color, fontWeight: 700, cursor: 'help' }}>
+                              {TYPE_META[t.terrain.class].emoji}
                             </span>
                           </Tooltip>
                         )}
