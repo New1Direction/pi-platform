@@ -68,7 +68,9 @@ function buildRequest(pipeline: PipelineNode[], sessionId: string) {
       node_id: n.id,
       runtime: 'pi-extension-governor',
       operation: 'SANDBOX',
-      artifacts: [{ goal: n.goal, content: n.content, filename: n.filename }],
+      // target_agent pins dispatch to the exact agent the user picked, so it can't
+      // be shadowed by an earlier-registered keyword collision (pick X → run X).
+      artifacts: [{ goal: n.goal, content: n.content, filename: n.filename, target_agent: n.seed }],
       required_schema_version: '1.0.0',
       bounds: { max_depth: 3, max_fanout: 4 },
       dependencies: i > 0 ? [pipeline[i - 1].id] : [],

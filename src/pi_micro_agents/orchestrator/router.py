@@ -455,6 +455,18 @@ class AgentRouter:
     @classmethod
     def resolve(cls, goal: str, context: Dict[str, Any] | None = None) -> AgentRoute | None:
         """Determines the target route based on goal keyword matches (sequential precedence)."""
+        # Explicit target (highest precedence): when a caller names the exact agent
+        # it wants — e.g. the console Party, which knows precisely which agent the
+        # user picked — honor it directly. Keyword resolution is sequential
+        # first-match-wins, so without this an agent can be shadowed by an
+        # earlier-registered route sharing a word (e.g. "security audit"). Opt-in:
+        # callers that don't set target_agent (incl. the parity harness) are
+        # unaffected and fall through to the keyword path below.
+        target = (context or {}).get("target_agent")
+        if target:
+            for route in cls.routes:
+                if route.agent_name == target:
+                    return route
         # NEW: Needle fast path first
         try:
             from pi_micro_agents.orchestrator.needle_router import NeedleRouter
