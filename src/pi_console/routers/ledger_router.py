@@ -37,6 +37,7 @@ class TraceListItem(BaseModel):
     risk_score: Optional[float] = None
     output_summary: Optional[str] = None
     anomalies_detected: List[str] = Field(default_factory=list)
+    terrain: Optional[str] = None  # dominant content-type of the scanned input
 
 
 class PaginatedTracesResponse(BaseModel):
@@ -185,6 +186,7 @@ async def get_traces(
                 risk_score=risk,
                 output_summary=parsed.get("output_summary"),
                 anomalies_detected=parsed.get("anomalies_detected", []),
+                terrain=parsed.get("terrain"),
             )
         )
 
