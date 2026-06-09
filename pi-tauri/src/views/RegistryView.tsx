@@ -1,29 +1,40 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { listAllCapabilities } from '../lib/api';
+import { listAllCapabilities, getAllLedgerTraces } from '../lib/api';
 import { humanizeAgentName } from '../lib/humanize';
-import { agentTypeOf, agentStats, TYPES } from '../lib/agentdex';
+import { agentTypeOf, TYPES } from '../lib/agentdex';
+import { aggregateAgentStats, routingAmbiguity } from '../lib/agentstats';
+import type { AgentStat, RoutingAmbiguity } from '../lib/agentstats';
 import { Creature } from '../components/Creature';
+import { Tooltip } from '../components/Tooltip';
 import type { MarketplaceCapability } from '../types';
 
-function StatBar({ label, value, color }: { label: string; value: number; color: string }) {
+function riskColor(v: number): string {
+  if (v >= 80) return '#cc2200';
+  if (v >= 50) return '#e07000';
+  if (v > 0) return '#c9a200';
+  return '#2a9d4a';
+}
+
+// A real, ledger-derived stat bar (label · bar · value). value is 0..100.
+function StatBar({ label, value, suffix, color }: { label: string; value: number; suffix?: string; color: string }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-      <span className="forge-pixel" style={{ fontSize: 6, color: 'var(--text-muted)', width: 22, flexShrink: 0 }}>{label}</span>
+      <span className="forge-pixel" style={{ fontSize: 6, color: 'var(--text-muted)', width: 30, flexShrink: 0 }}>{label}</span>
       <div style={{ flex: 1, height: 6, background: 'var(--paper-3)', overflow: 'hidden' }}>
-        <div style={{ width: `${value}%`, height: '100%', background: color }} />
+        <div style={{ width: `${Math.min(100, value)}%`, height: '100%', background: color }} />
       </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text)', width: 16, textAlign: 'right' }}>{value}</span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text)', width: 34, textAlign: 'right' }}>{value.toFixed(0)}{suffix ?? ''}</span>
     </div>
   );
 }
 
-function DexCard({ cap, dexNo }: { cap: MarketplaceCapability; dexNo: number }) {
+function DexCard({ cap, dexNo, stat, ambiguity }: { cap: MarketplaceCapability; dexNo: number; stat?: AgentStat; ambiguity?: RoutingAmbiguity }) {
   const name = cap.agent_name || cap.capability_id.replace(/^cap_/, '');
   const title = humanizeAgentName(name);
   const tags = cap.compatibility_tags ?? [];
   const type = agentTypeOf(name, tags);
-  const stats = agentStats(name, tags);
+  const ran = (stat?.runs ?? 0) > 0;
 
   return (
     <div style={{
@@ -59,11 +70,36 @@ function DexCard({ cap, dexNo }: { cap: MarketplaceCapability; dexNo: number }) 
         </div>
       </div>
 
-      {/* stats */}
+      {/* stats — REAL, from the ledger (no flavor numbers) */}
       <div style={{ padding: '2px 10px 8px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <StatBar label="POW" value={stats.POW} color={type.color} />
-        <StatBar label="CVR" value={stats.CVR} color={type.color} />
-        <StatBar label="SPD" value={stats.SPD} color={type.color} />
+        {ran && stat ? (
+          <>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 2 }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{stat.runs.toLocaleString()}</span>
+              <span className="forge-pixel" style={{ fontSize: 6, color: 'var(--text-muted)' }}>LEDGER RUNS</span>
+            </div>
+            <Tooltip tip="Share of this agent's runs that surfaced real risk (≥50) or an anomaly." wrapStyle={{ display: 'block' }}>
+              <StatBar label="FIND" value={stat.findRate * 100} suffix="%" color={type.color} />
+            </Tooltip>
+            <Tooltip tip="Mean risk score this agent has returned across its runs." wrapStyle={{ display: 'block' }}>
+              <StatBar label="RISK" value={stat.avgRisk} color={riskColor(stat.avgRisk)} />
+            </Tooltip>
+            <Tooltip tip="Share of runs that completed without failure." wrapStyle={{ display: 'block' }}>
+              <StatBar label="RELY" value={stat.reliability * 100} suffix="%" color="#2a9d4a" />
+            </Tooltip>
+          </>
+        ) : (
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', padding: '4px 0', textAlign: 'center', border: '1px dashed var(--paper-3)' }}>
+            no ledger runs yet
+          </div>
+        )}
+        {ambiguity && ambiguity.shared > 0 && (
+          <Tooltip tip={`This agent shares a keyword with ${ambiguity.shared} other agent${ambiguity.shared !== 1 ? 's' : ''}, so routing by that keyword may land elsewhere.\ne.g. ${ambiguity.collidesWith.slice(0, 3).map(humanizeAgentName).join(', ')}`} wrapStyle={{ display: 'block' }}>
+            <div style={{ marginTop: 2, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: '#b7791f', display: 'flex', alignItems: 'center', gap: 4, cursor: 'help' }}>
+              ⚠ keyword shared with {ambiguity.shared}
+            </div>
+          </Tooltip>
+        )}
       </div>
 
       {/* moves */}
@@ -87,6 +123,7 @@ function DexCard({ cap, dexNo }: { cap: MarketplaceCapability; dexNo: number }) 
 
 export function RegistryView() {
   const [caps, setCaps] = useState<MarketplaceCapability[]>([]);
+  const [statsByAgent, setStatsByAgent] = useState<Record<string, AgentStat>>({});
   const [search, setSearch] = useState('');
   const [typeKey, setTypeKey] = useState<string>('ALL');
   const [loading, setLoading] = useState(true);
@@ -95,12 +132,24 @@ export function RegistryView() {
   const reload = () => {
     setLoading(true);
     setLoadError(null);
-    listAllCapabilities()
-      .then(r => setCaps(r.capabilities))
+    // Capabilities are required; ledger stats are best-effort (a fresh ledger is
+    // simply "no runs yet", never an error on the dex).
+    Promise.all([
+      listAllCapabilities(),
+      getAllLedgerTraces().then(aggregateAgentStats).catch(() => ({} as Record<string, AgentStat>)),
+    ])
+      .then(([capsRes, stats]) => { setCaps(capsRes.capabilities); setStatsByAgent(stats); })
       .catch(e => setLoadError(String(e)))
       .finally(() => setLoading(false));
   };
   useEffect(() => { reload(); }, []);
+
+  const ambiguityByAgent = useMemo(() => routingAmbiguity(caps), [caps]);
+  const nameOf = (c: MarketplaceCapability) => c.agent_name || c.capability_id.replace(/^cap_/, '');
+  const ranCount = useMemo(
+    () => caps.filter(c => (statsByAgent[nameOf(c)]?.runs ?? 0) > 0).length,
+    [caps, statsByAgent],
+  );
 
   // Stable dex number per agent (position in the full, name-sorted list).
   const dexNoById = useMemo(() => {
@@ -134,7 +183,7 @@ export function RegistryView() {
       }}>
         <span className="forge-pixel" style={{ fontSize: 11, color: 'var(--heat)' }}>AGENTDEX</span>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#c9a784' }}>
-          {loading ? 'loading…' : loadError ? 'offline' : `${caps.length} captured · gotta scan 'em all`}
+          {loading ? 'loading…' : loadError ? 'offline' : `${caps.length} captured · ${ranCount} with ledger runs`}
         </span>
         <div style={{ display: 'flex', flex: 1, maxWidth: 320, alignItems: 'center', border: '1px solid var(--ember)', background: '#120d0a', marginLeft: 'auto' }}>
           <Search size={13} style={{ margin: '0 8px', color: 'var(--heat)', flexShrink: 0 }} />
@@ -174,7 +223,7 @@ export function RegistryView() {
         flex: 1, overflow: 'auto', padding: 16,
         display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, alignContent: 'start',
       }}>
-        {filtered.map(c => <DexCard key={c.capability_id} cap={c} dexNo={dexNoById.get(c.capability_id) ?? 0} />)}
+        {filtered.map(c => <DexCard key={c.capability_id} cap={c} dexNo={dexNoById.get(c.capability_id) ?? 0} stat={statsByAgent[nameOf(c)]} ambiguity={ambiguityByAgent[nameOf(c)]} />)}
 
         {!loading && loadError && (
           <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: 48 }}>

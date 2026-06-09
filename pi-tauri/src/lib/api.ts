@@ -17,6 +17,7 @@ import type {
   SimulateCompositionResponse,
   TenantQuotaStatus,
   PaginatedTracesResponse,
+  TraceListItem,
   TraceDetailResponse,
   LedgerSummaryResponse,
 } from '../types';
@@ -124,6 +125,23 @@ export const getLedgerTraces = (
 
 export const getLedgerTraceDetail = (traceId: string) =>
   api<TraceDetailResponse>(`/ledger/trace/${traceId}`);
+
+// Page through the ledger to aggregate per-agent stats. Bounded so a huge ledger
+// can't run away — "stats from the last `max` runs" is an honest framing.
+export const getAllLedgerTraces = async (max = 2000): Promise<TraceListItem[]> => {
+  const PAGE = 100;
+  let all: TraceListItem[] = [];
+  let offset = 0;
+  let guard = 0;
+  while (all.length < max && guard < 40) {
+    const page = await getLedgerTraces(PAGE, offset);
+    all = all.concat(page.traces);
+    if (page.traces.length < PAGE || all.length >= page.total_count) break;
+    offset += PAGE;
+    guard += 1;
+  }
+  return all.slice(0, max);
+};
 
 export const getLedgerSummary = () =>
   api<LedgerSummaryResponse>('/ledger/summary');
