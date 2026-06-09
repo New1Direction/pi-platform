@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from pi_console.auth_guard import tenant_scope
-from pi_console.terrain import LEGACY_CLASSIFIER
+from pi_console.terrain import LEGACY_CLASSIFIER, LEGACY_STAGE
 
 router = APIRouter()
 
@@ -94,16 +94,16 @@ def _norm_terrain(val: Any) -> Optional[Dict[str, Any]]:
     """Normalize a stored terrain tag to the provenance-bearing object form.
 
     New traces store ``{"class", "by", "at"}``; pre-provenance traces stored a
-    bare ``"class"`` string. Coerce the latter so the read surface is uniform —
-    but mark its ``by`` as ``unknown@pre-provenance``, NOT a real classifier id:
-    the class was recorded, the classifier identity was not, so we assert
-    ignorance rather than backfilling a version we can't vouch for. ``at`` is the
-    structurally-known submit path (the only pre-provenance writer of terrain).
+    bare ``"class"`` string. Coerce the latter so the read surface is uniform, but
+    assert ignorance on everything that wasn't recorded: only ``class`` was stored,
+    so ``by`` and ``at`` both report "unrecorded" rather than backfilling a
+    classifier version or a stage we can't vouch for. Backfilling either would
+    relaunder an interpretation as a known fact — the exact bug provenance prevents.
     """
     if isinstance(val, dict):
         return val
     if isinstance(val, str):
-        return {"class": val, "by": LEGACY_CLASSIFIER, "at": "submit"}
+        return {"class": val, "by": LEGACY_CLASSIFIER, "at": LEGACY_STAGE}
     return None
 
 

@@ -16,7 +16,13 @@ from fastapi.testclient import TestClient
 
 from pi_console import main as console_main
 from pi_console.routers import ledger_router
-from pi_console.terrain import CLASSIFIER_ID, LEGACY_CLASSIFIER, classify_terrain, stamp_terrain
+from pi_console.terrain import (
+    CLASSIFIER_ID,
+    LEGACY_CLASSIFIER,
+    LEGACY_STAGE,
+    classify_terrain,
+    stamp_terrain,
+)
 
 
 # ── unit: classifier ────────────────────────────────────────────────────────
@@ -114,8 +120,10 @@ def test_router_normalizes_legacy_string_terrain(monkeypatch, tmp_path):
     _seed(db, json.dumps({"routed_agent": "X", "terrain": "web"}))
     r = _client(monkeypatch, db).get("/api/v1/ledger/traces?limit=10", headers={"X-Tenant-ID": "default"})
     t = r.json()["traces"][0]
-    assert t["terrain"] == {"class": "web", "by": LEGACY_CLASSIFIER, "at": "submit"}
+    # Only `class` was recorded; `by` and `at` both assert ignorance (symmetric).
+    assert t["terrain"] == {"class": "web", "by": LEGACY_CLASSIFIER, "at": LEGACY_STAGE}
     assert t["terrain"]["by"] != CLASSIFIER_ID  # never masquerade as v1
+    assert t["terrain"]["at"] != "submit"  # never assert an unrecorded stage
 
 
 # ── write path: submit stamps terrain on the written trace ──────────────────
