@@ -489,9 +489,29 @@ def get_verdict(agent_name: str, d: Dict[str, Any]) -> Any:
 # Verb hints used only to disambiguate the rare agent that exposes a helper method
 # alongside its single entry point (e.g. an ``audit_*`` next to a ``calculate_*``).
 _ENTRY_VERBS = (
-    "audit", "scan", "check", "detect", "analyze", "verify", "validate", "inspect",
-    "enforce", "generate", "evaluate", "assess", "review", "guard", "hunt", "heal",
-    "dispatch", "monitor", "trace", "lint", "optimize", "recommend", "remediate",
+    "audit",
+    "scan",
+    "check",
+    "detect",
+    "analyze",
+    "verify",
+    "validate",
+    "inspect",
+    "enforce",
+    "generate",
+    "evaluate",
+    "assess",
+    "review",
+    "guard",
+    "hunt",
+    "heal",
+    "dispatch",
+    "monitor",
+    "trace",
+    "lint",
+    "optimize",
+    "recommend",
+    "remediate",
 )
 _ENTRY_METHOD_CACHE: Dict[type, Optional[str]] = {}
 
