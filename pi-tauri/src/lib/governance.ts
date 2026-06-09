@@ -93,7 +93,7 @@ export function heading(signals: GovSignals): Heading {
   const alignment = clamp01(1 - deflection / 180);
 
   const label =
-    deflection < 25 ? 'Clear heading — safe' : deflection < 70 ? 'Drifting — adjust course' : 'Off course';
+    deflection < 25 ? 'On bearing — near Safe' : deflection < 70 ? 'Drifting — adjust course' : 'Off course';
   const color = alignment > 0.7 ? ALIGN_GREEN : alignment > 0.45 ? ALIGN_AMBER : ALIGN_RED;
 
   return { axes, headingDeg, magnitude, alignment, deflection, label, color };

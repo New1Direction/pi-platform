@@ -4,7 +4,10 @@ import type { GovSignals } from '../lib/governance';
 const ARROW: Record<number, string> = { 0: '↑', 90: '→', 135: '↘', 180: '↓', 225: '↙', 270: '←' };
 
 // A governance "compass": shows which way an action (or the fleet) is pulling
-// across the risk/trust/anomaly/… axes. North = Safe. A lens, not a control.
+// across the risk/trust/anomaly/… axes. North is the Safety *attractor* — a
+// direction you orient toward, not a destination you arrive at. The absolute
+// angle is decorative; the deflection from North is the signal. A lens, not a
+// control: the gate still enforces underneath.
 export function GovernanceCompass({ signals, title, caption }: { signals: GovSignals; title?: string; caption?: string }) {
   const h = computeHeading(signals);
   const C = 100;
