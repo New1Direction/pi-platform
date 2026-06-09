@@ -6,6 +6,7 @@ import { agentTypeOf, TYPES } from '../lib/agentdex';
 import { planRoute, contentHeading } from '../lib/orientation';
 import { distillInstincts } from '../lib/instincts';
 import type { Instincts } from '../lib/instincts';
+import { initHeat, applyFinding, rankRemaining, pickReason } from '../lib/navigate';
 import { Creature } from '../components/Creature';
 import type { MarketplaceCapability, SimulationReport } from '../types';
 import { Tooltip } from '../components/Tooltip';
@@ -32,6 +33,20 @@ type PipelineNode = {
 };
 
 type Phase = 'configure' | 'simulating' | 'review' | 'running' | 'done';
+
+// Phase 4 — one stop on the live descent. The route is the sequence of these,
+// each chosen from the realized risk of the ones before it.
+type LiveStep = {
+  nodeId: string;
+  name: string;
+  seed: string;
+  typeKey: string;
+  status: 'running' | 'done' | 'blocked' | 'error';
+  risk: number | null; // realized once done
+  found: string[]; // anomalies surfaced
+  reason: string; // why this agent was picked next
+  detail?: string; // gate/error note
+};
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -157,6 +172,11 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
   // to the pure Phase 2 content ordering.
   const [instincts, setInstincts] = useState<Instincts | null>(null);
 
+  // Phase 4 — live adaptive descent (compass mode, opt-in). Separate from the
+  // batch Simulate/Run flow, which is untouched.
+  const [liveSteps, setLiveSteps] = useState<LiveStep[]>([]);
+  const [liveStatus, setLiveStatus] = useState<'idle' | 'running' | 'done'>('idle');
+
   useEffect(() => {
     if (govMode !== 'compass') return;
     let alive = true;
@@ -257,11 +277,74 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
     } catch (e) { setError(String(e)); setPhase('review'); }
   };
 
-  const reset = () => {
-    setPhase('configure'); setReport(null); setLedgerId(null); setError(null);
+  // Read back the realized finding for the agent we just ran: newest matching
+  // trace wins, highest risk among its (possibly consensus-paired) traces.
+  const readFinding = async (agentSeed: string): Promise<{ risk: number; found: string[] }> => {
+    const tr = await getLedgerTraces(10, 0);
+    const mine = tr.traces.filter(t => t.routed_agent === agentSeed);
+    if (mine.length === 0) return { risk: 0, found: [] };
+    const top = mine.reduce((a, b) => ((b.risk_score ?? 0) > (a.risk_score ?? 0) ? b : a));
+    return { risk: top.risk_score ?? 0, found: top.anomalies_detected ?? [] };
   };
 
-  const isActive = phase === 'simulating' || phase === 'running';
+  // Phase 4 — the route emerges AS IT RUNS. Run the party one agent at a time;
+  // each agent's realized finding heats/cools the field and re-ranks who goes
+  // next. Every step is the SAME gated simulate→submit the batch run uses —
+  // this only chooses the order, live, from real results.
+  const runLive = async () => {
+    if (!sessionId || pipeline.length === 0 || liveStatus === 'running') return;
+    setError(null);
+    setLiveStatus('running');
+    const content = pipeline.map(n => n.content).join('\n').trim();
+    let heat = initHeat();
+    let remaining = [...pipeline];
+    const steps: LiveStep[] = [];
+    setLiveSteps([]);
+    const patch = (i: number, p: Partial<LiveStep>) => {
+      steps[i] = { ...steps[i], ...p };
+      setLiveSteps([...steps]);
+    };
+    try {
+      while (remaining.length > 0) {
+        const top = rankRemaining(remaining, content, instincts, heat)[0];
+        const node = top.agent;
+        remaining = remaining.filter(n => n.id !== node.id);
+        const i = steps.length;
+        steps.push({
+          nodeId: node.id, name: node.name, seed: node.seed, typeKey: top.typeKey,
+          status: 'running', risk: null, found: [], reason: pickReason(top, i === 0),
+        });
+        setLiveSteps([...steps]);
+
+        const req = buildRequest([node], sessionId);
+        const sim = await simulateComposition(req);
+        if (!sim.can_execute) {
+          patch(i, {
+            status: 'blocked',
+            detail: sim.report.risk_details[0] || sim.report.policy_violations[0] || 'gate blocked this step',
+          });
+          continue; // gate is authoritative — skip it, keep descending the rest
+        }
+        await submitComposition({ ...req, approved_by_user: true });
+        const f = await readFinding(node.seed);
+        patch(i, { status: 'done', risk: f.risk, found: f.found });
+        heat = applyFinding(heat, top.typeKey, f.risk);
+      }
+      setLiveStatus('done');
+    } catch (e) {
+      const last = steps.length - 1;
+      if (last >= 0 && steps[last].status === 'running') patch(last, { status: 'error', detail: String(e) });
+      setError(String(e));
+      setLiveStatus('done');
+    }
+  };
+
+  const reset = () => {
+    setPhase('configure'); setReport(null); setLedgerId(null); setError(null);
+    setLiveSteps([]); setLiveStatus('idle');
+  };
+
+  const isActive = phase === 'simulating' || phase === 'running' || liveStatus === 'running';
 
   return (
     <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
@@ -424,26 +507,99 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
                           </div>
                         ); })}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4, flex: 1, minWidth: 180 }}>
                           {learned
-                            ? 'The order emerged from the file and what past runs learned — then runs through the same gate.'
-                            : 'The order emerged from the file, not a fixed sequence — then runs through the same gate.'}
+                            ? 'Apply sets this static order; Run live lets the route re-pick after each finding. Both run through the same gate.'
+                            : 'Apply sets this static order; Run live lets the route re-pick after each finding. Both run through the same gate.'}
                         </span>
                         <button
                           onClick={() => applyRoute(planned.map(p => p.agent))}
-                          disabled={sameOrder}
+                          disabled={sameOrder || isActive}
                           style={{
-                            marginLeft: 'auto', flexShrink: 0, padding: '6px 12px',
-                            background: sameOrder ? 'var(--surface-2)' : 'linear-gradient(to right, #006677, #0088aa)',
-                            color: sameOrder ? 'var(--text-muted)' : '#fff', border: 'var(--bw)',
-                            cursor: sameOrder ? 'default' : 'pointer', fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
+                            flexShrink: 0, padding: '6px 12px',
+                            background: sameOrder || isActive ? 'var(--surface-2)' : 'linear-gradient(to right, #006677, #0088aa)',
+                            color: sameOrder || isActive ? 'var(--text-muted)' : '#fff', border: 'var(--bw)',
+                            cursor: sameOrder || isActive ? 'default' : 'pointer', fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
                           }}
                         >
                           {sameOrder ? '✓ already on route' : '↳ Apply this order'}
                         </button>
+                        <Tooltip tip={'Run the party live: pick the strongest agent, run it (gated, sandboxed),\nread what it found, then re-pick the next from the real result.\nThe route adapts to where the risk actually is.'}>
+                          <button
+                            onClick={runLive}
+                            disabled={!sessionId || isActive}
+                            style={{
+                              flexShrink: 0, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5,
+                              background: !sessionId || isActive ? 'var(--surface-2)' : 'linear-gradient(to right, #6a3fd6, #8a5cff)',
+                              color: !sessionId || isActive ? 'var(--text-muted)' : '#fff', border: 'var(--bw)',
+                              cursor: !sessionId || isActive ? 'default' : 'pointer', fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 700,
+                            }}
+                          >
+                            {liveStatus === 'running' ? '◇ descending…' : '◆ Run live'}
+                          </button>
+                        </Tooltip>
                       </div>
                     </>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ── Phase 4: Live descent — the route emerges as it runs ── */}
+          {liveSteps.length > 0 && (() => {
+            const done = liveSteps.filter(s => s.status === 'done');
+            const foundCount = done.filter(s => (s.risk ?? 0) >= 50 || s.found.length > 0).length;
+            const peak = done.reduce((m, s) => Math.max(m, s.risk ?? 0), 0);
+            return (
+              <div style={{ border: '2px solid #8a5cff', background: 'var(--surface)', boxShadow: '2px 2px 0 var(--chrome-dd)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--chrome-dd)', background: 'var(--surface-2)' }}>
+                  <Compass size={14} style={{ color: '#8a5cff' }} className={liveStatus === 'running' ? 'spin' : ''} />
+                  <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
+                    Live descent — the route emerges as it runs
+                  </span>
+                  <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
+                    {liveStatus === 'running' ? `step ${liveSteps.length}/${pipeline.length}…` : `${done.length} ran`}
+                  </span>
+                </div>
+                <div style={{ padding: '8px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {liveSteps.map((s, i) => {
+                    const t = TYPE_LABEL[s.typeKey];
+                    const r = s.risk ?? 0;
+                    const rc = r >= 80 ? '#cc2200' : r >= 50 ? '#e07000' : r > 0 ? '#c9a200' : '#2a9d4a';
+                    return (
+                      <div key={s.nodeId} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#8a5cff', width: 14, flexShrink: 0 }}>{i + 1}</span>
+                        <Creature seed={s.seed} color={t?.color ?? '#888'} size={18} />
+                        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)', flexShrink: 0 }}>{s.name}</span>
+                        {s.status === 'running' && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#8a5cff' }}>◇ running…</span>}
+                        {s.status === 'done' && (
+                          <span className="chip" style={{ background: rc + '22', borderColor: rc, color: rc, fontSize: 10 }}>
+                            risk {r.toFixed(0)}{r >= 50 ? ' 🔥' : ''}
+                          </span>
+                        )}
+                        {s.status === 'blocked' && <span className="chip chip-yellow" style={{ fontSize: 10 }}>gate blocked</span>}
+                        {s.status === 'error' && <span className="chip chip-red" style={{ fontSize: 10 }}>error</span>}
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.detail
+                            ? s.detail
+                            : s.found.length > 0
+                              ? `found: ${s.found[0]}`
+                              : s.status === 'done'
+                                ? 'clean'
+                                : s.reason}
+                        </span>
+                      </div>
+                    );
+                  })}
+                  {liveStatus === 'done' && (
+                    <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px dashed var(--paper-3)', fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text)' }}>
+                      Route complete — ran {done.length} agent{done.length !== 1 ? 's' : ''},
+                      {' '}<strong style={{ color: foundCount > 0 ? '#cc2200' : '#2a9d4a' }}>{foundCount} found risk</strong>
+                      {peak > 0 ? `, peak ${peak.toFixed(0)}` : ''}. Each run is hash-chained in the Battle Log.
+                      <button className="btn btn-sm" onClick={reset} style={{ marginLeft: 10 }}>Clear</button>
+                    </div>
                   )}
                 </div>
               </div>
