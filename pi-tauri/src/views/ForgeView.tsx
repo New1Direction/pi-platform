@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Eye, Save, RefreshCw, ChevronDown, ChevronRight, X, FlaskConical } from 'lucide-react';
+import { Eye, Save, ChevronDown, ChevronRight, X, FlaskConical } from 'lucide-react';
 import {
   forgeGenerate,
   forgeAudit,
@@ -100,7 +100,7 @@ export function ForgeView() {
   const [error, setError] = useState<string | null>(null);
   const [generated, setGenerated] = useState<ForgeGenerateResponse | null>(null);
   const [audit, setAudit] = useState<ForgeAuditResponse | null>(null);
-  const [savedPath, setSavedPath] = useState<string | null>(null);
+  const [, setSavedPath] = useState<string | null>(null);
   const [showCode, setShowCode] = useState(false);
 
   const canGenerate = description.trim().length > 0 && keywords.length > 0 && apiKey.trim().length > 0;
