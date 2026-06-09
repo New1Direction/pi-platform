@@ -24,9 +24,10 @@ a provable no-op when there's nothing to act on.
     <div class="pi-phase__n">Phase 1 — Compass</div>
     <div class="pi-phase__h">Which way is north</div>
     <p class="pi-phase__b">Composes the orchestrator's signals — risk, trust, anomaly,
-    instability — into a single heading. North is Safe; the needle is the resultant pull
-    across every run. Shown as the fleet heading in the Battle Log, and per-run on any
-    trace.</p>
+    instability — into a single heading. North is the Safety <em>attractor</em>: a
+    direction you continuously orient toward, never a destination you reach. The needle's
+    absolute angle is decorative; the <strong>deflection from North</strong> is the real
+    signal. Shown as the fleet heading in the Battle Log, and per-run on any trace.</p>
   </div>
   <div class="pi-phase">
     <div class="pi-phase__n">Phase 2 — Navigate</div>
@@ -69,7 +70,7 @@ Every phase is designed so it **cannot** override the concrete signal or the gat
   blocked node is *skipped*, never forced. No backend path is bypassed.
 
 <div class="pi-chips">
-  <span class="pi-chip safe">North = Safe</span>
+  <span class="pi-chip safe">North = Safety attractor</span>
   <span class="pi-chip elevated">deflection = drift</span>
   <span class="pi-chip critical">180° = pure risk</span>
 </div>
@@ -91,3 +92,33 @@ The metaphor is the monarch butterfly: no single butterfly holds the map, yet th
 migrates thousands of miles by each one orienting locally. The Compass is that —
 **global coordination through local orientation.** Planning emerges; enforcement stays
 exactly where it was.
+
+## Design note — why North stays fixed
+
+"What is North?" has three tempting answers, and they're not rivals — they're the three
+layers of the system:
+
+| Candidate | Where it lives | Status |
+|-----------|----------------|--------|
+| **Safety** — no violations, anomalies, instability | **North — the axiom** | Fixed |
+| **Success** — find real issues, look where it's productive | the field + [Phase 3 instincts](#the-four-phases) | Learned, dynamic |
+| **Efficiency** — cost, latency | repulsors already in the field | Live, deflect-only |
+
+North stays **Safety** for the same reason the Compass never touches the gate: Safety is
+what the gate optimizes, so pinning the attractor to Safety guarantees the lens and the
+wall point the same way — the suggestion can never pull *against* enforcement.
+
+A **"Fitness North"** (safe + effective + efficient) is the trap: it folds the whole
+field *into* the attractor, and a Fitness-North learned from a passing-audit ledger
+converges on *"looks safe enough, and cheap"* — perfectly adapted to obsolete conditions.
+The multi-objective belongs in the field; the attractor stays mono-objective.
+
+!!! note "If North is ever allowed to move (a deferred Phase 5)"
+    A "Learned North" would let history *refine* the safety attractor — `North′ =
+    North_axiom + ε · North_learned`. It must be bounded in **two** ways: **magnitude**
+    (ε small, so axioms outrank experience) *and* **direction** (the learned part may only
+    refine *what safe terrain looks like* — never rotate toward *what passed* or *what was
+    productive*). Without the direction bound, a tiny ε of the wrong objective still rots
+    the axiom, because the feedback loop compounds. Until there's migration data worth
+    bending North with, **North stays fixed** — the Compass learns, the Gate doesn't, and
+    neither does North.

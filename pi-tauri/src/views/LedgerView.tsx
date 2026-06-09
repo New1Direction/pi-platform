@@ -239,7 +239,7 @@ export function LedgerView({ govMode = 'gate' }: { govMode?: 'gate' | 'compass' 
               unstable: Math.min(1, (100 - summary.success_rate) / 100 + summary.consensus_divergence_alerts / Math.max(1, summary.total_traces)),
               trust: 1,
             }}
-            caption="North = Safe. The needle is the resultant pull across every run. A lens only — the gate still enforces pass/fail underneath."
+            caption="North is the Safety attractor — you orient toward it, you never arrive. The needle's angle is decorative; the deflection from North is the signal. A lens only — the gate still enforces underneath."
           />
           <InstinctsReadout traces={traces} />
         </div>
