@@ -287,11 +287,12 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
     return { risk: top.risk_score ?? 0, found: top.anomalies_detected ?? [] };
   };
 
-  // Phase 4 — the route emerges AS IT RUNS. Run the party one agent at a time;
-  // each agent's realized finding heats/cools the field and re-ranks who goes
-  // next. Every step is the SAME gated simulate→submit the batch run uses —
-  // this only chooses the order, live, from real results.
-  const runLive = async () => {
+  // Run the party LIVE — one agent at a time, showing each agent execute and what
+  // it found, as it happens. Every step is the SAME gated simulate→submit the batch
+  // run uses. `adaptive` (Compass mode) re-ranks who goes next from realized
+  // findings (the route emerges); non-adaptive (Gate mode, the default) just runs
+  // your party in order — but with full per-agent visibility either way.
+  const runLive = async (adaptive = false) => {
     if (!sessionId || pipeline.length === 0 || liveStatus === 'running') return;
     setError(null);
     setLiveStatus('running');
@@ -306,13 +307,26 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
     };
     try {
       while (remaining.length > 0) {
-        const top = rankRemaining(remaining, content, instincts, heat)[0];
-        const node = top.agent;
-        remaining = remaining.filter(n => n.id !== node.id);
+        let node: PipelineNode;
+        let typeKey: string;
+        let reason: string;
+        if (adaptive) {
+          const top = rankRemaining(remaining, content, instincts, heat)[0];
+          node = top.agent;
+          typeKey = top.typeKey;
+          reason = pickReason(top, steps.length === 0);
+          remaining = remaining.filter(n => n.id !== node.id);
+        } else {
+          const next = remaining.shift();
+          if (!next) break;
+          node = next;
+          typeKey = agentTypeOf(node.seed, node.tags).key;
+          reason = 'in party order';
+        }
         const i = steps.length;
         steps.push({
-          nodeId: node.id, name: node.name, seed: node.seed, typeKey: top.typeKey,
-          status: 'running', risk: null, found: [], reason: pickReason(top, i === 0),
+          nodeId: node.id, name: node.name, seed: node.seed, typeKey,
+          status: 'running', risk: null, found: [], reason,
         });
         setLiveSteps([...steps]);
 
@@ -323,12 +337,12 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
             status: 'blocked',
             detail: sim.report.risk_details[0] || sim.report.policy_violations[0] || 'gate blocked this step',
           });
-          continue; // gate is authoritative — skip it, keep descending the rest
+          continue; // gate is authoritative — skip it, keep going
         }
         await submitComposition({ ...req, approved_by_user: true });
         const f = await readFinding(node.seed);
         patch(i, { status: 'done', risk: f.risk, found: f.found });
-        heat = applyFinding(heat, top.typeKey, f.risk);
+        if (adaptive) heat = applyFinding(heat, typeKey, f.risk);
       }
       setLiveStatus('done');
     } catch (e) {
@@ -527,7 +541,7 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
                         </button>
                         <Tooltip tip={'Run the party live: pick the strongest agent, run it (gated, sandboxed),\nread what it found, then re-pick the next from the real result.\nThe route adapts to where the risk actually is.'}>
                           <button
-                            onClick={runLive}
+                            onClick={() => runLive(true)}
                             disabled={!sessionId || isActive}
                             style={{
                               flexShrink: 0, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 5,
@@ -555,9 +569,11 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
             return (
               <div style={{ border: '2px solid #8a5cff', background: 'var(--surface)', boxShadow: '2px 2px 0 var(--chrome-dd)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderBottom: '1px solid var(--chrome-dd)', background: 'var(--surface-2)' }}>
-                  <Compass size={14} style={{ color: '#8a5cff' }} className={liveStatus === 'running' ? 'spin' : ''} />
+                  {govMode === 'compass'
+                    ? <Compass size={14} style={{ color: '#8a5cff' }} className={liveStatus === 'running' ? 'spin' : ''} />
+                    : <Play size={14} style={{ color: '#8a5cff' }} className={liveStatus === 'running' ? 'spin' : ''} />}
                   <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
-                    Live descent — the route emerges as it runs
+                    {govMode === 'compass' ? 'Live descent — the route emerges as it runs' : 'Live run — your party, one agent at a time'}
                   </span>
                   <span style={{ marginLeft: 'auto', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>
                     {liveStatus === 'running' ? `step ${liveSteps.length}/${pipeline.length}…` : `${done.length} ran`}
@@ -796,11 +812,25 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
           )}
 
           {/* Action buttons */}
-          {(phase === 'configure' || phase === 'review') && pipeline.length > 0 && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <Tooltip tip="Dry-run the pipeline. Validates the DAG, checks policy, risk, and bounds.\nNo agents are called.">
+          {(phase === 'configure' || phase === 'review') && pipeline.length > 0 && liveStatus !== 'running' && (
+            <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+              <Tooltip tip={'Run the whole party LIVE — each agent runs in a sandbox, one at a time,\nand you watch its result (risk + findings) appear as it goes.\nNo dry-run needed.'}>
                 <button
-                  className="btn"
+                  className="btn btn-green"
+                  onClick={() => runLive(govMode === 'compass')}
+                  disabled={!sessionId}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6, fontWeight: 700,
+                    opacity: !sessionId ? 0.4 : 1,
+                  }}
+                >
+                  <Play size={13} /> Run live · {pipeline.length} agent{pipeline.length !== 1 ? 's' : ''}
+                </button>
+              </Tooltip>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--text-muted)' }}>or</span>
+              <Tooltip tip="Dry-run only: validates the DAG, policy, risk, and bounds.\nNo agents are called.">
+                <button
+                  className="btn btn-sm"
                   onClick={simulate}
                   disabled={!sessionId}
                   style={{
@@ -808,7 +838,7 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
                     opacity: !sessionId ? 0.4 : 1,
                   }}
                 >
-                  <Play size={13} /> Simulate
+                  Simulate (dry-run)
                 </button>
               </Tooltip>
               {phase === 'review' && canExec && (
