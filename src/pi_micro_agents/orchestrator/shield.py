@@ -49,10 +49,22 @@ class PiOrchestratorShield:
 
     @staticmethod
     def check_ast_safety(context: Dict[str, Any]) -> List[str] | None:
-        """Inspects proposed python scripts to prevent unverified execution paths."""
+        """Inspects proposed python scripts to prevent unverified execution paths.
+
+        IMPORTANT: in the orchestrator SCAN path the ``content`` is the artifact
+        being *inspected as data* (Solidity, Dockerfiles, SQL, config, prose, …),
+        never a Python payload we execute. So "the content isn't valid Python" — a
+        SyntaxError — is the NORMAL case for a security scanner, not a security
+        event. Surfacing it as a violation wrongly blocked every non-Python scan
+        (diverting ~168 non-exempt agents to PIGovernShield so they never ran). We
+        drop that pseudo-violation here and keep only genuine forbidden-construct
+        findings. The interceptor's ``inspect_ast`` — which gates code it actually
+        executes — is unchanged.
+        """
         code_candidate = context.get("content") or context.get("proposed_content") or context.get("source_code")
         if code_candidate and isinstance(code_candidate, str):
-            ast_violations = _govern_shield().inspect_ast(code_candidate)
-            if ast_violations:
-                return [f"AST security violation: {v}" for v in ast_violations]
+            ast_violations = _govern_shield().inspect_ast(code_candidate) or []
+            real = [v for v in ast_violations if "syntax error" not in v.lower()]
+            if real:
+                return [f"AST security violation: {v}" for v in real]
         return None
