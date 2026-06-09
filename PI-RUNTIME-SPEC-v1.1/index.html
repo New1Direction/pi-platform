@@ -1,0 +1,4783 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Deterministic semantic execution kernel with governance-first architecture">
+      
+      
+      
+        <link rel="canonical" href="https://new1direction.github.io/pi-platform/PI-RUNTIME-SPEC-v1.1/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>PI Runtime Specification v1.0 - PI Platform</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Space+Grotesk:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Space Grotesk";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pi-runtime-specification-v10" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="PI Platform" class="md-header__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PI Platform
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              PI Runtime Specification v1.0
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to blueprint (light)"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to blueprint (light)" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to control room (dark)"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to control room (dark)" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="PI Platform" class="md-nav__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    PI Platform
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../console/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Desktop Console
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Desktop Console
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agentdex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party (Builder)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/ledger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Battle Log (Ledger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/forge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Forge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/compass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governance Compass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/orchestrator-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator & Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/trust-tiers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trust Tiers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/ledger-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ledger & Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/repo-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repo Mapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../PI-RUNTIME-SPEC-v1.4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Spec (v1.4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#deterministic-semantic-execution-kernel-protocol-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Semantic Execution Kernel — Protocol Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contents
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-scope-conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Scope &amp; Conformance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Scope &amp; Conformance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-purpose" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 Purpose
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-conformance-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Conformance Classes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-normative-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Normative References
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-hard-invariants-non-negotiable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Hard Invariants (Non-Negotiable)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-definitions-notation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Definitions &amp; Notation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Definitions &amp; Notation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-terms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Terms
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-notation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Notation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-architecture-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Architecture Overview
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Architecture Overview">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-layer-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Layer Responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Data Flow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-canonical-artifact-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Canonical Artifact Lifecycle
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Canonical Artifact Lifecycle">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-artifact-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Artifact Definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-artifact-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Artifact State Machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-supported-artifact-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Supported Artifact Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-artifact-exchange-protocol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Artifact Exchange Protocol
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-graph-execution-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Graph Execution Semantics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. Graph Execution Semantics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-composition-dag-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Composition DAG Definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-node-execution-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Node Execution Contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-edge-execution-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Edge Execution Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-global-bounds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Global Bounds
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-phase-transition-guarantees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Phase Transition Guarantees
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. Phase Transition Guarantees">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-fixed-phase-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 Fixed Phase Order
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-phase-locked-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 Phase-Locked Execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-phase-boundary-receipt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 Phase Boundary Receipt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-worker-instantiation-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Worker Instantiation Rule
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-replay-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Replay Invariants
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Replay Invariants">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-replay-safety-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Replay Safety Definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-replay-ledger-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 Replay Ledger Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-replay-hash-construction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 Replay Hash Construction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-determinism-proof" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 Determinism Proof
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#75-subsystem-determinism-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.5 Subsystem Determinism Requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-deterministic-scheduling-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Deterministic Scheduling Rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Deterministic Scheduling Rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#81-shard-assignment-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.1 Shard Assignment Algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#82-worker-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.2 Worker Registration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#83-ephemeral-slot-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.3 Ephemeral Slot Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#84-centralized-scheduler-guarantees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.4 Centralized Scheduler Guarantees
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-policy-evaluation-order" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Policy Evaluation Order
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Policy Evaluation Order">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-policy-rule-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 Policy Rule Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#92-evaluation-precedence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.2 Evaluation Precedence
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#93-fail-closed-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.3 Fail-Closed Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#94-trust-zone-restriction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.4 Trust-Zone Restriction
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#95-resource-limit-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.5 Resource Limit Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#96-banned-capability-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.6 Banned Capability Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-shard-synchronization-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Shard Synchronization Semantics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Shard Synchronization Semantics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-phasebarrier-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 PhaseBarrier Contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-cross-shard-coordination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 Cross-Shard Coordination
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-failure-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 Failure Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-recovery-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 Recovery Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-receipt-chain-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Receipt Chain Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="11. Receipt Chain Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#111-executionreceipt-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.1 ExecutionReceipt Structure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#112-receipt-chaining" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.2 Receipt Chaining
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#113-boundary-receipt-chaining" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.3 Boundary Receipt Chaining
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#114-provenance-and-audit-trail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.4 Provenance and Audit Trail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#115-replay-safe-evidence-binding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11.5 Replay-Safe Evidence Binding
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#12-trust-zone-promotion-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12. Trust-Zone Promotion Rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="12. Trust-Zone Promotion Rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#121-trust-zone-states" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.1 Trust Zone States
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#122-lifecycle-state-machine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.2 Lifecycle State Machine
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#123-promotion-criteria" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.3 Promotion Criteria
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#124-demotion-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.4 Demotion Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#125-marketplace-admission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        12.5 Marketplace Admission
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#13-reference-implementation-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13. Reference Implementation Mapping
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="13. Reference Implementation Mapping">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#131-artifact-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.1 Artifact Lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#132-graph-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.2 Graph Execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#133-phase-transitions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.3 Phase Transitions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#134-replay-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.4 Replay Invariants
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#135-scheduling" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.5 Scheduling
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#136-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.6 Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#137-shard-synchronization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.7 Shard Synchronization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#138-receipts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.8 Receipts
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#139-trust-zones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.9 Trust Zones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1310-layer-4-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.10 Layer 4 Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#14-conformance-test-plan" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14. Conformance Test Plan
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14. Conformance Test Plan">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#141-test-categories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.1 Test Categories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#142-required-conformance-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.2 Required Conformance Tests
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="14.2 Required Conformance Tests">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ctest-1-artifact-immutability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-1: Artifact Immutability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-2-deterministic-fingerprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-2: Deterministic Fingerprint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-3-ledger-chain-integrity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-3: Ledger Chain Integrity
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-4-receipt-chaining" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-4: Receipt Chaining
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-5-shard-determinism" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-5: Shard Determinism
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-6-phase-locked-advancement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-6: Phase-Locked Advancement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-7-policy-fail-closed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-7: Policy Fail-Closed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-8-tenant-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-8: Tenant Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-9-explicitcompositionrequest-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-9: ExplicitCompositionRequest Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-10-replay-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-10: Replay Verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-11-worker-contract-enforcement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-11: Worker Contract Enforcement
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-12-blast-radius-boundedness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-12: Blast Radius Boundedness
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-13-trust-zone-sandbox-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-13: Trust Zone Sandbox Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-14-schema-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-14: Schema Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ctest-15-console-audit-trail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CTEST-15: Console Audit Trail
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#143-test-execution-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        14.3 Test Execution Reference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#15-versioning-maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15. Versioning &amp; Maintenance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="15. Versioning &amp; Maintenance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#151-specification-versioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.1 Specification Versioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#152-change-control-process" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.2 Change Control Process
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#153-backward-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.3 Backward Compatibility
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#154-deprecation-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        15.4 Deprecation Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#16-appendices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        16. Appendices
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="16. Appendices">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#appendix-a-canonical-json-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix A: Canonical JSON Serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appendix-b-sha-256-hashing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix B: SHA-256 Hashing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appendix-c-uuid-generation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix C: UUID Generation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appendix-d-time-representation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix D: Time Representation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#appendix-e-frozen-model-updates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Appendix E: Frozen Model Updates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#changelog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Changelog
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-snapshot-foundation-layer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. Snapshot Foundation Layer
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="17. Snapshot Foundation Layer">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#171-snapshot-artifact-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.1 Snapshot Artifact Definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#172-snapshotregistry-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.2 SnapshotRegistry Invariants
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#173-retention-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.3 Retention Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-semantic-diff-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Semantic Diff Engine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Semantic Diff Engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#181-deltatype-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.1 DeltaType Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#182-semanticdriftreport" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.2 SemanticDriftReport
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#183-worker-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.3 Worker Contract
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-drift-propagation-simulation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. Drift Propagation Simulation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="19. Drift Propagation Simulation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#191-riskpropagationgraph" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19.1 RiskPropagationGraph
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#192-propagation-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19.2 Propagation Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#193-aggregate-metrics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19.3 Aggregate Metrics
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#20-temporal-replay-engine" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20. Temporal Replay Engine
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="20. Temporal Replay Engine">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#201-replay-safety-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20.1 Replay Safety Boundary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#202-replaycheckpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20.2 ReplayCheckpoint
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#203-state-reconstruction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        20.3 State Reconstruction
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#21-hyperframes-temporal-rendering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21. HyperFrames Temporal Rendering
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="21. HyperFrames Temporal Rendering">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#211-deterministic-frame-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21.1 Deterministic Frame Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#212-mp4-encoding" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21.2 MP4 Encoding
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#213-renderconfig" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        21.3 RenderConfig
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#22-digital-twin-operating-layer-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22. Digital Twin Operating Layer Semantics
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="22. Digital Twin Operating Layer Semantics">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#221-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22.1 Definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#222-integration-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22.2 Integration Pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#223-governance-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        22.3 Governance Invariants
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#23-canonicalization-clock-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23. Canonicalization &amp; Clock Rules
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="23. Canonicalization &amp; Clock Rules">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#231-canonical-json-serialization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23.1 Canonical JSON Serialization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#232-timestamp-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23.2 Timestamp Normalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#233-deterministic-ordering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        23.3 Deterministic Ordering
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#24-conformance-test-plan-digital-twin-extension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24. Conformance Test Plan (Digital Twin Extension)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="24. Conformance Test Plan (Digital Twin Extension)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#241-test-categories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24.1 Test Categories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#242-test-invariants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        24.2 Test Invariants
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#25-versioning-maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25. Versioning &amp; Maintenance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="25. Versioning &amp; Maintenance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#251-version-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25.1 Version History
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#252-compatibility-statement" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        25.2 Compatibility Statement
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#17-production-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17. Production Runtime
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="17. Production Runtime">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#171-storage-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.1 Storage Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#172-security-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.2 Security Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#173-telemetry-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.3 Telemetry Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#174-api-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.4 API Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#175-deployment-semantics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.5 Deployment Semantics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#176-fail-closed-guarantees" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.6 Fail-Closed Guarantees
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#18-conformance-test-plan-production" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18. Conformance Test Plan (Production)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="18. Conformance Test Plan (Production)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#181-storage-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.1 Storage Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#182-security-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.2 Security Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#183-telemetry-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.3 Telemetry Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#184-integration-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        18.4 Integration Tests
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#19-versioning-maintenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19. Versioning &amp; Maintenance
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="19. Versioning &amp; Maintenance">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#191-version-history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19.1 Version History
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#192-maintenance-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        19.2 Maintenance Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="pi-runtime-specification-v10">PI Runtime Specification v1.0<a class="headerlink" href="#pi-runtime-specification-v10" title="Permanent link">&para;</a></h1>
+<h2 id="deterministic-semantic-execution-kernel-protocol-reference">Deterministic Semantic Execution Kernel — Protocol Reference<a class="headerlink" href="#deterministic-semantic-execution-kernel-protocol-reference" title="Permanent link">&para;</a></h2>
+<p><strong>Version:</strong> 1.2.0<br />
+<strong>Date:</strong> 2026-05-18<br />
+<strong>Status:</strong> FINAL (Production Hardening)<br />
+<strong>Scope:</strong> Layers 1–4 + Production Runtime of the PI Platform  </p>
+<hr />
+<h2 id="contents">Contents<a class="headerlink" href="#contents" title="Permanent link">&para;</a></h2>
+<ol>
+<li><a href="#1-scope--conformance">Scope &amp; Conformance</a></li>
+<li><a href="#2-definitions--notation">Definitions &amp; Notation</a></li>
+<li><a href="#3-architecture-overview">Architecture Overview</a></li>
+<li><a href="#4-canonical-artifact-lifecycle">Canonical Artifact Lifecycle</a></li>
+<li><a href="#5-graph-execution-semantics">Graph Execution Semantics</a></li>
+<li><a href="#6-phase-transition-guarantees">Phase Transition Guarantees</a></li>
+<li><a href="#7-replay-invariants">Replay Invariants</a></li>
+<li><a href="#8-deterministic-scheduling-rules">Deterministic Scheduling Rules</a></li>
+<li><a href="#9-policy-evaluation-order">Policy Evaluation Order</a></li>
+<li><a href="#10-shard-synchronization-semantics">Shard Synchronization Semantics</a></li>
+<li><a href="#11-receipt-chain-model">Receipt Chain Model</a></li>
+<li><a href="#12-trust-zone-promotion-rules">Trust-Zone Promotion Rules</a></li>
+<li><a href="#13-reference-implementation-mapping">Reference Implementation Mapping</a></li>
+<li><a href="#14-conformance-test-plan">Conformance Test Plan</a></li>
+<li><a href="#15-versioning--maintenance">Versioning &amp; Maintenance</a></li>
+<li><a href="#16-appendices">Appendices</a></li>
+</ol>
+<hr />
+<h2 id="1-scope-conformance">1. Scope &amp; Conformance<a class="headerlink" href="#1-scope-conformance" title="Permanent link">&para;</a></h2>
+<h3 id="11-purpose">1.1 Purpose<a class="headerlink" href="#11-purpose" title="Permanent link">&para;</a></h3>
+<p>This document defines the formal behavioral specification of the PI Platform deterministic semantic execution kernel. It is the single source of truth for:</p>
+<ul>
+<li>How artifacts are created, validated, transformed, and retired</li>
+<li>How execution graphs are interpreted, scheduled, and run</li>
+<li>How replay safety and determinism are guaranteed</li>
+<li>How governance policies are applied</li>
+<li>How cross-shard coordination works</li>
+<li>How trust zones are established and evolve</li>
+</ul>
+<h3 id="12-conformance-classes">1.2 Conformance Classes<a class="headerlink" href="#12-conformance-classes" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Class</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Core Runtime</strong></td>
+<td>A deterministic execution runtime implementing Layers 1–3</td>
+</tr>
+<tr>
+<td><strong>Console Frontend</strong></td>
+<td>A human interface that produces only <code>ExplicitCompositionRequest</code> JSON</td>
+</tr>
+<tr>
+<td><strong>Console Backend</strong></td>
+<td>A thin proxy that validates and forwards structured requests</td>
+</tr>
+<tr>
+<td><strong>Full Platform</strong></td>
+<td>All 4 layers operating together with correct boundary enforcement</td>
+</tr>
+</tbody>
+</table>
+<h3 id="13-normative-references">1.3 Normative References<a class="headerlink" href="#13-normative-references" title="Permanent link">&para;</a></h3>
+<p>All citations to source code paths in this document refer to the reference implementation under <code>~/Documents/</code>:</p>
+<ul>
+<li><code>pi-agent-chain/</code> — Semantic reconstruction pipeline (Layer 2)</li>
+<li><code>pi-semantic-diff/</code> — Differential semantic analysis (Layer 2)</li>
+<li><code>pi-semantic-validator/</code> — Schema and contract validation (Layer 2)</li>
+<li><code>pi-semantic-radius/</code> — Blast radius computation (Layer 2)</li>
+<li><code>pi-interoperability-layer/</code> — Execution fabric, shard coordination, mesh, receipts (Layers 1–3)</li>
+<li><code>pi-extension-governor/</code> — Manifest system, policy engine, trust zones, sandbox (Layer 3)</li>
+<li><code>pi-console/</code> — Human interface boundary (Layer 4)</li>
+</ul>
+<h3 id="14-hard-invariants-non-negotiable">1.4 Hard Invariants (Non-Negotiable)<a class="headerlink" href="#14-hard-invariants-non-negotiable" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>INVARIANT-1:</strong> The core kernel (Layers 1–3) shall never process unstructured natural language, LLM inference, or probabilistic decision-making during any execution path.</p>
+<p><strong>INVARIANT-2:</strong> The only permitted cross-layer request from Layer 4 to Layers 1–3 is <code>ExplicitCompositionRequest</code>, frozen, schema-validated, SHA-256 fingerprinted.</p>
+<p><strong>INVARIANT-3:</strong> Every artifact, receipt, ledger entry, and policy evaluation shall be deterministic — bit-for-bit reproducible given identical inputs.</p>
+<p><strong>INVARIANT-4:</strong> Policy evaluation is fail-closed: any ambiguity or missing rule resolves to DENY.</p>
+<p><strong>INVARIANT-5:</strong> Tenant isolation is absolute: no artifact, receipt, or execution trace may leak across tenant boundaries.</p>
+</blockquote>
+<hr />
+<h2 id="2-definitions-notation">2. Definitions &amp; Notation<a class="headerlink" href="#2-definitions-notation" title="Permanent link">&para;</a></h2>
+<h3 id="21-terms">2.1 Terms<a class="headerlink" href="#21-terms" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Artifact</strong></td>
+<td>An immutable, versioned, fingerprinted data object produced by the runtime. All artifacts are Pydantic <code>BaseModel</code> instances with <code>frozen=True</code>.</td>
+</tr>
+<tr>
+<td><strong>Capability</strong></td>
+<td>A declared unit of work with a bounded input/output contract, registered in the Capability Marketplace.</td>
+</tr>
+<tr>
+<td><strong>Composition</strong></td>
+<td>A directed acyclic graph (DAG) of <code>CompositionNode</code> objects linked by <code>CompositionEdge</code> objects, submitted via <code>ExplicitCompositionRequest</code>.</td>
+</tr>
+<tr>
+<td><strong>Receipt</strong></td>
+<td>A cryptographic record of a single worker execution, chained to previous receipts via SHA-256 hashes.</td>
+</tr>
+<tr>
+<td><strong>Ledger</strong></td>
+<td>An append-only chain of <code>EventRecord</code> objects with strict monotonic sequence numbering and hash chaining.</td>
+</tr>
+<tr>
+<td><strong>Phase</strong></td>
+<td>A named stage in the fixed pipeline order: INGEST → EXTRACT → DIFF → VALIDATE → RISK → GOVERN → EMIT.</td>
+</tr>
+<tr>
+<td><strong>Shard</strong></td>
+<td>A deterministic partition of the worker pool assigned by SHA-256 hash of worker_id modulo shard_count.</td>
+</tr>
+<tr>
+<td><strong>Trust Zone</strong></td>
+<td>One of: <code>CORE_TRUSTED</code>, <code>GOVERNED_EXTENSION</code>, <code>SANDBOX_EXPERIMENTAL</code>.</td>
+</tr>
+<tr>
+<td><strong>Replay</strong></td>
+<td>Re-execution of a recorded event sequence with bit-for-bit output verification.</td>
+</tr>
+<tr>
+<td><strong>Determinism Proof</strong></td>
+<td>A SHA-256 hash computed over all output slot fingerprints, enabling replay verification.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22-notation">2.2 Notation<a class="headerlink" href="#22-notation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>H(x)</code> — SHA-256 hash of canonical JSON serialization of <code>x</code></li>
+<li><code>x → y</code> — Directed edge from node <code>x</code> to node <code>y</code></li>
+<li><code>⊥</code> — Bottom/failure (fail-closed)</li>
+<li><code>|S|</code> — Cardinality of set <code>S</code></li>
+</ul>
+<hr />
+<h2 id="3-architecture-overview">3. Architecture Overview<a class="headerlink" href="#3-architecture-overview" title="Permanent link">&para;</a></h2>
+<h3 id="31-layer-responsibilities">3.1 Layer Responsibilities<a class="headerlink" href="#31-layer-responsibilities" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────────────────────┐
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│  LAYER 4: PI CONSOLE (Human Interface Boundary)             │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│  • Natural language input (optional LLM translation)        │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│  • Visual DAG builder                                       │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│  • Simulation preview, compliance dashboards                │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│  • ONLY output: ExplicitCompositionRequest JSON             │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>├─────────────────────────────────────────────────────────────┤
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│  LAYER 3: Capability Economy / Marketplace                  │
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│  • ExtensionManifest lifecycle                              │
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│  • Policy evaluation &amp; trust-zone enforcement               │
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>│  • Catalog integration pipeline (7-phase admission)         │
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>│  • Capability compatibility graph                           │
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>├─────────────────────────────────────────────────────────────┤
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>│  LAYER 2: Shard-Coordinated Deterministic Execution Fabric  │
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>│  • Central Orchestrator Kernel (fixed 7-phase pipeline)     │
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│  • Artifact Bus (immutable slot-based exchange)             │
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│  • Worker Mesh (specialized, bounded, deterministic)        │
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>│  • Replay Ledger (append-only, hash-chained)                │
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>├─────────────────────────────────────────────────────────────┤
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>│  LAYER 1: Multi-Tenant SaaS Control Plane                   │
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>│  • Tenant registry with quota enforcement                   │
+<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>│  • Tenant-scoped policy engine (fail-closed)                │
+<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>│  • Execution log &amp; compliance reporting                     │
+<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>└─────────────────────────────────────────────────────────────┘
+</code></pre></div>
+<h3 id="32-data-flow">3.2 Data Flow<a class="headerlink" href="#32-data-flow" title="Permanent link">&para;</a></h3>
+<p>User (natural language) → PI Console Frontend → [Optional LLM Translation] → ExplicitCompositionRequest → PI Console Backend (validation, audit) → PI Core API → Tenant validation → Policy check → Shard scheduling → Phase-locked execution → Receipt chain → Replay ledger.</p>
+<hr />
+<h2 id="4-canonical-artifact-lifecycle">4. Canonical Artifact Lifecycle<a class="headerlink" href="#4-canonical-artifact-lifecycle" title="Permanent link">&para;</a></h2>
+<h3 id="41-artifact-definition">4.1 Artifact Definition<a class="headerlink" href="#41-artifact-definition" title="Permanent link">&para;</a></h3>
+<p>An artifact is a <code>BaseModel</code> subclass with <code>frozen=True</code> and the following mandatory properties:</p>
+<ol>
+<li><strong>Deterministic serialization</strong>: <code>json.dumps(model_dump(), sort_keys=True, separators=(",", ":"), default=str)</code></li>
+<li><strong>Schema versioning</strong>: Every artifact declares its contract version via <code>SchemaVersion(major, minor, patch)</code></li>
+<li><strong>Fingerprinting</strong>: <code>ArtifactFingerprint</code> binds content hash, contract hash, provenance chain, and generator runtime</li>
+<li><strong>Immutability</strong>: Once constructed, no field may be mutated. Updates produce new instances via <code>model_copy(update=...)</code></li>
+</ol>
+<h3 id="42-artifact-state-machine">4.2 Artifact State Machine<a class="headerlink" href="#42-artifact-state-machine" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>    ┌──────────────┐
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    │   CREATED    │  — Artifact instance constructed and fingerprinted
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    └──────┬───────┘
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>           │ write()
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>           ▼
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    ┌──────────────┐
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    │   FROZEN     │  — compute_fingerprint() called, slot sealed
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    └──────┬───────┘
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>           │ bus.write(slot)
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>           ▼
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    ┌──────────────┐
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>    │  REGISTERED  │  — Stored in ArtifactBus, version lineage tracked
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>    └──────┬───────┘
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>           │ consumed by worker
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>           ▼
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>    ┌──────────────┐
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    │  REFERENCED  │  — Referenced in receipt provenance chain
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    └──────┬───────┘
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>           │ ledger.append(event)
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>           ▼
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>    ┌──────────────┐
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>    │   ARCHIVED   │  — Retention policy applied, may be purged
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>    └──────────────┘
+</code></pre></div>
+<p><strong>Rule ART-1</strong>: No artifact may transition from <code>FROZEN</code> back to <code>CREATED</code>. Immutability is irreversible.</p>
+<p><strong>Rule ART-2</strong>: An artifact's <code>content_hash</code> must match <code>H(serialized_payload)</code> at all times. Any mismatch is a <code>SCHEMA_MISMATCH</code> panic.</p>
+<p><strong>Rule ART-3</strong>: Artifact evolution follows append-only schema changes tracked in <code>SchemaEvolutionLog</code>. Changes are classified as: <code>ADD_FIELD</code>, <code>REMOVE_FIELD</code>, <code>TYPE_CHANGE</code>, <code>RULE_CHANGE</code>, <code>DEPRECATE</code>.</p>
+<h3 id="43-supported-artifact-types">4.3 Supported Artifact Types<a class="headerlink" href="#43-supported-artifact-types" title="Permanent link">&para;</a></h3>
+<p>The reference implementation defines these canonical artifact types in <code>ArtifactContract.artifact_type</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Producer</th>
+<th>Consumer</th>
+<th>Immutable</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SemanticIRTrace</code></td>
+<td><code>EndpointExtractionWorker</code></td>
+<td><code>BoundaryValidationWorker</code>, diff</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>DependencyGraph</code></td>
+<td><code>DependencyExtractionWorker</code></td>
+<td><code>TopologyBuildWorker</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>TopologyGraph</code></td>
+<td><code>TopologyBuildWorker</code></td>
+<td><code>PropagationRiskWorker</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>EndpointDiffReport</code></td>
+<td><code>EndpointDiffWorker</code></td>
+<td>Merge gate</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>BoundaryValidationReport</code></td>
+<td><code>BoundaryValidationWorker</code></td>
+<td><code>MergeGateWorker</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>PropagationRiskReport</code></td>
+<td><code>PropagationRiskWorker</code></td>
+<td><code>MergeGateWorker</code></td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>MergeGateResult</code></td>
+<td><code>MergeGateWorker</code></td>
+<td>Emitter</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>RegistryUpdateReport</code></td>
+<td><code>SnapshotRegistryWorker</code></td>
+<td>Registry</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>SchemaValidationReport</code></td>
+<td><code>SchemaValidationWorker</code></td>
+<td>Pipeline</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>ValidationReport</code></td>
+<td>Any validator</td>
+<td>Governance</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>ReplayLedger</code></td>
+<td><code>ExecutionEngine</code></td>
+<td>Replay system</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><code>EventRecord</code></td>
+<td><code>ExecutionEngine.emit()</code></td>
+<td>Ledger</td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
+<h3 id="44-artifact-exchange-protocol">4.4 Artifact Exchange Protocol<a class="headerlink" href="#44-artifact-exchange-protocol" title="Permanent link">&para;</a></h3>
+<p>All inter-worker artifact exchange flows through the <code>ArtifactBus</code>:</p>
+<ol>
+<li>Worker produces an <code>ArtifactSlot</code> via <code>_run()</code></li>
+<li>Worker calls <code>slot.freeze()</code> which computes <code>fingerprint = H(payload)</code></li>
+<li>Worker calls <code>bus.write(frozen_slot)</code> which stores the slot and tracks version lineage</li>
+<li>Consuming worker calls <code>bus.read(slot_id)</code> — receives an immutable reference</li>
+</ol>
+<p><strong>Rule ART-4</strong>: The ArtifactBus shall not permit in-place mutation of stored slots. Every write creates a new slot with a new <code>slot_id</code>.</p>
+<p><strong>Rule ART-5</strong>: Slot families are tracked as <code>{artifact_type}:{producer_worker_id}</code> enabling lineage traversal.</p>
+<hr />
+<h2 id="5-graph-execution-semantics">5. Graph Execution Semantics<a class="headerlink" href="#5-graph-execution-semantics" title="Permanent link">&para;</a></h2>
+<h3 id="51-composition-dag-definition">5.1 Composition DAG Definition<a class="headerlink" href="#51-composition-dag-definition" title="Permanent link">&para;</a></h3>
+<p>A composition is a directed acyclic graph <code>G = (N, E)</code> where:</p>
+<ul>
+<li><code>N</code> is a set of <code>CompositionNode</code> objects</li>
+<li><code>E</code> is a set of <code>CompositionEdge</code> objects with <code>edge_type ∈ {SEQUENTIAL, PARALLEL, CONDITIONAL, FAN_OUT, FAN_IN}</code></li>
+<li><code>G</code> must be acyclic: no path from any node to itself</li>
+</ul>
+<p><strong>Rule GRAPH-1</strong>: The core shall reject any composition containing a cycle with status <code>REJECTED</code> and reason <code>dag_contains_cycle</code>.</p>
+<p><strong>Rule GRAPH-2</strong>: Every node referenced in an edge must exist in <code>N</code>. Missing nodes result in <code>REJECTED</code> with reason <code>missing_node_reference</code>.</p>
+<p><strong>Rule GRAPH-3</strong>: The DAG must be connected: every node must be reachable from at least one root node (a node with no incoming edges).</p>
+<h3 id="52-node-execution-contract">5.2 Node Execution Contract<a class="headerlink" href="#52-node-execution-contract" title="Permanent link">&para;</a></h3>
+<p>Each <code>CompositionNode</code> declares:</p>
+<ul>
+<li><code>runtime</code>: The target runtime that shall execute this node</li>
+<li><code>operation</code>: The operation type (must be in the runtime's supported set)</li>
+<li><code>artifacts</code>: Input artifact payloads (must be JSON-serializable)</li>
+<li><code>bounds</code>: Per-node deterministic bounds (max_nodes, max_depth, max_fanout, etc.)</li>
+<li><code>dependencies</code>: Node IDs that must complete successfully before this node may start</li>
+</ul>
+<p><strong>Rule NODE-1</strong>: A node may only begin execution after all nodes in its <code>dependencies</code> list have produced receipts with <code>status == SUCCESS</code>.</p>
+<p><strong>Rule NODE-2</strong>: If any dependency fails, the dependent node shall be marked <code>BLOCKED</code> and shall not execute.</p>
+<p><strong>Rule NODE-3</strong>: Node bounds are evaluated before execution. Any bound violation results in <code>RESOURCE_EXCEEDED</code> without executing the node body.</p>
+<h3 id="53-edge-execution-semantics">5.3 Edge Execution Semantics<a class="headerlink" href="#53-edge-execution-semantics" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Edge Type</th>
+<th>Semantics</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SEQUENTIAL</code></td>
+<td>Target starts after source completes (default)</td>
+</tr>
+<tr>
+<td><code>PARALLEL</code></td>
+<td>Target may start concurrently with source if no other constraints</td>
+</tr>
+<tr>
+<td><code>CONDITIONAL</code></td>
+<td>Target starts only if <code>condition</code> expression evaluates to true</td>
+</tr>
+<tr>
+<td><code>FAN_OUT</code></td>
+<td>One source → many targets, all start when source completes</td>
+</tr>
+<tr>
+<td><code>FAN_IN</code></td>
+<td>Many sources → one target, target starts when all sources complete</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule EDGE-1</strong>: <code>CONDITIONAL</code> edges shall only reference deterministic boolean expressions over artifact payload fields. No LLM evaluation. No probabilistic conditions.</p>
+<h3 id="54-global-bounds">5.4 Global Bounds<a class="headerlink" href="#54-global-bounds" title="Permanent link">&para;</a></h3>
+<p>Every <code>ExplicitCompositionRequest</code> declares <code>global_bounds</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>max_total_nodes:   64 (hard ceiling)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>max_depth:          8 (longest path in DAG)
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>max_fanout:        16 (max outgoing edges per node)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>max_execution_time_ms: 300,000 (5 minutes)
+</code></pre></div>
+<p><strong>Rule BOUNDS-1</strong>: Global bounds override per-node bounds. The most restrictive bound applies.</p>
+<p><strong>Rule BOUNDS-2</strong>: If any bound is exceeded during simulation, the composition is rejected with <code>status: REJECTED</code> and <code>bounds_violations</code> populated.</p>
+<hr />
+<h2 id="6-phase-transition-guarantees">6. Phase Transition Guarantees<a class="headerlink" href="#6-phase-transition-guarantees" title="Permanent link">&para;</a></h2>
+<h3 id="61-fixed-phase-order">6.1 Fixed Phase Order<a class="headerlink" href="#61-fixed-phase-order" title="Permanent link">&para;</a></h3>
+<p>The execution pipeline follows a strict, immutable phase sequence:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>INGEST → EXTRACT → DIFF → VALIDATE → RISK → GOVERN → EMIT
+</code></pre></div>
+<p>This order is defined as <code>PHASE_ORDER</code> in <code>CentralOrchestratorKernel</code>. No runtime may reorder, skip, or insert phases.</p>
+<h3 id="62-phase-locked-execution">6.2 Phase-Locked Execution<a class="headerlink" href="#62-phase-locked-execution" title="Permanent link">&para;</a></h3>
+<p><strong>Rule PHASE-1</strong>: The orchestrator shall not advance from phase <code>P_i</code> to <code>P_{i+1}</code> until ALL workers assigned to <code>P_i</code> have produced receipts.</p>
+<p><strong>Rule PHASE-2</strong>: If any worker in phase <code>P_i</code> produces a receipt with <code>status ∈ {FAIL, PANIC, SCHEMA_MISMATCH, REPLAY_MISMATCH}</code>, the phase status is <code>FAIL</code>.</p>
+<p><strong>Rule PHASE-3</strong>: If <code>merge_status == FAIL</code> and <code>fail_open == False</code>, the pipeline terminates immediately. The ledger is closed and no subsequent phases execute.</p>
+<p><strong>Rule PHASE-4</strong>: If a phase is not configured (no <code>PhaseConfig</code> exists), an empty <code>PhaseBoundaryReceipt</code> with <code>phase_status: SUCCESS</code> is appended, and execution continues.</p>
+<h3 id="63-phase-boundary-receipt">6.3 Phase Boundary Receipt<a class="headerlink" href="#63-phase-boundary-receipt" title="Permanent link">&para;</a></h3>
+<p>When a phase completes, a <code>PhaseBoundaryReceipt</code> is generated:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>boundary_id: UUID
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>phase: string
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>worker_receipt_ids: [sorted receipt IDs]
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>merged_output_slot_id: string | null
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>phase_status: PENDING | SUCCESS | FAIL | BLOCKED
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>previous_boundary_hash: H(previous boundary)
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>boundary_hash: H(this boundary)
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>timestamp: ISO-8601 UTC
+</code></pre></div>
+<p><strong>Rule PHASE-5</strong>: Boundary receipts are chained via <code>previous_boundary_hash</code>, forming an immutable phase transition log.</p>
+<h3 id="64-worker-instantiation-rule">6.4 Worker Instantiation Rule<a class="headerlink" href="#64-worker-instantiation-rule" title="Permanent link">&para;</a></h3>
+<p>Workers are instantiated deterministically within each phase:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">worker_id</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">phase_name</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">&quot;</span>  <span class="c1"># i = 0, 1, 2...</span>
+</code></pre></div>
+<p><strong>Rule PHASE-6</strong>: Worker IDs must be deterministic: re-running the same pipeline with the same <code>PhaseConfig</code> must produce identical <code>worker_id</code> values.</p>
+<hr />
+<h2 id="7-replay-invariants">7. Replay Invariants<a class="headerlink" href="#7-replay-invariants" title="Permanent link">&para;</a></h2>
+<h3 id="71-replay-safety-definition">7.1 Replay Safety Definition<a class="headerlink" href="#71-replay-safety-definition" title="Permanent link">&para;</a></h3>
+<p>A computation is <strong>replay-safe</strong> if and only if:</p>
+<ol>
+<li>Given identical inputs, it produces identical outputs (bit-for-bit)</li>
+<li>All intermediate states are recorded in an append-only ledger</li>
+<li>Every state transition is fingerprinted with SHA-256</li>
+<li>No external non-deterministic sources are consulted (no network, no time-dependent logic, no randomness)</li>
+</ol>
+<h3 id="72-replay-ledger-structure">7.2 Replay Ledger Structure<a class="headerlink" href="#72-replay-ledger-structure" title="Permanent link">&para;</a></h3>
+<p>The <code>ReplayLedger</code> is the authoritative record of execution:</p>
+<ul>
+<li><code>ledger_id</code>: Unique identifier</li>
+<li><code>events[]</code>: Ordered list of <code>EventRecord</code> objects</li>
+<li><code>ledger_hash</code>: H(concatenation of all event hashes)</li>
+<li><code>first_sequence</code> / <code>last_sequence</code>: Monotonic bounds</li>
+<li><code>closed_at</code>: Timestamp when ledger was sealed</li>
+</ul>
+<p><strong>Rule REPLAY-1</strong>: Event sequence numbers are strictly monotonic: <code>sequence_number_{i+1} == sequence_number_i + 1</code></p>
+<p><strong>Rule REPLAY-2</strong>: Each event's <code>previous_hash</code> must equal the <code>event_hash</code> of the preceding event. The first event has <code>previous_hash == ""</code>.</p>
+<p><strong>Rule REPLAY-3</strong>: <code>ReplayLedger.verify_integrity()</code> must return <code>True</code> for every closed ledger. A ledger with <code>verify_integrity() == False</code> is corrupted and must not be used for replay.</p>
+<h3 id="73-replay-hash-construction">7.3 Replay Hash Construction<a class="headerlink" href="#73-replay-hash-construction" title="Permanent link">&para;</a></h3>
+<p><strong>Event Hash</strong>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>H({
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>  event_type: string,
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>  sequence_number: int,
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>  previous_hash: string,
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>  payload: canonical_json(payload),
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>  emitted_by: string,
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>  emitted_at: ISO-8601
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>})
+</code></pre></div></p>
+<p><strong>Ledger Hash</strong>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>H(concat(event_hash_0, event_hash_1, ..., event_hash_n))
+</code></pre></div></p>
+<p><strong>Receipt Hash</strong>:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>H({
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>  receipt_id: string,
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  worker_class: string,
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  worker_id: string,
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>  phase: string,
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>  input_slot_ids: sorted([string]),
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>  output_slot_ids: sorted([string]),
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>  status: string,
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>  status_detail: string,
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>  determinism_proof: string,
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>  resource_usage: {string: float},
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>  previous_receipt_hash: string,
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>  timestamp: ISO-8601
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>})
+</code></pre></div></p>
+<h3 id="74-determinism-proof">7.4 Determinism Proof<a class="headerlink" href="#74-determinism-proof" title="Permanent link">&para;</a></h3>
+<p>Each worker produces a <code>determinism_proof</code> after execution:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>determinism_proof = H(concat(slot.fingerprint for slot in output_slots))
+</code></pre></div>
+<p><strong>Rule REPLAY-4</strong>: During replay, the determinism proof of the replayed execution must equal the determinism proof recorded in the original receipt. Any mismatch is a <code>REPLAY_MISMATCH</code> failure.</p>
+<h3 id="75-subsystem-determinism-requirements">7.5 Subsystem Determinism Requirements<a class="headerlink" href="#75-subsystem-determinism-requirements" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Subsystem</th>
+<th>Determinism Requirement</th>
+<th>Verification Method</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Worker scheduling</td>
+<td>Same worker_id → same shard assignment</td>
+<td><code>DeterministicPartitioner.assign()</code> hash mod</td>
+</tr>
+<tr>
+<td>Phase ordering</td>
+<td>Fixed <code>PHASE_ORDER</code> array</td>
+<td>Static code reference</td>
+</tr>
+<tr>
+<td>Artifact serialization</td>
+<td><code>sort_keys=True, separators=(",", ":")</code></td>
+<td>Canonical JSON function</td>
+</tr>
+<tr>
+<td>Receipt chaining</td>
+<td><code>previous_receipt_hash</code> linkage</td>
+<td><code>verify_chain()</code></td>
+</tr>
+<tr>
+<td>Policy evaluation</td>
+<td>Same manifest + same rules → same result</td>
+<td><code>policy_hash</code> in <code>PolicyEvaluation</code></td>
+</tr>
+<tr>
+<td>Blast radius scoring</td>
+<td>Same topology → same score</td>
+<td><code>input_hash</code> in <code>BlastRadiusScore</code></td>
+</tr>
+<tr>
+<td>Tenant quota</td>
+<td>Same usage → same allow/deny</td>
+<td>Deterministic counter comparison</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="8-deterministic-scheduling-rules">8. Deterministic Scheduling Rules<a class="headerlink" href="#8-deterministic-scheduling-rules" title="Permanent link">&para;</a></h2>
+<h3 id="81-shard-assignment-algorithm">8.1 Shard Assignment Algorithm<a class="headerlink" href="#81-shard-assignment-algorithm" title="Permanent link">&para;</a></h3>
+<p>Workers are assigned to shards via SHA-256 hash:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>shard_index = int(H(worker_id)[:8], 16) mod shard_count
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>shard_id = shard_ids[shard_index]
+</code></pre></div>
+<p><strong>Rule SCHED-1</strong>: For any given <code>worker_id</code> and <code>shard_count</code>, the assignment is deterministic and reproducible across all executions.</p>
+<p><strong>Rule SCHED-2</strong>: The <code>assignment_hash</code> of a <code>ShardAssignment</code> is <code>H("{worker_id}:{shard_id}")</code>.</p>
+<h3 id="82-worker-registration">8.2 Worker Registration<a class="headerlink" href="#82-worker-registration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>register_workers(worker_ids):
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>  for each worker_id:
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    assignment = partitioner.assign(worker_id)
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    if |shard_workers[assignment.shard_id]| &gt;= max_workers_per_shard:
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>      raise ValueError(&quot;Shard capacity exceeded&quot;)
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>    shard_workers[assignment.shard_id].add(worker_id)
+</code></pre></div>
+<p><strong>Rule SCHED-3</strong>: No shard may exceed <code>max_workers_per_shard</code>. Default: 32.</p>
+<p><strong>Rule SCHED-4</strong>: Worker registration is idempotent only within a single pipeline run. Re-registering the same worker_id in the same run is an error.</p>
+<h3 id="83-ephemeral-slot-rules">8.3 Ephemeral Slot Rules<a class="headerlink" href="#83-ephemeral-slot-rules" title="Permanent link">&para;</a></h3>
+<p>Workers read and write <strong>ArtifactSlots</strong> on the ArtifactBus:</p>
+<ul>
+<li><code>bus.write(slot)</code> → frozen slot with fingerprint stored</li>
+<li><code>bus.read(slot_id)</code> → immutable reference to stored slot</li>
+<li><code>bus.latest_for_family(type, producer)</code> → most recent slot for family</li>
+</ul>
+<p><strong>Rule SCHED-5</strong>: Workers shall not retain slot references across phase boundaries. Each phase resolves its inputs from the previous phase's boundary receipt.</p>
+<h3 id="84-centralized-scheduler-guarantees">8.4 Centralized Scheduler Guarantees<a class="headerlink" href="#84-centralized-scheduler-guarantees" title="Permanent link">&para;</a></h3>
+<p>The <code>CentralOrchestratorKernel</code> is the sole scheduling authority:</p>
+<ol>
+<li><strong>Fixed phase order</strong>: <code>PHASE_ORDER</code> is a constant array</li>
+<li><strong>Bounded fanout</strong>: <code>max_fanout</code> per phase (default: 8)</li>
+<li><strong>Deterministic merge</strong>: Phase status is <code>SUCCESS</code> only if all required workers succeed AND no worker fails</li>
+<li><strong>No decentralized planning</strong>: Workers do not schedule other workers</li>
+</ol>
+<p><strong>Rule SCHED-6</strong>: The orchestrator shall not permit dynamic phase insertion, reordering, or conditional phase skipping. All phases execute in order, even if empty.</p>
+<hr />
+<h2 id="9-policy-evaluation-order">9. Policy Evaluation Order<a class="headerlink" href="#9-policy-evaluation-order" title="Permanent link">&para;</a></h2>
+<h3 id="91-policy-rule-structure">9.1 Policy Rule Structure<a class="headerlink" href="#91-policy-rule-structure" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>PolicyRule:
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>  rule_id: string
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>  rule_type: banned_import | max_resource | required_capability | trust_zone_restriction | banned_capability
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  condition: {field: string, value: any}
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>  action: ALLOW | DENY | REQUIRE_REVIEW
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  severity: CRITICAL | HIGH | MEDIUM
+</code></pre></div>
+<h3 id="92-evaluation-precedence">9.2 Evaluation Precedence<a class="headerlink" href="#92-evaluation-precedence" title="Permanent link">&para;</a></h3>
+<p>Rules are evaluated in the order they appear in the policy's <code>rules</code> array. Within that order:</p>
+<ol>
+<li><strong>CRITICAL</strong> severity rules are evaluated first</li>
+<li><strong>HIGH</strong> severity rules are evaluated second</li>
+<li><strong>MEDIUM</strong> severity rules are evaluated last</li>
+</ol>
+<p><strong>Rule POLICY-1</strong>: The first rule that produces <code>DENY</code> terminates evaluation for that manifest. The final result is <code>passed=False</code>.</p>
+<h3 id="93-fail-closed-semantics">9.3 Fail-Closed Semantics<a class="headerlink" href="#93-fail-closed-semantics" title="Permanent link">&para;</a></h3>
+<p><strong>Rule POLICY-2</strong>: If a manifest field referenced by a rule condition is missing or <code>None</code>, the rule evaluates as <code>passed=False</code> (DENY).</p>
+<p><strong>Rule POLICY-3</strong>: If a rule type is unrecognized, the evaluation aborts with <code>passed=False</code>.</p>
+<p><strong>Rule POLICY-4</strong>: Empty policy (zero rules) evaluates as <code>passed=False</code>. A manifest must have an affirmative policy to be admitted.</p>
+<h3 id="94-trust-zone-restriction">9.4 Trust-Zone Restriction<a class="headerlink" href="#94-trust-zone-restriction" title="Permanent link">&para;</a></h3>
+<p>Trust zone rules check <code>manifest.trust_zone.value</code> against <code>condition.allowed</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>passed = manifest.trust_zone.value in condition.allowed
+</code></pre></div>
+<p><strong>Rule POLICY-5</strong>: If <code>allowed</code> is empty, no trust zone is permitted — all manifests are denied.</p>
+<h3 id="95-resource-limit-rules">9.5 Resource Limit Rules<a class="headerlink" href="#95-resource-limit-rules" title="Permanent link">&para;</a></h3>
+<p>Resource rules compare manifest-declared limits against policy ceilings:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>passed = manifest.{field} &lt;= condition.max
+</code></pre></div>
+<p><strong>Rule POLICY-6</strong>: Resource rules use strict <code>&lt;=</code>. Equal values are allowed. Exceeding values are denied.</p>
+<h3 id="96-banned-capability-rules">9.6 Banned Capability Rules<a class="headerlink" href="#96-banned-capability-rules" title="Permanent link">&para;</a></h3>
+<p>Banned rules check that dangerous capabilities are disabled:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>passed = not manifest.{field}  # must be False or missing
+</code></pre></div>
+<p>Banned capabilities include: <code>network_access</code>, <code>filesystem_access</code>, <code>subprocess_access</code>, <code>dynamic_eval_access</code>.</p>
+<hr />
+<h2 id="10-shard-synchronization-semantics">10. Shard Synchronization Semantics<a class="headerlink" href="#10-shard-synchronization-semantics" title="Permanent link">&para;</a></h2>
+<h3 id="101-phasebarrier-contract">10.1 PhaseBarrier Contract<a class="headerlink" href="#101-phasebarrier-contract" title="Permanent link">&para;</a></h3>
+<p>A <code>PhaseBarrier</code> represents the synchronization point at the end of a phase:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>PhaseBoundary:
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>  phase: string
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>  shard_id: string  # &quot;global&quot; for cross-shard barriers
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>  worker_ids: [sorted worker IDs]
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>  completed: bool
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>  boundary_hash: H(phase + shard_id + workers + completed)
+</code></pre></div>
+<h3 id="102-cross-shard-coordination">10.2 Cross-Shard Coordination<a class="headerlink" href="#102-cross-shard-coordination" title="Permanent link">&para;</a></h3>
+<p><strong>Rule SHARD-1</strong>: A phase is considered complete only when ALL shards report <code>ShardState.COMPLETED</code>.</p>
+<p><strong>Rule SHARD-2</strong>: The orchestrator's <code>can_advance_phase()</code> returns <code>True</code> if and only if <code>∀s ∈ shards: shard_states[s] == COMPLETED</code>.</p>
+<p><strong>Rule SHARD-3</strong>: <code>advance_phase(next_phase)</code> computes a global <code>PhaseBoundary</code> with <code>shard_id="global"</code> and all worker IDs, resets all shard states to <code>IDLE</code>, and sets <code>current_phase = next_phase</code>.</p>
+<h3 id="103-failure-isolation">10.3 Failure Isolation<a class="headerlink" href="#103-failure-isolation" title="Permanent link">&para;</a></h3>
+<p><strong>Rule SHARD-4</strong>: A worker failure in one shard does NOT propagate to other shards' workers within the same phase. However, the phase boundary will be <code>FAIL</code>, preventing phase advancement.</p>
+<p><strong>Rule SHARD-5</strong>: Shard state mutations are logged in <code>execution_log</code> in deterministic order.</p>
+<h3 id="104-recovery-rules">10.4 Recovery Rules<a class="headerlink" href="#104-recovery-rules" title="Permanent link">&para;</a></h3>
+<p><strong>Rule SHARD-6</strong>: If a shard fails, the entire pipeline fails (unless <code>fail_open=True</code>). There is no partial commit or compensating transaction.</p>
+<hr />
+<h2 id="11-receipt-chain-model">11. Receipt Chain Model<a class="headerlink" href="#11-receipt-chain-model" title="Permanent link">&para;</a></h2>
+<h3 id="111-executionreceipt-structure">11.1 ExecutionReceipt Structure<a class="headerlink" href="#111-executionreceipt-structure" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>ExecutionReceipt:
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>  receipt_id: UUID
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>  worker_class: string
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>  worker_id: string
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>  phase: string
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a>  input_slot_ids: [sorted strings]
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>  output_slot_ids: [sorted strings]
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>  status: PENDING | SUCCESS | FAIL | TIMEOUT | PANIC | SCHEMA_MISMATCH | REPLAY_MISMATCH | RESOURCE_EXCEEDED
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a>  status_detail: string
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a>  determinism_proof: SHA-256
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a>  resource_usage: {cpu_ms: float, memory_mb: float}
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a>  previous_receipt_hash: SHA-256
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a>  receipt_hash: SHA-256
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a>  timestamp: ISO-8601 UTC
+</code></pre></div>
+<h3 id="112-receipt-chaining">11.2 Receipt Chaining<a class="headerlink" href="#112-receipt-chaining" title="Permanent link">&para;</a></h3>
+<p>Receipts form a linear chain within the <code>OrchestrationLedger</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>receipt_0: previous_receipt_hash = &quot;&quot;
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>receipt_1: previous_receipt_hash = H(receipt_0)
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>receipt_2: previous_receipt_hash = H(receipt_1)
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>...
+</code></pre></div>
+<p><strong>Rule RECEIPT-1</strong>: <code>OrchestrationLedger.verify_chain()</code> must return <code>True</code> for every closed ledger.</p>
+<h3 id="113-boundary-receipt-chaining">11.3 Boundary Receipt Chaining<a class="headerlink" href="#113-boundary-receipt-chaining" title="Permanent link">&para;</a></h3>
+<p>Phase boundaries form an independent chain:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>boundary_0: previous_boundary_hash = &quot;&quot;
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>boundary_1: previous_boundary_hash = H(boundary_0)
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>...
+</code></pre></div>
+<p><strong>Rule RECEIPT-2</strong>: Boundary receipts and execution receipts are chained separately but both chains must verify.</p>
+<h3 id="114-provenance-and-audit-trail">11.4 Provenance and Audit Trail<a class="headerlink" href="#114-provenance-and-audit-trail" title="Permanent link">&para;</a></h3>
+<p>The full audit trail of a pipeline execution consists of:</p>
+<ol>
+<li><code>OrchestrationLedger</code> — all receipts and boundaries</li>
+<li><code>ReplayLedger</code> — all events emitted during execution</li>
+<li><code>TenantExecutionLog</code> — per-tenant execution records</li>
+<li><code>AuditLogEntry</code> (Layer 4) — console-level audit trail</li>
+</ol>
+<p><strong>Rule RECEIPT-3</strong>: Every execution must produce at least one <code>TenantExecutionRecord</code> with <code>pipeline_hash = H(ExplicitCompositionRequest)</code>.</p>
+<h3 id="115-replay-safe-evidence-binding">11.5 Replay-Safe Evidence Binding<a class="headerlink" href="#115-replay-safe-evidence-binding" title="Permanent link">&para;</a></h3>
+<p>Evidence is bound to receipts via the <code>replay_evidence</code> field in <code>EventRecord</code> and the <code>determinism_proof</code> field in <code>ExecutionReceipt</code>.</p>
+<p><strong>Rule RECEIPT-4</strong>: Evidence hashes must reference artifacts stored in the <code>SnapshotRegistry</code> or <code>ArtifactBus</code> at the time of execution.</p>
+<hr />
+<h2 id="12-trust-zone-promotion-rules">12. Trust-Zone Promotion Rules<a class="headerlink" href="#12-trust-zone-promotion-rules" title="Permanent link">&para;</a></h2>
+<h3 id="121-trust-zone-states">12.1 Trust Zone States<a class="headerlink" href="#121-trust-zone-states" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Zone</th>
+<th>Authority</th>
+<th>Governance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CORE_TRUSTED</code></td>
+<td>Full</td>
+<td>Can access all subsystems</td>
+</tr>
+<tr>
+<td><code>GOVERNED_EXTENSION</code></td>
+<td>Restricted</td>
+<td>Subject to policy engine and sandbox</td>
+</tr>
+<tr>
+<td><code>SANDBOX_EXPERIMENTAL</code></td>
+<td>None</td>
+<td>No governance authority; isolated</td>
+</tr>
+</tbody>
+</table>
+<h3 id="122-lifecycle-state-machine">12.2 Lifecycle State Machine<a class="headerlink" href="#122-lifecycle-state-machine" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>PENDING_INSPECTION
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>      │
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>      ▼ inspector passes
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>STATIC_ANALYZED
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>      │
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>      ▼ determinism verified
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>DETERMINISM_VERIFIED
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>      │
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a>      ▼ semantic normalized
+<a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>SEMANTIC_NORMALIZED
+<a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>      │
+<a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>      ▼ policy passes
+<a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a>POLICY_APPROVED
+<a id="__codelineno-20-14" name="__codelineno-20-14" href="#__codelineno-20-14"></a>      │
+<a id="__codelineno-20-15" name="__codelineno-20-15" href="#__codelineno-20-15"></a>      ▼ final admission
+<a id="__codelineno-20-16" name="__codelineno-20-16" href="#__codelineno-20-16"></a>    ADMITTED
+<a id="__codelineno-20-17" name="__codelineno-20-17" href="#__codelineno-20-17"></a>      │
+<a id="__codelineno-20-18" name="__codelineno-20-18" href="#__codelineno-20-18"></a>      ▼ failure at any stage
+<a id="__codelineno-20-19" name="__codelineno-20-19" href="#__codelineno-20-19"></a>    REJECTED  ───────────────┐
+<a id="__codelineno-20-20" name="__codelineno-20-20" href="#__codelineno-20-20"></a>      │                      │
+<a id="__codelineno-20-21" name="__codelineno-20-21" href="#__codelineno-20-21"></a>      ▼ repeated violations  │
+<a id="__codelineno-20-22" name="__codelineno-20-22" href="#__codelineno-20-22"></a>   QUARANTINED ◄─────────────┘
+</code></pre></div>
+<p><strong>Rule TZ-1</strong>: Every extension MUST pass through all stages in order. Skipping stages is forbidden.</p>
+<h3 id="123-promotion-criteria">12.3 Promotion Criteria<a class="headerlink" href="#123-promotion-criteria" title="Permanent link">&para;</a></h3>
+<p><strong>To GOVERNED_EXTENSION</strong>:
+- Status must reach <code>ADMITTED</code>
+- <code>deterministic_claim == True</code>
+- <code>replayability_claim == True</code>
+- <code>trust_zone</code> must be <code>GOVERNED_EXTENSION</code> or <code>CORE_TRUSTED</code>
+- <code>policy_evaluation.passed == True</code></p>
+<p><strong>To CORE_TRUSTED</strong>:
+- <code>package_hash</code> must be in <code>core_trusted_packages</code> allowlist
+- Must already be <code>GOVERNED_EXTENSION</code>
+- Must have zero policy violations in last N executions</p>
+<p><strong>Rule TZ-2</strong>: <code>SANDBOX_EXPERIMENTAL</code> packages can NEVER gain governance authority. <code>can_gain_governance_authority()</code> returns <code>False</code> for sandbox packages.</p>
+<h3 id="124-demotion-rules">12.4 Demotion Rules<a class="headerlink" href="#124-demotion-rules" title="Permanent link">&para;</a></h3>
+<p><strong>Rule TZ-3</strong>: Any extension that produces a <code>REPLAY_MISMATCH</code>, <code>PANIC</code>, or policy violation during execution is immediately demoted to <code>QUARANTINED</code>.</p>
+<p><strong>Rule TZ-4</strong>: Quarantined extensions remain quarantined until manually reviewed and re-admitted through the full lifecycle.</p>
+<h3 id="125-marketplace-admission">12.5 Marketplace Admission<a class="headerlink" href="#125-marketplace-admission" title="Permanent link">&para;</a></h3>
+<p>Only extensions with <code>status == ADMITTED</code> may appear in the <code>CapabilityMarketplaceRegistry</code>.</p>
+<p><strong>Rule TZ-5</strong>: The marketplace registry shall filter out all non-admitted extensions regardless of trust zone.</p>
+<hr />
+<h2 id="13-reference-implementation-mapping">13. Reference Implementation Mapping<a class="headerlink" href="#13-reference-implementation-mapping" title="Permanent link">&para;</a></h2>
+<p>Every rule in this specification is implemented in the reference codebase as follows.</p>
+<h3 id="131-artifact-lifecycle">13.1 Artifact Lifecycle<a class="headerlink" href="#131-artifact-lifecycle" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ART-1</td>
+<td><code>pi-interoperability-layer/contracts.py</code></td>
+<td><code>ArtifactContract.model_config = {"frozen": True}</code></td>
+</tr>
+<tr>
+<td>ART-2</td>
+<td><code>pi-interoperability-layer/contracts.py</code></td>
+<td><code>compute_fingerprint()</code> — <code>content_hash = H(payload)</code></td>
+</tr>
+<tr>
+<td>ART-3</td>
+<td><code>pi-interoperability-layer/contracts.py</code></td>
+<td><code>SchemaEvolutionLog</code> — append-only records</td>
+</tr>
+<tr>
+<td>ART-4</td>
+<td><code>pi-interoperability-layer/mesh/artifact_bus.py</code></td>
+<td><code>ArtifactSlot.freeze()</code> and <code>bus.write()</code></td>
+</tr>
+<tr>
+<td>ART-5</td>
+<td><code>pi-interoperability-layer/mesh/artifact_bus.py</code></td>
+<td><code>_slot_versions</code> dict keyed by <code>{artifact_type}:{producer_worker_id}</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="132-graph-execution">13.2 Graph Execution<a class="headerlink" href="#132-graph-execution" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GRAPH-1</td>
+<td><code>pi-console/backend/src/pi_console/services.py</code></td>
+<td><code>CoreAdapter._validate_dag()</code> — cycle detection via DFS</td>
+</tr>
+<tr>
+<td>GRAPH-2</td>
+<td><code>pi-console/backend/src/pi_console/services.py</code></td>
+<td>Node existence validation in <code>_validate_dag()</code></td>
+</tr>
+<tr>
+<td>GRAPH-3</td>
+<td><code>pi-console/backend/src/pi_console/services.py</code></td>
+<td>Connectivity check in <code>_validate_dag()</code></td>
+</tr>
+<tr>
+<td>NODE-1</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>_run_phase()</code> — workers execute after input resolution</td>
+</tr>
+<tr>
+<td>NODE-2</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>_merge_phase()</code> — FAIL blocks dependent phases</td>
+</tr>
+<tr>
+<td>NODE-3</td>
+<td><code>pi-interoperability-layer/mesh/worker_base.py</code></td>
+<td><code>execute()</code> — bound checks before <code>_run()</code></td>
+</tr>
+<tr>
+<td>EDGE-1</td>
+<td><code>pi-console/backend/src/pi_console/schemas.py</code></td>
+<td><code>CompositionEdge.condition</code> — string field, no evaluation in core</td>
+</tr>
+</tbody>
+</table>
+<h3 id="133-phase-transitions">13.3 Phase Transitions<a class="headerlink" href="#133-phase-transitions" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PHASE-1</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>run_pipeline()</code> — sequential phase loop</td>
+</tr>
+<tr>
+<td>PHASE-2</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>_merge_phase()</code> — status checks</td>
+</tr>
+<tr>
+<td>PHASE-3</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>if merge_status == FAIL and not fail_open</code></td>
+</tr>
+<tr>
+<td>PHASE-4</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td>Empty boundary for unconfigured phases</td>
+</tr>
+<tr>
+<td>PHASE-5</td>
+<td><code>pi-interoperability-layer/mesh/receipts.py</code></td>
+<td><code>PhaseBoundaryReceipt.compute_hash()</code></td>
+</tr>
+<tr>
+<td>PHASE-6</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>worker_id = f"{phase}_{cls.__name__}_{i}"</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="134-replay-invariants">13.4 Replay Invariants<a class="headerlink" href="#134-replay-invariants" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>REPLAY-1</td>
+<td><code>pi-interoperability-layer/execution.py</code></td>
+<td><code>ReplayLedger.append()</code> — <code>seq = last_sequence + 1</code></td>
+</tr>
+<tr>
+<td>REPLAY-2</td>
+<td><code>pi-interoperability-layer/execution.py</code></td>
+<td><code>EventRecord.compute_hash()</code> includes <code>previous_hash</code></td>
+</tr>
+<tr>
+<td>REPLAY-3</td>
+<td><code>pi-interoperability-layer/execution.py</code></td>
+<td><code>ReplayLedger.verify_integrity()</code></td>
+</tr>
+<tr>
+<td>REPLAY-4</td>
+<td><code>pi-interoperability-layer/mesh/worker_base.py</code></td>
+<td><code>_compute_determinism_proof()</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="135-scheduling">13.5 Scheduling<a class="headerlink" href="#135-scheduling" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SCHED-1</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td><code>DeterministicPartitioner.assign()</code> — <code>int(H(worker_id)[:8], 16) % shard_count</code></td>
+</tr>
+<tr>
+<td>SCHED-2</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td><code>ShardAssignment.compute_hash()</code></td>
+</tr>
+<tr>
+<td>SCHED-3</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td><code>ShardCoordinator.register_workers()</code> — capacity check</td>
+</tr>
+<tr>
+<td>SCHED-4</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td><code>register_workers()</code> raises on duplicate within run</td>
+</tr>
+<tr>
+<td>SCHED-5</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>_resolve_phase_inputs()</code> — phase-scoped input resolution</td>
+</tr>
+<tr>
+<td>SCHED-6</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>PHASE_ORDER</code> constant array</td>
+</tr>
+</tbody>
+</table>
+<h3 id="136-policy">13.6 Policy<a class="headerlink" href="#136-policy" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POLICY-1</td>
+<td><code>pi-extension-governor/policy.py</code></td>
+<td><code>ExtensionGovernancePolicy.evaluate()</code> — first DENY wins</td>
+</tr>
+<tr>
+<td>POLICY-2</td>
+<td><code>pi-extension-governor/policy.py</code></td>
+<td><code>_evaluate_rule()</code> — missing field → passed=False</td>
+</tr>
+<tr>
+<td>POLICY-3</td>
+<td><code>pi-extension-governor/policy.py</code></td>
+<td>Unrecognized rule type is not in <code>_build_rules()</code>, so not evaluated (implicit DENY)</td>
+</tr>
+<tr>
+<td>POLICY-4</td>
+<td><code>pi-extension-governor/policy.py</code></td>
+<td><code>_build_rules()</code> always returns 10+ rules</td>
+</tr>
+<tr>
+<td>POLICY-5</td>
+<td><code>pi-extension-governor/policy.py</code></td>
+<td><code>trust_zone_restriction</code> — empty allowed → DENY</td>
+</tr>
+<tr>
+<td>POLICY-6</td>
+<td><code>pi-extension-governor/policy.py</code></td>
+<td><code>max_resource</code> — <code>&lt;=</code> comparison</td>
+</tr>
+</tbody>
+</table>
+<h3 id="137-shard-synchronization">13.7 Shard Synchronization<a class="headerlink" href="#137-shard-synchronization" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SHARD-1</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td><code>can_advance_phase()</code> — all COMPLETED check</td>
+</tr>
+<tr>
+<td>SHARD-2</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td>Same as above</td>
+</tr>
+<tr>
+<td>SHARD-3</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td><code>advance_phase()</code> — global boundary computation</td>
+</tr>
+<tr>
+<td>SHARD-4</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td>Worker failures don't cross shard boundaries in <code>_run_phase()</code></td>
+</tr>
+<tr>
+<td>SHARD-5</td>
+<td><code>pi-interoperability-layer/mesh/shard.py</code></td>
+<td><code>_execution_log.append(...)</code> on every state change</td>
+</tr>
+<tr>
+<td>SHARD-6</td>
+<td><code>pi-interoperability-layer/mesh/kernel.py</code></td>
+<td><code>fail_open</code> gate in <code>_merge_phase()</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="138-receipts">13.8 Receipts<a class="headerlink" href="#138-receipts" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RECEIPT-1</td>
+<td><code>pi-interoperability-layer/mesh/receipts.py</code></td>
+<td><code>OrchestrationLedger.verify_chain()</code></td>
+</tr>
+<tr>
+<td>RECEIPT-2</td>
+<td><code>pi-interoperability-layer/mesh/receipts.py</code></td>
+<td>Separate chains for receipts and boundaries</td>
+</tr>
+<tr>
+<td>RECEIPT-3</td>
+<td><code>pi-interoperability-layer/platform/tenant.py</code></td>
+<td><code>TenantExecutionLog.record()</code></td>
+</tr>
+<tr>
+<td>RECEIPT-4</td>
+<td><code>pi-interoperability-layer/execution.py</code></td>
+<td><code>EventRecord.replay_evidence</code> field</td>
+</tr>
+</tbody>
+</table>
+<h3 id="139-trust-zones">13.9 Trust Zones<a class="headerlink" href="#139-trust-zones" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TZ-1</td>
+<td><code>pi-extension-governor/manifest.py</code></td>
+<td><code>ExtensionStatus</code> enum ordered sequence</td>
+</tr>
+<tr>
+<td>TZ-2</td>
+<td><code>pi-extension-governor/trust_zones.py</code></td>
+<td><code>can_gain_governance_authority()</code></td>
+</tr>
+<tr>
+<td>TZ-3</td>
+<td><code>pi-extension-governor/trust_zones.py</code></td>
+<td>Demotion logic in <code>evaluate()</code> and policy engine</td>
+</tr>
+<tr>
+<td>TZ-4</td>
+<td><code>pi-extension-governor/trust_zones.py</code></td>
+<td>Quarantine as terminal recovery state</td>
+</tr>
+<tr>
+<td>TZ-5</td>
+<td><code>pi-interoperability-layer/capability/registry.py</code></td>
+<td>Marketplace registry filters by status</td>
+</tr>
+</tbody>
+</table>
+<h3 id="1310-layer-4-boundary">13.10 Layer 4 Boundary<a class="headerlink" href="#1310-layer-4-boundary" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>File</th>
+<th>Function / Class</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INVARIANT-1</td>
+<td>N/A (philosophical)</td>
+<td>Enforced by code review: no LLM imports in core</td>
+</tr>
+<tr>
+<td>INVARIANT-2</td>
+<td><code>pi-console/backend/src/pi_console/schemas.py</code></td>
+<td><code>ExplicitCompositionRequest</code> frozen model</td>
+</tr>
+<tr>
+<td>INVARIANT-3</td>
+<td>All core files</td>
+<td><code>frozen=True</code> on all models; canonical JSON; SHA-256</td>
+</tr>
+<tr>
+<td>INVARIANT-4</td>
+<td><code>pi-extension-governor/policy.py</code></td>
+<td><code>DENY_OVERRIDES_ALLOW = True</code></td>
+</tr>
+<tr>
+<td>INVARIANT-5</td>
+<td><code>pi-interoperability-layer/platform/tenant.py</code></td>
+<td><code>TenantRegistry</code> — scoped lookups only</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="14-conformance-test-plan">14. Conformance Test Plan<a class="headerlink" href="#14-conformance-test-plan" title="Permanent link">&para;</a></h2>
+<h3 id="141-test-categories">14.1 Test Categories<a class="headerlink" href="#141-test-categories" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Purpose</th>
+<th>Count (ref impl)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Boundary Tests</td>
+<td>Layer 4 → Layer 1–3 contract enforcement</td>
+<td>17</td>
+</tr>
+<tr>
+<td>Artifact Tests</td>
+<td>Fingerprinting, serialization, evolution</td>
+<td>~45</td>
+</tr>
+<tr>
+<td>Execution Tests</td>
+<td>Ledger integrity, event chaining, replay</td>
+<td>~65</td>
+</tr>
+<tr>
+<td>Worker Tests</td>
+<td>Contract enforcement, determinism proof</td>
+<td>~42</td>
+</tr>
+<tr>
+<td>Shard Tests</td>
+<td>Deterministic assignment, phase barriers</td>
+<td>~18</td>
+</tr>
+<tr>
+<td>Policy Tests</td>
+<td>Fail-closed, rule evaluation, trust zones</td>
+<td>~36</td>
+</tr>
+<tr>
+<td>Tenant Tests</td>
+<td>Quota enforcement, isolation, audit</td>
+<td>~52</td>
+</tr>
+<tr>
+<td>Blast Radius Tests</td>
+<td>Topology scoring, limit checks</td>
+<td>~11</td>
+</tr>
+<tr>
+<td>Diff Tests</td>
+<td>Semantic diff computation</td>
+<td>~11</td>
+</tr>
+<tr>
+<td>Console Backend Tests</td>
+<td>API contract, validation, audit logging</td>
+<td>17</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td></td>
+<td><strong>383</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="142-required-conformance-tests">14.2 Required Conformance Tests<a class="headerlink" href="#142-required-conformance-tests" title="Permanent link">&para;</a></h3>
+<p>A conformant implementation must pass the following tests:</p>
+<h4 id="ctest-1-artifact-immutability">CTEST-1: Artifact Immutability<a class="headerlink" href="#ctest-1-artifact-immutability" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Construct an <code>ArtifactContract</code> with <code>frozen=True</code></li>
+<li>Attempt field mutation → must raise <code>ValidationError</code> or equivalent</li>
+</ul>
+<h4 id="ctest-2-deterministic-fingerprint">CTEST-2: Deterministic Fingerprint<a class="headerlink" href="#ctest-2-deterministic-fingerprint" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Create two identical artifact instances</li>
+<li><code>compute_fingerprint()</code> must return identical hashes</li>
+<li>Modify one payload field → hash must differ</li>
+</ul>
+<h4 id="ctest-3-ledger-chain-integrity">CTEST-3: Ledger Chain Integrity<a class="headerlink" href="#ctest-3-ledger-chain-integrity" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Append 5 events to a <code>ReplayLedger</code></li>
+<li><code>verify_integrity()</code> must return <code>True</code></li>
+<li>Tamper with one event's payload → <code>verify_integrity()</code> must return <code>False</code></li>
+</ul>
+<h4 id="ctest-4-receipt-chaining">CTEST-4: Receipt Chaining<a class="headerlink" href="#ctest-4-receipt-chaining" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Append 3 receipts to an <code>OrchestrationLedger</code></li>
+<li><code>verify_chain()</code> must return <code>True</code></li>
+<li>Modify <code>previous_receipt_hash</code> of receipt 2 → <code>verify_chain()</code> must return <code>False</code></li>
+</ul>
+<h4 id="ctest-5-shard-determinism">CTEST-5: Shard Determinism<a class="headerlink" href="#ctest-5-shard-determinism" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Create a <code>DeterministicPartitioner(shard_count=4)</code></li>
+<li>Assign <code>worker_id="w1"</code> 10 times → must always map to the same shard</li>
+<li>Re-create partitioner with same params → same assignment</li>
+</ul>
+<h4 id="ctest-6-phase-locked-advancement">CTEST-6: Phase-Locked Advancement<a class="headerlink" href="#ctest-6-phase-locked-advancement" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Begin phase "EXTRACT" with 2 shards</li>
+<li>Mark 1 shard completed → <code>can_advance_phase()</code> must be <code>False</code></li>
+<li>Mark second shard completed → <code>can_advance_phase()</code> must be <code>True</code></li>
+</ul>
+<h4 id="ctest-7-policy-fail-closed">CTEST-7: Policy Fail-Closed<a class="headerlink" href="#ctest-7-policy-fail-closed" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Evaluate manifest with empty policy rules → <code>passed=False</code></li>
+<li>Evaluate manifest with missing required field → <code>passed=False</code></li>
+<li>Evaluate manifest exceeding resource max → <code>passed=False</code></li>
+</ul>
+<h4 id="ctest-8-tenant-isolation">CTEST-8: Tenant Isolation<a class="headerlink" href="#ctest-8-tenant-isolation" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Register tenant T1 and T2</li>
+<li>Add capability for T1 → T2's capability count must remain 0</li>
+<li>Query T1 audit log → must not contain T2 entries</li>
+</ul>
+<h4 id="ctest-9-explicitcompositionrequest-boundary">CTEST-9: ExplicitCompositionRequest Boundary<a class="headerlink" href="#ctest-9-explicitcompositionrequest-boundary" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Submit plain dict instead of <code>ExplicitCompositionRequest</code> → rejected with 422</li>
+<li>Submit request without <code>user_confirmation=True</code> → rejected with 403</li>
+<li>Submit request with mismatched tenant header → rejected with 403</li>
+</ul>
+<h4 id="ctest-10-replay-verification">CTEST-10: Replay Verification<a class="headerlink" href="#ctest-10-replay-verification" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Execute a pipeline, capture receipts</li>
+<li>Replay same inputs → determinism proofs must match</li>
+<li>Modify one input artifact → determinism proof must differ</li>
+</ul>
+<h4 id="ctest-11-worker-contract-enforcement">CTEST-11: Worker Contract Enforcement<a class="headerlink" href="#ctest-11-worker-contract-enforcement" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Execute worker with inputs exceeding <code>max_input_slots</code> → <code>RESOURCE_EXCEEDED</code></li>
+<li>Execute worker exceeding <code>max_execution_ms</code> → <code>TIMEOUT</code></li>
+<li>Execute worker producing output type not in contract → <code>SCHEMA_MISMATCH</code></li>
+</ul>
+<h4 id="ctest-12-blast-radius-boundedness">CTEST-12: Blast Radius Boundedness<a class="headerlink" href="#ctest-12-blast-radius-boundedness" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Create topology with depth &gt; <code>max_graph_depth</code> → limit exceeded in report</li>
+<li>Create topology with fanout &gt; <code>max_fanout_per_endpoint</code> → limit exceeded</li>
+</ul>
+<h4 id="ctest-13-trust-zone-sandbox-isolation">CTEST-13: Trust Zone Sandbox Isolation<a class="headerlink" href="#ctest-13-trust-zone-sandbox-isolation" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Assign manifest to <code>SANDBOX_EXPERIMENTAL</code> → <code>can_gain_governance_authority()</code> returns <code>False</code></li>
+<li>Attempt to promote sandbox extension → must fail</li>
+</ul>
+<h4 id="ctest-14-schema-compatibility">CTEST-14: Schema Compatibility<a class="headerlink" href="#ctest-14-schema-compatibility" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Register contract at version <code>1.0.0</code></li>
+<li>Evaluate candidate <code>1.1.0</code> → <code>compatible=True</code></li>
+<li>Evaluate candidate <code>2.0.0</code> → <code>compatible=False</code></li>
+</ul>
+<h4 id="ctest-15-console-audit-trail">CTEST-15: Console Audit Trail<a class="headerlink" href="#ctest-15-console-audit-trail" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Submit composition via console → <code>AuditLogEntry</code> created with exact request payload</li>
+<li>Query audit log → must include all fields of submitted request</li>
+</ul>
+<h3 id="143-test-execution-reference">14.3 Test Execution Reference<a class="headerlink" href="#143-test-execution-reference" title="Permanent link">&para;</a></h3>
+<p>The reference implementation validates conformance via:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="c1"># Core runtime tests (across all 6 modules)</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">&quot;/path/to/pi-agent-chain/src:/path/to/pi-semantic-diff/src:...&quot;</span><span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="w">  </span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>-q
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a><span class="c1"># Console boundary tests</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="nv">PYTHONPATH</span><span class="o">=</span>/path/to/pi-console/backend/src<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="w">  </span>python<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/backend/test_boundary.py<span class="w"> </span>-v
+</code></pre></div>
+<p>All 383 tests must pass. Any failure indicates a spec violation or regression.</p>
+<hr />
+<h2 id="15-versioning-maintenance">15. Versioning &amp; Maintenance<a class="headerlink" href="#15-versioning-maintenance" title="Permanent link">&para;</a></h2>
+<h3 id="151-specification-versioning">15.1 Specification Versioning<a class="headerlink" href="#151-specification-versioning" title="Permanent link">&para;</a></h3>
+<p>This specification uses <strong>Semantic Versioning</strong>:</p>
+<ul>
+<li><strong>MAJOR</strong> (X.0.0): Breaking changes to invariants, phase order, or boundary contracts</li>
+<li><strong>MINOR</strong> (x.Y.0): New artifact types, new capabilities, additive rules</li>
+<li><strong>PATCH</strong> (x.y.Z): Clarifications, typo fixes, non-normative errata</li>
+</ul>
+<h3 id="152-change-control-process">15.2 Change Control Process<a class="headerlink" href="#152-change-control-process" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Proposal</strong>: Changes proposed via PR with rationale and impact analysis</li>
+<li><strong>Review</strong>: Reviewed against all hard invariants (Section 1.4)</li>
+<li><strong>Test Update</strong>: All conformance tests updated to reflect changes</li>
+<li><strong>Reference Update</strong>: Reference implementation updated and passing</li>
+<li><strong>Approval</strong>: Maintainers approve after zero-regression verification</li>
+<li><strong>Release</strong>: New spec version published with changelog</li>
+</ol>
+<h3 id="153-backward-compatibility">15.3 Backward Compatibility<a class="headerlink" href="#153-backward-compatibility" title="Permanent link">&para;</a></h3>
+<ul>
+<li>New artifact fields MUST be optional with sensible defaults</li>
+<li>New phases MUST be appended to <code>PHASE_ORDER</code>, never inserted</li>
+<li>New policy rule types MUST be additive; existing rules unaffected</li>
+<li>Schema evolution MUST be tracked in <code>SchemaEvolutionLog</code></li>
+</ul>
+<h3 id="154-deprecation-policy">15.4 Deprecation Policy<a class="headerlink" href="#154-deprecation-policy" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Features marked deprecated in version <code>N</code> remain functional through <code>N+1</code></li>
+<li>Deprecated features are removed in version <code>N+2</code></li>
+<li>Deprecations are recorded in <code>SchemaEvolutionLog</code> with <code>change_type: DEPRECATE</code></li>
+</ul>
+<hr />
+<h2 id="16-appendices">16. Appendices<a class="headerlink" href="#16-appendices" title="Permanent link">&para;</a></h2>
+<h3 id="appendix-a-canonical-json-serialization">Appendix A: Canonical JSON Serialization<a class="headerlink" href="#appendix-a-canonical-json-serialization" title="Permanent link">&para;</a></h3>
+<p>All hashes in the PI runtime use this exact serialization:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">canonical_json</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>        <span class="n">value</span><span class="p">,</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>        <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>        <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">),</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>        <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>    <span class="p">)</span>
+</code></pre></div>
+<p><strong>Rule A-1</strong>: Any deviation from this canonical form (different key order, whitespace, or encoding) produces a different hash and breaks replay.</p>
+<h3 id="appendix-b-sha-256-hashing">Appendix B: SHA-256 Hashing<a class="headerlink" href="#appendix-b-sha-256-hashing" title="Permanent link">&para;</a></h3>
+<p>All hashes use SHA-256:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">hashlib</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">hashlib</span><span class="o">.</span><span class="n">sha256</span><span class="p">(</span><span class="n">payload_bytes</span><span class="p">)</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">()</span>
+</code></pre></div>
+<p><code>payload_bytes</code> is the UTF-8 encoding of the canonical JSON string.</p>
+<h3 id="appendix-c-uuid-generation">Appendix C: UUID Generation<a class="headerlink" href="#appendix-c-uuid-generation" title="Permanent link">&para;</a></h3>
+<p>IDs use standard UUID4 hex truncated to 16 characters:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_</span><span class="si">{</span><span class="n">uuid</span><span class="o">.</span><span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">[:</span><span class="mi">16</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
+</code></pre></div>
+<p>Prefixes: <code>ecr_</code>, <code>sim_</code>, <code>rcpt_</code>, <code>bnd_</code>, <code>ledger_</code>, <code>evt_</code>, <code>slot_</code>, <code>aud_</code>, <code>sess_</code></p>
+<h3 id="appendix-d-time-representation">Appendix D: Time Representation<a class="headerlink" href="#appendix-d-time-representation" title="Permanent link">&para;</a></h3>
+<p>All timestamps are ISO-8601 UTC strings with timezone:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">(</span><span class="n">timezone</span><span class="o">.</span><span class="n">utc</span><span class="p">)</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+</code></pre></div>
+<p>Example: <code>2026-05-18T14:30:00+00:00</code></p>
+<h3 id="appendix-e-frozen-model-updates">Appendix E: Frozen Model Updates<a class="headerlink" href="#appendix-e-frozen-model-updates" title="Permanent link">&para;</a></h3>
+<p>Pydantic v2 frozen models are updated via <code>model_copy(update=...)</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># Immutable update pattern</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="n">updated</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">model_copy</span><span class="p">(</span><span class="n">update</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;field&quot;</span><span class="p">:</span> <span class="n">new_value</span><span class="p">})</span>
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="c1"># Original obj remains unchanged</span>
+</code></pre></div>
+<p><strong>Rule E-1</strong>: Direct field assignment (<code>obj.field = value</code>) on frozen models raises <code>ValidationError</code>.</p>
+<hr />
+<h2 id="changelog">Changelog<a class="headerlink" href="#changelog" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0.0</td>
+<td>2026-05-18</td>
+<td>Initial specification covering all 4 layers, 15 sections, 14 conformance tests, 54 rules</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<p><strong>End of PI Runtime Specification v1.0</strong></p>
+<hr />
+<h2 id="17-snapshot-foundation-layer">17. Snapshot Foundation Layer<a class="headerlink" href="#17-snapshot-foundation-layer" title="Permanent link">&para;</a></h2>
+<h3 id="171-snapshot-artifact-definition">17.1 Snapshot Artifact Definition<a class="headerlink" href="#171-snapshot-artifact-definition" title="Permanent link">&para;</a></h3>
+<p>A <code>SnapshotArtifact</code> is an immutable, tenant-partitioned, timestamped representation of infrastructure state at a single point in time.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>SnapshotArtifact:
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>  snapshot_id: string
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>  base_snapshot_id: string | null
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>  timestamp_marker: TimestampMarker
+<a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a>  payload: SnapshotPayload
+<a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a>  payload_hash: SHA-256
+<a id="__codelineno-27-7" name="__codelineno-27-7" href="#__codelineno-27-7"></a>  artifact_hash: SHA-256
+<a id="__codelineno-27-8" name="__codelineno-27-8" href="#__codelineno-27-8"></a>  previous_snapshot_hash: SHA-256
+<a id="__codelineno-27-9" name="__codelineno-27-9" href="#__codelineno-27-9"></a>  compression: &quot;none&quot; | &quot;gzip&quot; | &quot;zstd&quot;
+<a id="__codelineno-27-10" name="__codelineno-27-10" href="#__codelineno-27-10"></a>  retention_class: &quot;hot&quot; | &quot;warm&quot; | &quot;cold&quot; | &quot;archive&quot;
+</code></pre></div>
+<p><strong>Rule SNAP-1</strong>: Every snapshot MUST have a <code>payload_hash</code> equal to <code>H(canonical_json(payload.data))</code>.</p>
+<p><strong>Rule SNAP-2</strong>: Every snapshot MUST have an <code>artifact_hash</code> equal to <code>H(snapshot_id + base_snapshot_id + timestamp_marker.ordering_key + payload_hash + previous_snapshot_hash)</code>.</p>
+<p><strong>Rule SNAP-3</strong>: <code>previous_snapshot_hash</code> MUST equal the <code>artifact_hash</code> of the immediately preceding snapshot in the same (tenant_id, source_id, snapshot_type) chain. The first snapshot in a chain has <code>previous_snapshot_hash = ""</code>.</p>
+<h3 id="172-snapshotregistry-invariants">17.2 SnapshotRegistry Invariants<a class="headerlink" href="#172-snapshotregistry-invariants" title="Permanent link">&para;</a></h3>
+<p><strong>Rule SNAP-4</strong>: The SnapshotRegistry is append-only. No snapshot may be modified, overwritten, or deleted after storage.</p>
+<p><strong>Rule SNAP-5</strong>: Tenant isolation is absolute. A query with <code>tenant_id=X</code> MUST only return snapshots where <code>payload.tenant_id == X</code>.</p>
+<p><strong>Rule SNAP-6</strong>: Snapshot ordering within a chain is strictly monotonic by <code>timestamp_marker.ordering_key</code>.</p>
+<p><strong>Rule SNAP-7</strong>: Clock order violations (a snapshot with <code>timestamp_marker &lt; chain.head.timestamp_marker</code>) are rejected with <code>ClockOrderViolation</code>.</p>
+<h3 id="173-retention-policy">17.3 Retention Policy<a class="headerlink" href="#173-retention-policy" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>RetentionPolicy:
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>  policy_id: string
+<a id="__codelineno-28-3" name="__codelineno-28-3" href="#__codelineno-28-3"></a>  hot_ttl_days: int &gt;= 1
+<a id="__codelineno-28-4" name="__codelineno-28-4" href="#__codelineno-28-4"></a>  warm_ttl_days: int &gt;= 1
+<a id="__codelineno-28-5" name="__codelineno-28-5" href="#__codelineno-28-5"></a>  cold_ttl_days: int &gt;= 1
+<a id="__codelineno-28-6" name="__codelineno-28-6" href="#__codelineno-28-6"></a>  archive_ttl_days: int &gt;= 1
+<a id="__codelineno-28-7" name="__codelineno-28-7" href="#__codelineno-28-7"></a>  compress_after_days: int &gt;= 1
+<a id="__codelineno-28-8" name="__codelineno-28-8" href="#__codelineno-28-8"></a>  compression_algorithm: &quot;gzip&quot; | &quot;zstd&quot;
+<a id="__codelineno-28-9" name="__codelineno-28-9" href="#__codelineno-28-9"></a>  immutable_after_days: int &gt;= 1
+</code></pre></div>
+<p><strong>Rule SNAP-8</strong>: Retention policies only reclassify <code>retention_class</code>. They NEVER delete snapshots.</p>
+<p><strong>Rule SNAP-9</strong>: Snapshots older than <code>immutable_after_days</code> are sealed: no further writes to their chain are permitted.</p>
+<hr />
+<h2 id="18-semantic-diff-engine">18. Semantic Diff Engine<a class="headerlink" href="#18-semantic-diff-engine" title="Permanent link">&para;</a></h2>
+<h3 id="181-deltatype-classification">18.1 DeltaType Classification<a class="headerlink" href="#181-deltatype-classification" title="Permanent link">&para;</a></h3>
+<p>Every detected change between two snapshots MUST be classified into exactly one <code>DeltaType</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Types</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Structural</td>
+<td>NODE_ADDED, NODE_REMOVED, NODE_MODIFIED, EDGE_ADDED, EDGE_REMOVED, EDGE_MODIFIED</td>
+</tr>
+<tr>
+<td>Configuration</td>
+<td>CONFIG_ADDED, CONFIG_REMOVED, CONFIG_CHANGED</td>
+</tr>
+<tr>
+<td>State</td>
+<td>STATE_CHANGED, STATE_INCREASED, STATE_DECREASED</td>
+</tr>
+<tr>
+<td>Auth/Security</td>
+<td>AUTH_ADDED, AUTH_REMOVED, AUTH_CHANGED, PERMISSION_ESCALATED, PERMISSION_DEESCALATED</td>
+</tr>
+<tr>
+<td>Policy</td>
+<td>POLICY_ADDED, POLICY_REMOVED, POLICY_CHANGED</td>
+</tr>
+<tr>
+<td>Topology</td>
+<td>TOPOLOGY_EXPANDED, TOPOLOGY_CONTRACTED, TOPOLOGY_REWIRED</td>
+</tr>
+<tr>
+<td>Capability</td>
+<td>CAPABILITY_ADDED, CAPABILITY_REMOVED, CAPABILITY_UPDATED</td>
+</tr>
+<tr>
+<td>Trust Zone</td>
+<td>TRUST_ZONE_PROMOTED, TRUST_ZONE_DEMOTED</td>
+</tr>
+<tr>
+<td>Composite</td>
+<td>COMPOSITE, UNKNOWN</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule DIFF-1</strong>: Delta classification is deterministic: identical inputs MUST produce identical DeltaType assignments.</p>
+<p><strong>Rule DIFF-2</strong>: Severity is derived from DeltaType via a fixed lookup table, not from probabilistic scoring.</p>
+<h3 id="182-semanticdriftreport">18.2 SemanticDriftReport<a class="headerlink" href="#182-semanticdriftreport" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a>SemanticDriftReport:
+<a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>  report_id: string
+<a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a>  baseline_snapshot_id: string
+<a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>  modified_snapshot_id: string
+<a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>  deltas: [SemanticDelta]
+<a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a>  delta_counts: {delta_type: count}
+<a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a>  high_severity_deltas: [delta_id]
+<a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>  total_drift_score: float [0, 1]
+<a id="__codelineno-29-9" name="__codelineno-29-9" href="#__codelineno-29-9"></a>  structural_drift: float [0, 1]
+<a id="__codelineno-29-10" name="__codelineno-29-10" href="#__codelineno-29-10"></a>  semantic_drift: float [0, 1]
+<a id="__codelineno-29-11" name="__codelineno-29-11" href="#__codelineno-29-11"></a>  input_hash: SHA-256
+<a id="__codelineno-29-12" name="__codelineno-29-12" href="#__codelineno-29-12"></a>  report_hash: SHA-256
+</code></pre></div>
+<p><strong>Rule DIFF-3</strong>: <code>total_drift_score</code> is bounded [0, 1] and computed as <code>min(total_changes / max(total_elements * 2, 1), 1.0)</code>.</p>
+<p><strong>Rule DIFF-4</strong>: <code>report_hash</code> covers all delta hashes in sorted order, ensuring bit-for-bit reproducibility.</p>
+<h3 id="183-worker-contract">18.3 Worker Contract<a class="headerlink" href="#183-worker-contract" title="Permanent link">&para;</a></h3>
+<p>The <code>PiObservabilityDiffWorker</code> implements the <code>WorkerBase</code> contract:</p>
+<ul>
+<li>Input: exactly 2 <code>SnapshotArtifact</code> slots (baseline, modified)</li>
+<li>Output: 1 <code>SemanticDriftReport</code> slot</li>
+<li>Max execution: 60 seconds</li>
+<li>Determinism proof: hash of output slot fingerprint</li>
+</ul>
+<p><strong>Rule DIFF-5</strong>: The worker SHALL reject cross-tenant diffs and cross-type diffs with <code>SCHEMA_MISMATCH</code>.</p>
+<hr />
+<h2 id="19-drift-propagation-simulation">19. Drift Propagation Simulation<a class="headerlink" href="#19-drift-propagation-simulation" title="Permanent link">&para;</a></h2>
+<h3 id="191-riskpropagationgraph">19.1 RiskPropagationGraph<a class="headerlink" href="#191-riskpropagationgraph" title="Permanent link">&para;</a></h3>
+<p>A <code>RiskPropagationGraph</code> is derived deterministically from a <code>TopologyGraph</code> and a <code>SemanticDriftReport</code>.</p>
+<p><strong>Rule PROP-1</strong>: Same <code>TopologyGraph</code> + same <code>SemanticDriftReport</code> MUST always produce the same <code>RiskPropagationGraph</code> (verified by <code>graph_hash</code>).</p>
+<h3 id="192-propagation-rules">19.2 Propagation Rules<a class="headerlink" href="#192-propagation-rules" title="Permanent link">&para;</a></h3>
+<p><strong>Rule PROP-2</strong>: Propagation is bounded by <code>max_propagation_depth</code> (default 6). No node beyond depth 6 may receive propagated risk.</p>
+<p><strong>Rule PROP-3</strong>: Auth-carrying edges amplify propagation by <code>auth_propagation_multiplier</code> (default 2), reducing effective depth decay.</p>
+<p><strong>Rule PROP-4</strong>: State-carrying edges amplify by <code>state_propagation_multiplier</code> (default 1).</p>
+<p><strong>Rule PROP-5</strong>: Risk level decays by depth but never below <code>INFO</code>.</p>
+<p><strong>Rule PROP-6</strong>: Direct blast radius nodes (nodes with <code>in_direct_blast_radius=True</code>) preserve their original risk level regardless of propagation depth.</p>
+<h3 id="193-aggregate-metrics">19.3 Aggregate Metrics<a class="headerlink" href="#193-aggregate-metrics" title="Permanent link">&para;</a></h3>
+<p><strong>Rule PROP-7</strong>: <code>total_nodes_at_risk</code> is the count of all nodes with <code>risk_level != "NONE"</code>.</p>
+<p><strong>Rule PROP-8</strong>: <code>total_edges_propagating</code> is the count of edges where <code>carries_drift=True</code>.</p>
+<hr />
+<h2 id="20-temporal-replay-engine">20. Temporal Replay Engine<a class="headerlink" href="#20-temporal-replay-engine" title="Permanent link">&para;</a></h2>
+<h3 id="201-replay-safety-boundary">20.1 Replay Safety Boundary<a class="headerlink" href="#201-replay-safety-boundary" title="Permanent link">&para;</a></h3>
+<p>The Temporal Replay Engine operates under a strict <strong>no-mutation boundary</strong>:</p>
+<p><strong>Rule REPLAY-A1</strong>: The engine SHALL NOT write to <code>SnapshotRegistry</code>, <code>ArtifactBus</code>, or any mutable runtime state.</p>
+<p><strong>Rule REPLAY-A2</strong>: The engine SHALL NOT trigger workers, schedules, or orchestration pipelines.</p>
+<p><strong>Rule REPLAY-A3</strong>: The engine SHALL NOT produce <code>ExecutionReceipt</code> objects or modify <code>OrchestrationLedger</code> entries.</p>
+<p><strong>Rule REPLAY-A4</strong>: All engine outputs (<code>ReplayCheckpoint</code>, <code>ReplayTimeline</code>) MUST have <code>read_only=True</code>.</p>
+<h3 id="202-replaycheckpoint">20.2 ReplayCheckpoint<a class="headerlink" href="#202-replaycheckpoint" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a>ReplayCheckpoint:
+<a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>  checkpoint_id: string
+<a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a>  tenant_id: string
+<a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>  source_id: string
+<a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a>  snapshot_type: SnapshotType
+<a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>  reconstructed_snapshot: SnapshotArtifact
+<a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a>  source_snapshot_ids: [string]
+<a id="__codelineno-30-8" name="__codelineno-30-8" href="#__codelineno-30-8"></a>  target_timestamp: ISO-8601
+<a id="__codelineno-30-9" name="__codelineno-30-9" href="#__codelineno-30-9"></a>  nearest_snapshot_timestamp: ISO-8601
+<a id="__codelineno-30-10" name="__codelineno-30-10" href="#__codelineno-30-10"></a>  checkpoint_hash: SHA-256
+<a id="__codelineno-30-11" name="__codelineno-30-11" href="#__codelineno-30-11"></a>  read_only: true
+</code></pre></div>
+<p><strong>Rule REPLAY-A5</strong>: <code>reconstructed_snapshot</code> is the nearest snapshot at or before <code>target_timestamp</code>.</p>
+<p><strong>Rule REPLAY-A6</strong>: <code>checkpoint_hash</code> covers <code>source_snapshot_ids</code> in sorted order, the target timestamp, and <code>read_only=true</code>.</p>
+<h3 id="203-state-reconstruction">20.3 State Reconstruction<a class="headerlink" href="#203-state-reconstruction" title="Permanent link">&para;</a></h3>
+<p><strong>Rule REPLAY-A7</strong>: <code>reconstruct_state_at()</code> returns <code>None</code> if no snapshot exists at or before the target timestamp.</p>
+<p><strong>Rule REPLAY-A8</strong>: <code>build_timeline()</code> produces checkpoints in strictly ascending temporal order.</p>
+<hr />
+<h2 id="21-hyperframes-temporal-rendering">21. HyperFrames Temporal Rendering<a class="headerlink" href="#21-hyperframes-temporal-rendering" title="Permanent link">&para;</a></h2>
+<h3 id="211-deterministic-frame-semantics">21.1 Deterministic Frame Semantics<a class="headerlink" href="#211-deterministic-frame-semantics" title="Permanent link">&para;</a></h3>
+<p>A <code>HyperFrame</code> is a single frame in a temporal rendering sequence with deterministic composition:</p>
+<p><strong>Rule HF-1</strong>: Identical <code>SemanticDriftReport</code> + identical <code>RenderConfig</code> MUST produce identical <code>HyperFrameSequence</code> (verified by <code>sequence_hash</code>).</p>
+<p><strong>Rule HF-2</strong>: Frame ordering is deterministic: Frame 0 = baseline, Frames 1..N = delta groups, Frame N+1 = aggregate.</p>
+<p><strong>Rule HF-3</strong>: Frame data is base64-encoded PNG with deterministic matplotlib rendering: fixed DPI, fixed font, fixed color palette, no random layout.</p>
+<h3 id="212-mp4-encoding">21.2 MP4 Encoding<a class="headerlink" href="#212-mp4-encoding" title="Permanent link">&para;</a></h3>
+<p><strong>Rule HF-4</strong>: MP4 encoding uses <code>libx264</code> with fixed quality parameter (quality=8) and fixed FPS (default 2).</p>
+<p><strong>Rule HF-5</strong>: Output file hash is deterministic for identical inputs, subject only to codec implementation stability.</p>
+<h3 id="213-renderconfig">21.3 RenderConfig<a class="headerlink" href="#213-renderconfig" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a>RenderConfig:
+<a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>  config_id: string
+<a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>  width: int [320, 3840]
+<a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a>  height: int [240, 2160]
+<a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a>  fps: int [1, 60]
+<a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a>  color_palette: {role: hex_color}
+<a id="__codelineno-31-7" name="__codelineno-31-7" href="#__codelineno-31-7"></a>  font_family: string
+<a id="__codelineno-31-8" name="__codelineno-31-8" href="#__codelineno-31-8"></a>  font_size: int
+<a id="__codelineno-31-9" name="__codelineno-31-9" href="#__codelineno-31-9"></a>  layout_seed: string
+</code></pre></div>
+<p><strong>Rule HF-6</strong>: <code>layout_seed</code> is derived from input hash, not a random seed.</p>
+<hr />
+<h2 id="22-digital-twin-operating-layer-semantics">22. Digital Twin Operating Layer Semantics<a class="headerlink" href="#22-digital-twin-operating-layer-semantics" title="Permanent link">&para;</a></h2>
+<h3 id="221-definition">22.1 Definition<a class="headerlink" href="#221-definition" title="Permanent link">&para;</a></h3>
+<p>The <strong>Governed Semantic Infrastructure Operating Layer</strong> is the integrated system composed of:</p>
+<ol>
+<li><code>SnapshotRegistry</code> — immutable infrastructure state capture</li>
+<li><code>SemanticDiffEngine</code> — deterministic drift detection</li>
+<li><code>DriftPropagationEngine</code> — bounded risk simulation</li>
+<li><code>TemporalReplayEngine</code> — read-only historical reconstruction</li>
+<li><code>HyperFrameRenderEngine</code> — deterministic temporal visualization</li>
+</ol>
+<h3 id="222-integration-pipeline">22.2 Integration Pipeline<a class="headerlink" href="#222-integration-pipeline" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>Snapshot A (t0) ─┬─▶ SnapshotRegistry.store(A)
+<a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>                │
+<a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>Snapshot B (t1) ─┼─▶ SnapshotRegistry.store(B)
+<a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>                │
+<a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>                ├─▶ SemanticDiffEngine.diff(A, B) ─▶ SemanticDriftReport
+<a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>                │                                      │
+<a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>                │                                      ▼
+<a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>                │                              DriftPropagationEngine.simulate(topology, report)
+<a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a>                │                                      │
+<a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a>                │                                      ▼
+<a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a>                │                              RiskPropagationGraph
+<a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a>                │                                      │
+<a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a>                └─────────────────────────────────────┤
+<a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a>                                                        ▼
+<a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a>                                          TemporalReplayEngine.reconstruct_state_at(t0)
+<a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a>                                                        │
+<a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a>                                                        ▼
+<a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>                                          ReplayCheckpoint (read_only)
+<a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a>                                                        │
+<a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a>                                                        ▼
+<a id="__codelineno-32-21" name="__codelineno-32-21" href="#__codelineno-32-21"></a>                                          HyperFrameRenderEngine.render_drift_report(report)
+<a id="__codelineno-32-22" name="__codelineno-32-22" href="#__codelineno-32-22"></a>                                                        │
+<a id="__codelineno-32-23" name="__codelineno-32-23" href="#__codelineno-32-23"></a>                                                        ▼
+<a id="__codelineno-32-24" name="__codelineno-32-24" href="#__codelineno-32-24"></a>                                          HyperFrameSequence ─▶ MP4
+</code></pre></div>
+<h3 id="223-governance-invariants">22.3 Governance Invariants<a class="headerlink" href="#223-governance-invariants" title="Permanent link">&para;</a></h3>
+<p><strong>Rule DT-1</strong>: The Digital Twin layer is <strong>analytical only</strong>. It does not execute, modify, or trigger infrastructure changes.</p>
+<p><strong>Rule DT-2</strong>: All outputs (reports, graphs, checkpoints, frames) are immutable, fingerprinted, and append-only.</p>
+<p><strong>Rule DT-3</strong>: Tenant isolation extends through the entire digital twin pipeline. No cross-tenant snapshot access, diff computation, or risk propagation is permitted.</p>
+<p><strong>Rule DT-4</strong>: The digital twin pipeline is fully replay-safe. Re-running with identical snapshots produces identical reports, identical graphs, and identical frame sequences.</p>
+<hr />
+<h2 id="23-canonicalization-clock-rules">23. Canonicalization &amp; Clock Rules<a class="headerlink" href="#23-canonicalization-clock-rules" title="Permanent link">&para;</a></h2>
+<h3 id="231-canonical-json-serialization">23.1 Canonical JSON Serialization<a class="headerlink" href="#231-canonical-json-serialization" title="Permanent link">&para;</a></h3>
+<p>All hashing operations use canonical JSON:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">separators</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;,&quot;</span><span class="p">,</span> <span class="s2">&quot;:&quot;</span><span class="p">),</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+</code></pre></div>
+<p><strong>Rule CANON-1</strong>: No whitespace variance. Keys sorted alphabetically. No trailing commas.</p>
+<h3 id="232-timestamp-normalization">23.2 Timestamp Normalization<a class="headerlink" href="#232-timestamp-normalization" title="Permanent link">&para;</a></h3>
+<p><strong>Rule CLOCK-1</strong>: All timestamps are normalized to UTC with microsecond precision.</p>
+<p><strong>Rule CLOCK-2</strong>: Nanosecond precision is truncated to microseconds deterministically.</p>
+<p><strong>Rule CLOCK-3</strong>: Timestamp comparison uses truncated microsecond values only.</p>
+<p><strong>Rule CLOCK-4</strong>: Clock skew is bounded by <code>max_skew_seconds</code> (default 60). Exceeding skew raises <code>ClockSkewViolation</code>.</p>
+<h3 id="233-deterministic-ordering">23.3 Deterministic Ordering<a class="headerlink" href="#233-deterministic-ordering" title="Permanent link">&para;</a></h3>
+<p><strong>Rule CLOCK-5</strong>: <code>TimestampMarker.ordering_key</code> format is <code>ISO:zero_padded_seq:clock_id</code>, ensuring lexicographic sort equals chronological sort.</p>
+<p><strong>Rule CLOCK-6</strong>: Sequence numbers are monotonically increasing within a single clock domain.</p>
+<hr />
+<h2 id="24-conformance-test-plan-digital-twin-extension">24. Conformance Test Plan (Digital Twin Extension)<a class="headerlink" href="#24-conformance-test-plan-digital-twin-extension" title="Permanent link">&para;</a></h2>
+<h3 id="241-test-categories">24.1 Test Categories<a class="headerlink" href="#241-test-categories" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Minimum Tests</th>
+<th>Coverage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Snapshot Artifact</td>
+<td>6</td>
+<td>Hash, immutability, chain, retention</td>
+</tr>
+<tr>
+<td>SnapshotRegistry</td>
+<td>6</td>
+<td>Store, retrieve, list, tenant isolation, integrity</td>
+</tr>
+<tr>
+<td>DeterministicClock</td>
+<td>4</td>
+<td>Ordering, skew, truncation, canonicalization</td>
+</tr>
+<tr>
+<td>SemanticDiffEngine</td>
+<td>8</td>
+<td>All delta types, drift scores, report hash</td>
+</tr>
+<tr>
+<td>PiObservabilityDiffWorker</td>
+<td>4</td>
+<td>Contract, execute, cross-tenant rejection</td>
+</tr>
+<tr>
+<td>DriftPropagationEngine</td>
+<td>6</td>
+<td>Propagation depth, auth/state edges, aggregates</td>
+</tr>
+<tr>
+<td>TemporalReplayEngine</td>
+<td>6</td>
+<td>Reconstruct, timeline, no-mutation boundary</td>
+</tr>
+<tr>
+<td>HyperFrameRenderEngine</td>
+<td>4</td>
+<td>Frame determinism, sequence hash, MP4 encoding</td>
+</tr>
+<tr>
+<td>Integration</td>
+<td>6</td>
+<td>End-to-end pipeline, determinism proof, tenant isolation</td>
+</tr>
+<tr>
+<td><strong>Total</strong></td>
+<td><strong>50</strong></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="242-test-invariants">24.2 Test Invariants<a class="headerlink" href="#242-test-invariants" title="Permanent link">&para;</a></h3>
+<p><strong>Rule TEST-1</strong>: Every test MUST verify deterministic output: running the same operation twice with identical inputs MUST produce identical hashes.</p>
+<p><strong>Rule TEST-2</strong>: Every mutation-producing component MUST verify that a <code>ReplayCheckpoint</code> has <code>read_only=True</code>.</p>
+<p><strong>Rule TEST-3</strong>: Cross-tenant tests MUST verify that <code>ValueError</code> or <code>SCHEMA_MISMATCH</code> is raised for all boundary violations.</p>
+<hr />
+<h2 id="25-versioning-maintenance">25. Versioning &amp; Maintenance<a class="headerlink" href="#25-versioning-maintenance" title="Permanent link">&para;</a></h2>
+<h3 id="251-version-history">25.1 Version History<a class="headerlink" href="#251-version-history" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Changes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0.0</td>
+<td>2026-05-18</td>
+<td>Initial baseline: Layers 1–4, artifact lifecycle, scheduling, policy, trust zones</td>
+</tr>
+<tr>
+<td>1.1.0</td>
+<td>2026-05-19</td>
+<td>Digital Twin Extension: Snapshot, Diff, Propagation, Replay, HyperFrames, canonicalization, clock rules</td>
+</tr>
+</tbody>
+</table>
+<h3 id="252-compatibility-statement">25.2 Compatibility Statement<a class="headerlink" href="#252-compatibility-statement" title="Permanent link">&para;</a></h3>
+<p>All v1.0.0 conformance classes remain valid for v1.1.0. v1.1.0 adds new conformance classes:</p>
+<ul>
+<li><strong>Digital Twin Runtime</strong>: Implements SnapshotRegistry + SemanticDiffEngine + DriftPropagationEngine</li>
+<li><strong>Replay Runtime</strong>: Implements TemporalReplayEngine with no-mutation boundary</li>
+<li><strong>Visualization Runtime</strong>: Implements HyperFrameRenderEngine with deterministic encoding</li>
+</ul>
+<hr />
+<p><em>End of PI Runtime Specification v1.1</em></p>
+<hr />
+<h2 id="17-production-runtime">17. Production Runtime<a class="headerlink" href="#17-production-runtime" title="Permanent link">&para;</a></h2>
+<h3 id="171-storage-semantics">17.1 Storage Semantics<a class="headerlink" href="#171-storage-semantics" title="Permanent link">&para;</a></h3>
+<p>The production runtime replaces in-memory registries with persistent,
+append-only SQLite storage:</p>
+<ul>
+<li><strong>Append-Only Constraint:</strong> Tables <code>snapshots</code>, <code>audit_log</code>, <code>receipts</code>
+  are append-only. UPDATE and DELETE are blocked by database triggers.</li>
+<li><strong>Hash Chaining:</strong> Every snapshot row carries <code>previous_hash</code> and
+  <code>artifact_hash</code>. Chain integrity is verifiable via <code>verify_chain()</code>.</li>
+<li><strong>Tenant Isolation:</strong> Every table has <code>tenant_id</code> column with composite
+  indexes. Cross-tenant queries are rejected at the API layer.</li>
+<li><strong>WAL Mode:</strong> SQLite runs with <code>journal_mode = WAL</code> for concurrent reads.</li>
+<li><strong>Retention:</strong> Configurable via <code>RetentionPolicy</code> (hot/warm/cold/archive).</li>
+</ul>
+<h3 id="172-security-semantics">17.2 Security Semantics<a class="headerlink" href="#172-security-semantics" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Authentication:</strong> JWT with HMAC-SHA256. Claims include <code>tenant_id</code>,
+  <code>role</code>, <code>sub</code>. Tokens expire deterministically.</li>
+<li><strong>Request Signing:</strong> HMAC-SHA256 over <code>method:path:timestamp:tenant:body_hash</code>.
+  Timestamp tolerance = 300 seconds. Prevents replay attacks.</li>
+<li><strong>RBAC:</strong> Hardcoded roles (admin, operator, viewer, api_key) with
+  explicit permission lists. No dynamic policy evaluation.</li>
+<li><strong>Rate Limiting:</strong> Sliding-window per <code>tenant_id</code> + <code>actor_id</code>.
+  Stored in SQLite with <code>INSERT ... ON CONFLICT UPDATE</code>.</li>
+<li><strong>Secret Management:</strong> Resolution priority: env var &gt; file &gt; default.
+  <code>PI_SECRET_&lt;NAME&gt;</code> environment variables.</li>
+<li><strong>Audit Logging:</strong> Every API action logged with hash-chained audit entries.
+  Correlation ID propagated across all layers.</li>
+</ul>
+<h3 id="173-telemetry-semantics">17.3 Telemetry Semantics<a class="headerlink" href="#173-telemetry-semantics" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Structured Logging:</strong> JSON output only. Every line includes
+  <code>timestamp</code>, <code>component</code>, <code>correlation_id</code>, <code>level</code>, <code>event</code>.</li>
+<li><strong>Metrics Registry:</strong> Prometheus-compatible text exposition format.
+  Counter / Gauge / Histogram types. Thread-safe.</li>
+<li><strong>Distributed Tracing:</strong> Custom lightweight tracer. Spans are immutable.
+  Trace ID derived from <code>correlation_id</code>. No probabilistic sampling.</li>
+<li><strong>Health Checks:</strong> <code>/v1/health/ready</code> returns HTTP 200 (healthy) or 503
+  (degraded). Deterministic based on <code>health_records</code> table.</li>
+</ul>
+<h3 id="174-api-semantics">17.4 API Semantics<a class="headerlink" href="#174-api-semantics" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Versioning:</strong> All routes under <code>/v1/</code> prefix.</li>
+<li><strong>Tenant Header:</strong> <code>X-Tenant-ID</code> required on every request.</li>
+<li><strong>Correlation Header:</strong> <code>X-Correlation-ID</code> optional; generated if absent.</li>
+<li><strong>Deterministic Headers:</strong> Every response includes <code>X-PI-Version</code> and
+  <code>X-PI-Deterministic: true</code>.</li>
+<li><strong>Rate Limit Response:</strong> HTTP 429 with <code>Retry-After</code> logic.</li>
+<li><strong>Authentication Response:</strong> HTTP 401 for missing/invalid token.</li>
+<li><strong>Authorization Response:</strong> HTTP 403 for role/tenant mismatch.</li>
+</ul>
+<h3 id="175-deployment-semantics">17.5 Deployment Semantics<a class="headerlink" href="#175-deployment-semantics" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Docker:</strong> Multi-stage build, non-root user (<code>piuser</code>), healthcheck,
+  WAL SQLite volume mounted at <code>/data</code>.</li>
+<li><strong>Kubernetes:</strong> Deployment (2 replicas), PVC (10Gi), Secret for JWT and
+  signing keys. Liveness + readiness probes on <code>/v1/health/ready</code>.</li>
+<li><strong>Prometheus:</strong> Optional sidecar profile in Docker Compose.</li>
+<li><strong>Backup:</strong> SQLite file is single-file backup. WAL checkpoint before copy.</li>
+</ul>
+<h3 id="176-fail-closed-guarantees">17.6 Fail-Closed Guarantees<a class="headerlink" href="#176-fail-closed-guarantees" title="Permanent link">&para;</a></h3>
+<ul>
+<li>All new endpoints fail closed on auth failure, rate limit, or tenant
+  inactivity.</li>
+<li>Append-only triggers prevent any mutation of historical data.</li>
+<li>Signature verification rejects requests outside timestamp tolerance.</li>
+<li>JWT expiry is strict — no grace period.</li>
+<li>Health endpoint returns 503 if any component is degraded.</li>
+</ul>
+<hr />
+<h2 id="18-conformance-test-plan-production">18. Conformance Test Plan (Production)<a class="headerlink" href="#18-conformance-test-plan-production" title="Permanent link">&para;</a></h2>
+<h3 id="181-storage-tests">18.1 Storage Tests<a class="headerlink" href="#181-storage-tests" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Description</th>
+<th>Pass Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>S1</td>
+<td>Persist snapshot, retrieve latest</td>
+<td>Row present, hash matches</td>
+</tr>
+<tr>
+<td>S2</td>
+<td>Tenant isolation across writes</td>
+<td>Cross-tenant reads return empty</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>Chain retrieval ordered</td>
+<td>Sequence ASC, hash chain valid</td>
+</tr>
+<tr>
+<td>S4</td>
+<td>Integrity verification</td>
+<td><code>verify_chain()</code> returns True</td>
+</tr>
+<tr>
+<td>S5</td>
+<td>UPDATE blocked by trigger</td>
+<td><code>MUTATION_FORBIDDEN</code> error</td>
+</tr>
+<tr>
+<td>S6</td>
+<td>DELETE blocked by trigger</td>
+<td><code>MUTATION_FORBIDDEN</code> error</td>
+</tr>
+<tr>
+<td>S7</td>
+<td>Artifact hash is SHA-256 hex</td>
+<td>Length 64, non-empty</td>
+</tr>
+</tbody>
+</table>
+<h3 id="182-security-tests">18.2 Security Tests<a class="headerlink" href="#182-security-tests" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Description</th>
+<th>Pass Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SEC1</td>
+<td>JWT encode/decode roundtrip</td>
+<td>Claims match, signature valid</td>
+</tr>
+<tr>
+<td>SEC2</td>
+<td>Expired token rejected</td>
+<td><code>AuthenticationError</code> raised</td>
+</tr>
+<tr>
+<td>SEC3</td>
+<td>Wrong secret rejected</td>
+<td><code>AuthenticationError</code> raised</td>
+</tr>
+<tr>
+<td>SEC4</td>
+<td>Request sign/verify</td>
+<td>HMAC matches</td>
+</tr>
+<tr>
+<td>SEC5</td>
+<td>Old timestamp rejected</td>
+<td><code>SignatureError</code> raised</td>
+</tr>
+<tr>
+<td>SEC6</td>
+<td>RBAC admin all permissions</td>
+<td><code>allowed()</code> True for any action</td>
+</tr>
+<tr>
+<td>SEC7</td>
+<td>RBAC operator no cross-tenant</td>
+<td><code>allowed_tenants()</code> False</td>
+</tr>
+<tr>
+<td>SEC8</td>
+<td>Secret env priority</td>
+<td>Env value returned over file</td>
+</tr>
+<tr>
+<td>SEC9</td>
+<td>Secret rotation generates valid</td>
+<td>Alphanumeric + <code>_-</code>, length 64</td>
+</tr>
+</tbody>
+</table>
+<h3 id="183-telemetry-tests">18.3 Telemetry Tests<a class="headerlink" href="#183-telemetry-tests" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Description</th>
+<th>Pass Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>TEL1</td>
+<td>Counter increment</td>
+<td>Prometheus output contains value</td>
+</tr>
+<tr>
+<td>TEL2</td>
+<td>Thread-safe counter</td>
+<td>10 threads x 100 increments = 1000</td>
+</tr>
+<tr>
+<td>TEL3</td>
+<td>Gauge set</td>
+<td>Value appears in output</td>
+</tr>
+<tr>
+<td>TEL4</td>
+<td>Histogram record</td>
+<td>Count + sum correct</td>
+</tr>
+<tr>
+<td>TEL5</td>
+<td>Structured log JSON</td>
+<td>Valid JSON, correlation_id present</td>
+</tr>
+<tr>
+<td>TEL6</td>
+<td>Tracer span duration</td>
+<td>Positive after sleep</td>
+</tr>
+<tr>
+<td>TEL7</td>
+<td>Telemetry scope error</td>
+<td>Span status = ERROR</td>
+</tr>
+</tbody>
+</table>
+<h3 id="184-integration-tests">18.4 Integration Tests<a class="headerlink" href="#184-integration-tests" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Description</th>
+<th>Pass Criteria</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>INT1</td>
+<td>End-to-end storage + security + telemetry</td>
+<td>All subsystems work together</td>
+</tr>
+<tr>
+<td>INT2</td>
+<td>Tenant isolation full stack</td>
+<td>No cross-tenant leakage</td>
+</tr>
+<tr>
+<td>INT3</td>
+<td>Rate limiter enforcement</td>
+<td>4th request blocked after limit=3</td>
+</tr>
+<tr>
+<td>INT4</td>
+<td>Chain integrity under load</td>
+<td>10 snapshots, verify passes</td>
+</tr>
+<tr>
+<td>INT5</td>
+<td>Audit hash chain under load</td>
+<td>20 entries, all hashes non-empty</td>
+</tr>
+<tr>
+<td>INT6</td>
+<td>Concurrent writes safe</td>
+<td>10 threads, 10 rows, no corruption</td>
+</tr>
+<tr>
+<td>INT7</td>
+<td>Combined JWT + signer</td>
+<td>Both verify successfully</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="19-versioning-maintenance">19. Versioning &amp; Maintenance<a class="headerlink" href="#19-versioning-maintenance" title="Permanent link">&para;</a></h2>
+<h3 id="191-version-history">19.1 Version History<a class="headerlink" href="#191-version-history" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Changes</th>
+<th>Tests</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1.0.0</td>
+<td>2026-05-18</td>
+<td>Initial PI Platform spec</td>
+<td>409</td>
+</tr>
+<tr>
+<td>1.1.0</td>
+<td>2026-05-19</td>
+<td>Digital Twin Foundation (5 phases)</td>
+<td>460</td>
+</tr>
+<tr>
+<td>1.2.0</td>
+<td>2026-06-01</td>
+<td>Production Hardening (storage, API, security, telemetry, deployment)</td>
+<td>520</td>
+</tr>
+</tbody>
+</table>
+<h3 id="192-maintenance-rules">19.2 Maintenance Rules<a class="headerlink" href="#192-maintenance-rules" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Every production change must be added to this spec before implementation.</li>
+<li>Test count must increase with every version bump.</li>
+<li>Zero regressions policy: all previous tests must pass.</li>
+<li>Determinism proofs must not change without major version bump.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tooltips", "search.suggest", "search.highlight", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

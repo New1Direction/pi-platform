@@ -1,0 +1,1845 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Deterministic semantic execution kernel with governance-first architecture">
+      
+      
+      
+        <link rel="canonical" href="https://new1direction.github.io/pi-platform/architecture/pi-interoperability-layer/SEMANTIC_WORKER_MESH/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Semantic Worker Mesh Architecture - PI Platform</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Space+Grotesk:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Space Grotesk";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#semantic-worker-mesh-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="PI Platform" class="md-header__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PI Platform
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Semantic Worker Mesh Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to blueprint (light)"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to blueprint (light)" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to control room (dark)"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to control room (dark)" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="PI Platform" class="md-nav__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    PI Platform
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../console/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Desktop Console
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Desktop Console
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agentdex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party (Builder)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/ledger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Battle Log (Ledger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/forge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Forge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/compass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governance Compass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../orchestrator-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator & Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trust-tiers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trust Tiers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ledger-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ledger & Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repo-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repo Mapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../PI-RUNTIME-SPEC-v1.4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Spec (v1.4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#vision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Vision
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-principle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Principle
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architectural-tenets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Tenets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#system-resemblance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System Resemblance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-this-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What This Is NOT
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#execution-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Execution Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worker-contract-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Contract Structure
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#worker-taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Taxonomy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker Taxonomy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ingest-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ingest Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extract-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extract Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diff-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Diff Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#validate-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Validate Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#topology-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Topology Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blast-radius-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blast Radius Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#registry-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registry Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#policy-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Policy Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#replay-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replay Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lineageprovenance-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lineage/Provenance Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#visualization-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Visualization Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cicd-gate-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD Gate Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#event-sourced-coordination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event-Sourced Coordination
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Event-Sourced Coordination">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#append-only-event-log" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Append-Only Event Log
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-artifact-bus" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Artifact Bus
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#replayable-orchestration-timeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replayable Orchestration Timeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parallelism-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Parallelism Model
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Parallelism Model">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#within-a-phase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Within a Phase
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-boundaries" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase Boundaries
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#no-decentralized-quorum" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        No Decentralized Quorum
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#failure-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scaling-characteristics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Characteristics
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd-integration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD Integration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#anti-patterns-explicitly-forbidden" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Anti-Patterns (Explicitly Forbidden)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#next-implementation-priorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Next Implementation Priorities
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="semantic-worker-mesh-architecture">Semantic Worker Mesh Architecture<a class="headerlink" href="#semantic-worker-mesh-architecture" title="Permanent link">&para;</a></h1>
+<h2 id="vision">Vision<a class="headerlink" href="#vision" title="Permanent link">&para;</a></h2>
+<p>A <strong>governed semantic operating layer for software infrastructure</strong>.</p>
+<p>Not a chatbot swarm.<br />
+Not autonomous agents.<br />
+Not probabilistic orchestration.</p>
+<p>A deterministic, specialization-first execution substrate where narrow semantic
+workers operate under centralized governance with strict contracts, bounded
+execution, and replay-safe coordination.</p>
+<h2 id="core-principle">Core Principle<a class="headerlink" href="#core-principle" title="Permanent link">&para;</a></h2>
+<p>Semantic cognition assists infrastructure — it does not replace infrastructure.</p>
+<h2 id="architectural-tenets">Architectural Tenets<a class="headerlink" href="#architectural-tenets" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Centralized Governance</strong> — single authoritative scheduler, no decentralized planning</li>
+<li><strong>Deterministic Orchestration</strong> — fixed execution phases, deterministic routing</li>
+<li><strong>Specialization over Generalization</strong> — narrow workers with fixed responsibilities</li>
+<li><strong>Bounded Semantics</strong> — every worker has strict execution bounds</li>
+<li><strong>Replay-Governed Authority</strong> — all execution is replay-verifiable</li>
+<li><strong>Evidence-Bound Claims</strong> — every output is provenance-linked</li>
+<li><strong>Fail-Closed</strong> — default deny on all boundaries</li>
+<li><strong>Non-Self-Modifying</strong> — workers cannot mutate their own contracts</li>
+<li><strong>Zero Recursive Spawning</strong> — no worker can spawn another worker autonomously</li>
+</ol>
+<h2 id="system-resemblance">System Resemblance<a class="headerlink" href="#system-resemblance" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Distributed compiler pipeline (preprocessor → lexer → parser → typechecker → optimizer → codegen)</li>
+<li>Operating system kernel (scheduler → process table → system calls → I/O dispatch)</li>
+<li>Deterministic dataflow engine (fixed DAG, bounded queues, deterministic merge)</li>
+</ul>
+<h2 id="what-this-is-not">What This Is NOT<a class="headerlink" href="#what-this-is-not" title="Permanent link">&para;</a></h2>
+<ul>
+<li>NOT an agent swarm with emergent behavior</li>
+<li>NOT a recursive planning system</li>
+<li>NOT a probabilistic workflow engine</li>
+<li>NOT a self-improving orchestrator</li>
+<li>NOT a chatbot pipeline</li>
+</ul>
+<h2 id="execution-model">Execution Model<a class="headerlink" href="#execution-model" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Central Orchestration Kernel
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    ├── Phase 1: INGEST      → snapshot workers, schema workers
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    ├── Phase 2: EXTRACT     → extraction workers, topology workers
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    ├── Phase 3: DIFF        → diff workers, auth workers, replay workers
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    ├── Phase 4: VALIDATE    → validation workers, policy workers
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    ├── Phase 5: RISK        → topology workers, blast radius workers
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>    ├── Phase 6: GOVERN      → registry workers, lineage workers
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>    ├── Phase 7: EMIT        → visualization workers, CI/CD gate workers
+</code></pre></div>
+<p>Phases are <strong>fixed order</strong>. Within a phase, workers execute in <strong>bounded parallel
+fanout</strong> with deterministic merge points. No phase begins until the previous phase
+reaches a deterministic quorum.</p>
+<h2 id="worker-contract-structure">Worker Contract Structure<a class="headerlink" href="#worker-contract-structure" title="Permanent link">&para;</a></h2>
+<p>Every worker MUST define:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>worker_class</code></td>
+<td>Taxonomy class (e.g. EXTRACTION_WORKER)</td>
+</tr>
+<tr>
+<td><code>input_contract</code></td>
+<td>Immutable input schema with version</td>
+</tr>
+<tr>
+<td><code>output_contract</code></td>
+<td>Immutable output schema with version</td>
+</tr>
+<tr>
+<td><code>execution_bounds</code></td>
+<td>CPU time, memory, artifact count, traversal depth</td>
+</tr>
+<tr>
+<td><code>replay_semantics</code></td>
+<td>Deterministic replay identity hash requirements</td>
+</tr>
+<tr>
+<td><code>provenance_requirements</code></td>
+<td>Required upstream provenance chain entries</td>
+</tr>
+<tr>
+<td><code>failure_conditions</code></td>
+<td>Exact conditions causing FAIL vs BLOCKED vs TIMEOUT</td>
+</tr>
+<tr>
+<td><code>resource_ceilings</code></td>
+<td>Max file descriptors, max network calls, max subprocesses</td>
+</tr>
+<tr>
+<td><code>determinism_proof</code></td>
+<td>Schema of evidence that output is deterministic</td>
+</tr>
+</tbody>
+</table>
+<h2 id="worker-taxonomy">Worker Taxonomy<a class="headerlink" href="#worker-taxonomy" title="Permanent link">&para;</a></h2>
+<h3 id="ingest-workers">Ingest Workers<a class="headerlink" href="#ingest-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SnapshotIngestWorker</code></td>
+<td>Load source snapshots into canonical artifact format</td>
+</tr>
+<tr>
+<td><code>SchemaValidationWorker</code></td>
+<td>Validate incoming artifacts against registered schemas</td>
+</tr>
+<tr>
+<td><code>ProvenanceVerificationWorker</code></td>
+<td>Verify upstream provenance chain integrity</td>
+</tr>
+</tbody>
+</table>
+<h3 id="extract-workers">Extract Workers<a class="headerlink" href="#extract-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EndpointExtractionWorker</code></td>
+<td>Extract endpoint signatures from source code</td>
+</tr>
+<tr>
+<td><code>DependencyExtractionWorker</code></td>
+<td>Extract static dependency edges</td>
+</tr>
+<tr>
+<td><code>AuthExtractionWorker</code></td>
+<td>Extract auth invariants and rotation classes</td>
+</tr>
+<tr>
+<td><code>MutationExtractionWorker</code></td>
+<td>Extract mutation class assignments per endpoint</td>
+</tr>
+</tbody>
+</table>
+<h3 id="diff-workers">Diff Workers<a class="headerlink" href="#diff-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>EndpointDiffWorker</code></td>
+<td>Compute endpoint-level behavioral deltas</td>
+</tr>
+<tr>
+<td><code>DependencyDiffWorker</code></td>
+<td>Compute dependency graph evolution</td>
+</tr>
+<tr>
+<td><code>AuthDiffWorker</code></td>
+<td>Compute auth invariant drift</td>
+</tr>
+<tr>
+<td><code>ReplaySurfaceDiffWorker</code></td>
+<td>Compute replay class degradation</td>
+</tr>
+</tbody>
+</table>
+<h3 id="validate-workers">Validate Workers<a class="headerlink" href="#validate-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BoundaryValidationWorker</code></td>
+<td>Forbidden trust boundary crossing detection</td>
+</tr>
+<tr>
+<td><code>LayerValidationWorker</code></td>
+<td>Runtime layering violation detection</td>
+</tr>
+<tr>
+<td><code>MutationDriftWorker</code></td>
+<td>Mutation class escalation detection</td>
+</tr>
+<tr>
+<td><code>ReplaySafetyWorker</code></td>
+<td>Production replay prohibition enforcement</td>
+</tr>
+<tr>
+<td><code>PolicyComplianceWorker</code></td>
+<td>Architecture policy rule enforcement</td>
+</tr>
+</tbody>
+</table>
+<h3 id="topology-workers">Topology Workers<a class="headerlink" href="#topology-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TopologyBuildWorker</code></td>
+<td>Assemble dependency topology from extracted edges</td>
+</tr>
+<tr>
+<td><code>TopologyDiffWorker</code></td>
+<td>Compute topology structure deltas</td>
+</tr>
+<tr>
+<td><code>ComplexityScoringWorker</code></td>
+<td>Compute bounded complexity metrics</td>
+</tr>
+</tbody>
+</table>
+<h3 id="blast-radius-workers">Blast Radius Workers<a class="headerlink" href="#blast-radius-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PropagationRiskWorker</code></td>
+<td>Dependency expansion limit detection</td>
+</tr>
+<tr>
+<td><code>TopologyExpansionWorker</code></td>
+<td>Node/edge/fanout/depth growth detection</td>
+</tr>
+<tr>
+<td><code>AuthBoundaryWideningWorker</code></td>
+<td>Auth surface expansion detection</td>
+</tr>
+<tr>
+<td><code>ReplayHazardWorker</code></td>
+<td>Replay propagation scope detection</td>
+</tr>
+<tr>
+<td><code>MutationImpactWorker</code></td>
+<td>Downstream mutation impact scoring</td>
+</tr>
+</tbody>
+</table>
+<h3 id="registry-workers">Registry Workers<a class="headerlink" href="#registry-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SnapshotRegistryWorker</code></td>
+<td>Immutable snapshot storage with retention</td>
+</tr>
+<tr>
+<td><code>BundleRegistryWorker</code></td>
+<td>Replay bundle assembly and retrieval</td>
+</tr>
+<tr>
+<td><code>LineageRegistryWorker</code></td>
+<td>Ancestor chain tracking, cycle detection</td>
+</tr>
+<tr>
+<td><code>SchemaRegistryWorker</code></td>
+<td>Schema version authority, compatibility gate</td>
+</tr>
+</tbody>
+</table>
+<h3 id="policy-workers">Policy Workers<a class="headerlink" href="#policy-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PolicyCompilationWorker</code></td>
+<td>Compile architecture-policy.json into execution rules</td>
+</tr>
+<tr>
+<td><code>PolicyInheritanceWorker</code></td>
+<td>Apply environment overlays and inheritance chains</td>
+</tr>
+<tr>
+<td><code>PolicyDriftWorker</code></td>
+<td>Detect policy rule changes between versions</td>
+</tr>
+</tbody>
+</table>
+<h3 id="replay-workers">Replay Workers<a class="headerlink" href="#replay-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ReplayLedgerWorker</code></td>
+<td>Append-only event log with chain hashing</td>
+</tr>
+<tr>
+<td><code>ReplayVerificationWorker</code></td>
+<td>Verify execution matches deterministic replay hash</td>
+</tr>
+<tr>
+<td><code>ReplayCoordinationWorker</code></td>
+<td>Distributed replay synchronization without consensus</td>
+</tr>
+</tbody>
+</table>
+<h3 id="lineageprovenance-workers">Lineage/Provenance Workers<a class="headerlink" href="#lineageprovenance-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ProvenanceAssemblyWorker</code></td>
+<td>Build provenance chains from execution receipts</td>
+</tr>
+<tr>
+<td><code>LineageQueryWorker</code></td>
+<td>Serve deterministic lineage traversal queries</td>
+</tr>
+<tr>
+<td><code>EvidenceBindingWorker</code></td>
+<td>Bind evidence artifacts to violation claims</td>
+</tr>
+</tbody>
+</table>
+<h3 id="visualization-workers">Visualization Workers<a class="headerlink" href="#visualization-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ValidationReportRenderer</code></td>
+<td>Render validation output as HTML/JSON</td>
+</tr>
+<tr>
+<td><code>DiffHeatmapRenderer</code></td>
+<td>Render semantic drift heatmaps</td>
+</tr>
+<tr>
+<td><code>TopologyGraphRenderer</code></td>
+<td>Render topology as graph structures</td>
+</tr>
+<tr>
+<td><code>GovernanceDashboardRenderer</code></td>
+<td>Render unified governance dashboard</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cicd-gate-workers">CI/CD Gate Workers<a class="headerlink" href="#cicd-gate-workers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker</th>
+<th>Responsibility</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>MergeGateWorker</code></td>
+<td>Deterministic merge gate evaluation (PASS/FAIL)</td>
+</tr>
+<tr>
+<td><code>ArtifactVerificationWorker</code></td>
+<td>Verify artifact integrity before CI promotion</td>
+</tr>
+<tr>
+<td><code>PreDeployGateWorker</code></td>
+<td>Pre-deployment governance gate</td>
+</tr>
+</tbody>
+</table>
+<h2 id="event-sourced-coordination">Event-Sourced Coordination<a class="headerlink" href="#event-sourced-coordination" title="Permanent link">&para;</a></h2>
+<h3 id="append-only-event-log">Append-Only Event Log<a class="headerlink" href="#append-only-event-log" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Every worker execution produces an <code>ExecutionReceipt</code></li>
+<li>Receipts are appended to a per-pipeline <code>OrchestrationLedger</code></li>
+<li>Ledger has chain hashing: <code>receipt_hash = H(prev_hash + receipt_payload)</code></li>
+<li>Ledger is closed at phase boundaries with a <code>PhaseBoundaryReceipt</code></li>
+</ul>
+<h3 id="deterministic-artifact-bus">Deterministic Artifact Bus<a class="headerlink" href="#deterministic-artifact-bus" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Workers read inputs from immutable artifact slots</li>
+<li>Workers write outputs to immutable artifact slots</li>
+<li>Slots are versioned and fingerprinted</li>
+<li>No in-place mutation: every write creates a new slot version</li>
+</ul>
+<h3 id="replayable-orchestration-timeline">Replayable Orchestration Timeline<a class="headerlink" href="#replayable-orchestration-timeline" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Entire pipeline execution can be replayed from the ledger</li>
+<li>Replay requires: initial snapshots + orchestration ledger + worker binaries</li>
+<li>Replay produces identical outputs or fails closed</li>
+</ul>
+<h2 id="parallelism-model">Parallelism Model<a class="headerlink" href="#parallelism-model" title="Permanent link">&para;</a></h2>
+<h3 id="within-a-phase">Within a Phase<a class="headerlink" href="#within-a-phase" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Phase N: EXTRACT
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    ├── fanout: [EndpointExtractionWorker, DependencyExtractionWorker, AuthExtractionWorker]
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    ├── bounded: max 8 concurrent workers
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    ├── deterministic merge: ordered by worker registration order
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    └── merge produces: UnifiedExtractionArtifact
+</code></pre></div>
+<h3 id="phase-boundaries">Phase Boundaries<a class="headerlink" href="#phase-boundaries" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Phase N+1 begins only after Phase N merge completes</li>
+<li>Merge is deterministic: ordered by worker ID, not completion time</li>
+<li>No async phase transitions: all-or-nothing per phase</li>
+</ul>
+<h3 id="no-decentralized-quorum">No Decentralized Quorum<a class="headerlink" href="#no-decentralized-quorum" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Central orchestrator decides when a phase is complete</li>
+<li>No worker votes, no consensus, no probabilistic completion</li>
+<li>Completion is: all registered workers produced receipts + merge succeeded</li>
+</ul>
+<h2 id="failure-model">Failure Model<a class="headerlink" href="#failure-model" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Worker TIMEOUT</td>
+<td>Receipt marked TIMEOUT, phase blocked unless fail_open=false</td>
+</tr>
+<tr>
+<td>Worker FAIL</td>
+<td>Receipt marked FAIL, phase propagates FAIL to next phase</td>
+</tr>
+<tr>
+<td>Worker PANIC</td>
+<td>Receipt marked PANIC, entire pipeline stopped, ledger closed</td>
+</tr>
+<tr>
+<td>Schema mismatch</td>
+<td>Receipt marked SCHEMA_MISMATCH, phase blocked</td>
+</tr>
+<tr>
+<td>Replay hash mismatch</td>
+<td>Receipt marked REPLAY_MISMATCH, phase blocked</td>
+</tr>
+<tr>
+<td>Resource ceiling hit</td>
+<td>Receipt marked RESOURCE_EXCEEDED, phase blocked</td>
+</tr>
+<tr>
+<td>Central orchestrator fault</td>
+<td>All workers enter FAIL_CLOSED, no continued execution</td>
+</tr>
+</tbody>
+</table>
+<h2 id="scaling-characteristics">Scaling Characteristics<a class="headerlink" href="#scaling-characteristics" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Dimension</th>
+<th>Strategy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Horizontal workers</td>
+<td>Add more narrow workers of same taxonomy class</td>
+</tr>
+<tr>
+<td>Vertical workers</td>
+<td>Increase execution bounds within taxonomy limits</td>
+</tr>
+<tr>
+<td>Pipeline throughput</td>
+<td>Parallel phase execution across independent pipelines</td>
+</tr>
+<tr>
+<td>Artifact volume</td>
+<td>Scale snapshot registry storage, not worker count</td>
+</tr>
+<tr>
+<td>Query load</td>
+<td>Scale read-only query workers, not execution workers</td>
+</tr>
+</tbody>
+</table>
+<h2 id="cicd-integration">CI/CD Integration<a class="headerlink" href="#cicd-integration" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">pi-semantic-mesh</span><span class="p">:</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">INGEST</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">snapshot_ingest</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">schema_validate</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">provenance_verify</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EXTRACT</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">endpoint_extract</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">dependency_extract</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">auth_extract</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">DIFF</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">endpoint_diff</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">dependency_diff</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">auth_diff</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">replay_diff</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">VALIDATE</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">boundary_validate</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">layer_validate</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">mutation_drift</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">replay_safety</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">policy_compliance</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RISK</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">propagation_risk</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">topology_expansion</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">auth_boundary</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">replay_hazard</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">mutation_impact</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GOVERN</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">snapshot_registry</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">bundle_registry</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">lineage_registry</span><span class="p p-Indicator">]</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">phase</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EMIT</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">    </span><span class="nt">workers</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">merge_gate</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">artifact_verify</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">dashboard_render</span><span class="p p-Indicator">]</span>
+</code></pre></div>
+<h2 id="anti-patterns-explicitly-forbidden">Anti-Patterns (Explicitly Forbidden)<a class="headerlink" href="#anti-patterns-explicitly-forbidden" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Recursive worker spawning</strong> — workers MAY NOT invoke the orchestrator</li>
+<li><strong>Dynamic phase insertion</strong> — phases are fixed at compile time</li>
+<li><strong>Probabilistic routing</strong> — routing tables are deterministic lookup tables</li>
+<li><strong>Self-modifying contracts</strong> — worker contracts are frozen at registration</li>
+<li><strong>Emergent plan formation</strong> — no agent planning, no LLM-driven orchestration</li>
+<li><strong>Degraded continuation</strong> — partial success is failure</li>
+<li><strong>Speculative execution</strong> — no branch prediction, no lookahead workers</li>
+<li><strong>Autonomous checkpointing</strong> — checkpoints are orchestrator-managed only</li>
+</ol>
+<h2 id="next-implementation-priorities">Next Implementation Priorities<a class="headerlink" href="#next-implementation-priorities" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>CentralOrchestratorKernel</strong> — scheduler, phase controller, merge coordinator</li>
+<li><strong>WorkerBase</strong> — abstract base class enforcing contract validation</li>
+<li><strong>ExecutionReceipt</strong> — immutable receipt with chain hashing</li>
+<li><strong>OrchestrationLedger</strong> — append-only ledger with phase boundaries</li>
+<li><strong>ArtifactBus</strong> — immutable slot-based artifact exchange</li>
+<li><strong>First 10 specialized workers</strong> with deterministic implementations</li>
+<li><strong>Test harness</strong> — deterministic replay verification for all workers</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tooltips", "search.suggest", "search.highlight", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

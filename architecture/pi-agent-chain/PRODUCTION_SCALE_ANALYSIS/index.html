@@ -1,0 +1,2093 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Deterministic semantic execution kernel with governance-first architecture">
+      
+      
+      
+        <link rel="canonical" href="https://new1direction.github.io/pi-platform/architecture/pi-agent-chain/PRODUCTION_SCALE_ANALYSIS/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>pi-semantic-recon — Production-Scale Bottleneck Analysis - PI Platform</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Space+Grotesk:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Space Grotesk";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pi-semantic-recon-production-scale-bottleneck-analysis" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="PI Platform" class="md-header__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PI Platform
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              pi-semantic-recon — Production-Scale Bottleneck Analysis
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to blueprint (light)"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to blueprint (light)" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to control room (dark)"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to control room (dark)" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="PI Platform" class="md-nav__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    PI Platform
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../console/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Desktop Console
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Desktop Console
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agentdex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party (Builder)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/ledger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Battle Log (Ledger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/forge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Forge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/compass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governance Compass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../orchestrator-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator & Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trust-tiers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trust Tiers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ledger-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ledger & Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repo-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repo Mapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../PI-RUNTIME-SPEC-v1.4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Spec (v1.4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EXECUTIVE SUMMARY
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-1-sqliteglobal-ledger-contention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 1: SQLITE/GLOBAL LEDGER CONTENTION
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 1: SQLITE/GLOBAL LEDGER CONTENTION">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-2-single-threaded-validator-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 2: SINGLE-THREADED VALIDATOR EXECUTION
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 2: SINGLE-THREADED VALIDATOR EXECUTION">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-3-in-memory-artifact-bottlenecks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 3: IN-MEMORY ARTIFACT BOTTLENECKS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 3: IN-MEMORY ARTIFACT BOTTLENECKS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-4-replay-queue-serialization-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 4: REPLAY QUEUE SERIALIZATION LIMITS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 4: REPLAY QUEUE SERIALIZATION LIMITS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-5-entropy-analysis-scaling-constraints" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 5: ENTROPY ANALYSIS SCALING CONSTRAINTS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 5: ENTROPY ANALYSIS SCALING CONSTRAINTS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-6-fsm-graph-memory-pressure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 6: FSM GRAPH MEMORY PRESSURE
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 6: FSM GRAPH MEMORY PRESSURE">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-7-semantic-quorum-fan-in-costs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 7: SEMANTIC QUORUM FAN-IN COSTS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 7: SEMANTIC QUORUM FAN-IN COSTS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-8-cross-shard-replay-consistency" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 8: CROSS-SHARD REPLAY CONSISTENCY
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 8: CROSS-SHARD REPLAY CONSISTENCY">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-9-artifact-lineage-amplification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 9: ARTIFACT LINEAGE AMPLIFICATION
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 9: ARTIFACT LINEAGE AMPLIFICATION">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bottleneck-10-distributed-provenance-synchronization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BOTTLENECK 10: DISTRIBUTED PROVENANCE SYNCHRONIZATION
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="BOTTLENECK 10: DISTRIBUTED PROVENANCE SYNCHRONIZATION">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#failure-mode_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Mode
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scaling-threshold_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scaling Threshold
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#architectural-risk_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architectural Risk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deterministic-mitigation-path_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deterministic Mitigation Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-must-never-become-probabilistic_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Must NEVER Become Probabilistic
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#summary-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SUMMARY MATRIX
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-was-explicitly-rejected" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WHAT WAS EXPLICITLY REJECTED
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CONCLUSION
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="pi-semantic-recon-production-scale-bottleneck-analysis">pi-semantic-recon — Production-Scale Bottleneck Analysis<a class="headerlink" href="#pi-semantic-recon-production-scale-bottleneck-analysis" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2026-05-18
+<strong>Scope:</strong> Identifying architectural limits before distributed migration
+<strong>Constraint:</strong> All mitigations must remain deterministic. No probabilistic governance.</p>
+</blockquote>
+<hr />
+<h2 id="executive-summary">EXECUTIVE SUMMARY<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h2>
+<p>The runtime is currently single-threaded, SQLite-backed, and in-memory bound. At enterprise scale (Netflix, Uber, AWS-level API traffic), ten specific bottlenecks will trigger cascading failures. Each bottleneck has a deterministic mitigation path. None require probabilistic governance, autonomous orchestration, or majority-vote semantics.</p>
+<p><strong>Critical rule:</strong> If a mitigation would make any governance decision probabilistic, it is rejected.</p>
+<hr />
+<h2 id="bottleneck-1-sqliteglobal-ledger-contention">BOTTLENECK 1: SQLITE/GLOBAL LEDGER CONTENTION<a class="headerlink" href="#bottleneck-1-sqliteglobal-ledger-contention" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode">Failure Mode<a class="headerlink" href="#failure-mode" title="Permanent link">&para;</a></h3>
+<p><code>StateLedger</code> uses SQLite with exclusive locking. Under concurrent packet ingestion from multiple acquisition workers, <code>BEGIN EXCLUSIVE</code> transactions serialize all writes. Workers stall waiting for lock release. Throughput collapses to ~50-100 packets/second regardless of CPU capacity.</p>
+<h3 id="scaling-threshold">Scaling Threshold<a class="headerlink" href="#scaling-threshold" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Collapse begins: ~500 packets/second sustained</li>
+<li>Complete stall: ~2000 packets/second with 10+ workers</li>
+<li>Recovery: requires ledger restart; queued packets may exceed memory</li>
+</ul>
+<h3 id="architectural-risk">Architectural Risk<a class="headerlink" href="#architectural-risk" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Cascading timeout:</strong> Replay validation queues back up. Entropy windows grow unbounded. Stability checks fail.</li>
+<li><strong>Deterministic ordering violation:</strong> If workers implement retry logic, packet processing order becomes non-deterministic.</li>
+<li><strong>Governance HALT:</strong> If entropy exceeds bounds before writes complete, kernel triggers global HALT.</li>
+</ul>
+<h3 id="deterministic-mitigation-path">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Shard ledger by execution_id:</strong> Each execution trace gets its own SQLite file or WAL segment. Cross-trace reads use a read-only view aggregator.</li>
+<li><strong>Append-only journal pattern:</strong> Replace <code>UPDATE</code> with <code>INSERT</code> + tombstone. SQLite handles append-only writes with far less contention.</li>
+<li><strong>Time-bounded leases:</strong> Workers hold packet processing leases (e.g., 30s). Lease expiry triggers deterministic reassignment, not probabilistic retry.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Packet ordering within an execution trace</li>
+<li>Epistemic promotion timestamps</li>
+<li>Provenance chain sequence numbers</li>
+</ul>
+<hr />
+<h2 id="bottleneck-2-single-threaded-validator-execution">BOTTLENECK 2: SINGLE-THREADED VALIDATOR EXECUTION<a class="headerlink" href="#bottleneck-2-single-threaded-validator-execution" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_1">Failure Mode<a class="headerlink" href="#failure-mode_1" title="Permanent link">&para;</a></h3>
+<p>All 6 verification phases execute sequentially in <code>PipelineDriver._verify()</code>. On a 64-core machine, only 1 core is utilized. A large trace (10K packets) may spend 15+ minutes in verification while the acquisition pipeline idles.</p>
+<h3 id="scaling-threshold_1">Scaling Threshold<a class="headerlink" href="#scaling-threshold_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Linear degradation: &gt;100 packets/trace</li>
+<li>Prohibitive latency: &gt;1000 packets/trace (30+ minutes verification)</li>
+<li>Operational death: &gt;10K packets/trace (hours of CPU time)</li>
+</ul>
+<h3 id="architectural-risk_1">Architectural Risk<a class="headerlink" href="#architectural-risk_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Backpressure amplification:</strong> Acquisition workers continue ingesting while verification lags. Memory pressure builds.</li>
+<li><strong>Stale entropy analysis:</strong> FSM and auth reports computed on partially-processed traces produce incorrect governance decisions.</li>
+<li><strong>Timeout cascades:</strong> Replay validation depends on live endpoint availability. Long verification delays mean replay attempts occur against changed systems.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_1">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_1" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Phase-parallel execution:</strong> Phases 1-3 (Provenance, Replay, Auth) are independent and can execute in parallel. Phase 4 (State Transition) depends on Phase 3 output. Phase 5 (Quorum) depends on Phase 1-4. Phase 6 (Entropy) depends on all prior.</li>
+<li><strong>Trace-parallel execution:</strong> Different execution traces are independent. Worker pool processes traces in parallel with deterministic routing (e.g., <code>execution_id % num_workers</code>).</li>
+<li><strong>Bounded worker pools:</strong> Fixed-size pools (never auto-scaling). Each worker is a replaceable pure function.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_1">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_1" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Phase ordering (Provenance → Replay → Auth → State → Quorum → Entropy)</li>
+<li>Promotion rules applied to a given claim</li>
+<li>Epistemic state transitions</li>
+</ul>
+<hr />
+<h2 id="bottleneck-3-in-memory-artifact-bottlenecks">BOTTLENECK 3: IN-MEMORY ARTIFACT BOTTLENECKS<a class="headerlink" href="#bottleneck-3-in-memory-artifact-bottlenecks" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_2">Failure Mode<a class="headerlink" href="#failure-mode_2" title="Permanent link">&para;</a></h3>
+<p><code>ArtifactRegistry</code> stores all artifacts in memory (<code>:memory:</code> SQLite or Python dict). At scale, artifact sets for large microservices consume gigabytes of RAM. Python's GIL prevents efficient memory reclamation.</p>
+<h3 id="scaling-threshold_2">Scaling Threshold<a class="headerlink" href="#scaling-threshold_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Moderate pressure: ~10K artifacts (~200MB)</li>
+<li>Severe pressure: ~100K artifacts (~2GB)</li>
+<li>OOM kill: ~500K artifacts (~10GB+ with Python overhead)</li>
+</ul>
+<h3 id="architectural-risk_2">Architectural Risk<a class="headerlink" href="#architectural-risk_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Provenance traversal amplification:</strong> Checking artifact ancestry requires walking parent chains. Deep chains in large registries become O(n^2) operations.</li>
+<li><strong>GC storms:</strong> Python garbage collection pauses during large artifact creation bursts.</li>
+<li><strong>Serialization overhead:</strong> Saving registry state for crash recovery requires serializing all artifacts.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_2">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_2" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Tiered storage:</strong> Hot artifacts (last 1 hour) in memory. Warm artifacts (last 24 hours) in SQLite on NVMe. Cold artifacts in object storage (S3/MinIO) with deterministic retrieval keys.</li>
+<li><strong>Artifact pagination:</strong> Provenance validation paginates ancestry walks (e.g., max 32 ancestors per query).</li>
+<li><strong>Immutable artifact compaction:</strong> Old <code>OBSERVED</code> artifacts that were never promoted are archived deterministically (e.g., after 7 days, based on timestamp, not usage heuristics).</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_2">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Artifact identity (artifact_id hashing)</li>
+<li>Ancestry chain integrity</li>
+<li>Retrieval from cold storage (must be deterministic key-based, not cache-probabilistic)</li>
+</ul>
+<hr />
+<h2 id="bottleneck-4-replay-queue-serialization-limits">BOTTLENECK 4: REPLAY QUEUE SERIALIZATION LIMITS<a class="headerlink" href="#bottleneck-4-replay-queue-serialization-limits" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_3">Failure Mode<a class="headerlink" href="#failure-mode_3" title="Permanent link">&para;</a></h3>
+<p><code>ReplayValidator</code> sends replay requests synchronously. Each replay blocks until the endpoint responds. With 1000 packets and 500ms average response time, replay alone takes 8+ minutes sequentially.</p>
+<h3 id="scaling-threshold_3">Scaling Threshold<a class="headerlink" href="#scaling-threshold_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Acceptable: &lt;50 replays/trace</li>
+<li>Degraded: 50-500 replays/trace</li>
+<li>Unusable: &gt;500 replays/trace</li>
+</ul>
+<h3 id="architectural-risk_3">Architectural Risk<a class="headerlink" href="#architectural-risk_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Endpoint rate limiting:</strong> Replaying against production APIs triggers rate limits, causing 429/503 responses that are misclassified as replay divergence.</li>
+<li><strong>Temporal drift:</strong> Long replay sequences span significant time. The system under test may change mid-replay.</li>
+<li><strong>Auth token expiry:</strong> Session tokens used for replay may expire during long queues.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_3">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_3" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Batch replay with identity hashing:</strong> Group replay-identical packets (same method, path, normalized payload) and replay once. Result propagates to all group members.</li>
+<li><strong>Replay scheduling windows:</strong> Limit replay execution to bounded time windows (e.g., 60s max). Unreplayed packets get <code>REPLAY_PENDING</code> state, not speculative classification.</li>
+<li><strong>Replay worker isolation:</strong> Dedicated replay worker pool with fixed concurrency (e.g., 10 concurrent replays). No dynamic scaling.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_3">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_3" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Replay grouping criteria (must be byte-exact or hash-identical)</li>
+<li>Replay result classification</li>
+<li>Timeout handling (must be deterministic, not adaptive)</li>
+</ul>
+<hr />
+<h2 id="bottleneck-5-entropy-analysis-scaling-constraints">BOTTLENECK 5: ENTROPY ANALYSIS SCALING CONSTRAINTS<a class="headerlink" href="#bottleneck-5-entropy-analysis-scaling-constraints" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_4">Failure Mode<a class="headerlink" href="#failure-mode_4" title="Permanent link">&para;</a></h3>
+<p><code>EntropyAnalysisValidator.compute_composite_entropy()</code> iterates over all struct nodes, all semantic conflicts, all auth bindings, and all FSM nodes for every snapshot. Complexity is O(S × (N_struct + N_conflict + N_auth + N_fsm)) where S is snapshot count.</p>
+<h3 id="scaling-threshold_4">Scaling Threshold<a class="headerlink" href="#scaling-threshold_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Acceptable: S=32, N_struct=64, N_conflict=16</li>
+<li>Degraded: S=128, N_struct=256, N_conflict=64</li>
+<li>Unusable: S=512, N_struct=1024, N_conflict=256</li>
+</ul>
+<h3 id="architectural-risk_4">Architectural Risk<a class="headerlink" href="#architectural-risk_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Snapshot flooding:</strong> Under high packet volume, the stability window fills continuously. Each new snapshot triggers full re-computation.</li>
+<li><strong>Convergence false-positives:</strong> Slow entropy computation delays convergence detection, causing unnecessary HALT triggers.</li>
+<li><strong>Memory bloat:</strong> Each snapshot stores deep copies of all component metrics.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_4">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_4" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Incremental entropy updates:</strong> Delta entropy between snapshots T and T-1, not full re-computation. Store running sums, update on change.</li>
+<li><strong>Hierarchical entropy:</strong> Compute endpoint-level entropy first. Only drill into endpoint details if endpoint-level entropy changes.</li>
+<li><strong>Snapshot decimation:</strong> Retain every Nth snapshot for historical analysis (e.g., keep 32, decimate older ones). Deterministic decimation (power-of-2 intervals).</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_4">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Entropy monotonicity check</li>
+<li>Convergence scoring</li>
+<li>Drift detection thresholds</li>
+</ul>
+<hr />
+<h2 id="bottleneck-6-fsm-graph-memory-pressure">BOTTLENECK 6: FSM GRAPH MEMORY PRESSURE<a class="headerlink" href="#bottleneck-6-fsm-graph-memory-pressure" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_5">Failure Mode<a class="headerlink" href="#failure-mode_5" title="Permanent link">&para;</a></h3>
+<p><code>StateTransitionValidator.extract_fsm()</code> builds a directed graph of all observed state transitions. Enterprise microservices have hundreds of endpoints, each with multiple states (healthy, degraded, error, maintenance). The FSM grows exponentially with endpoint count.</p>
+<h3 id="scaling-threshold_5">Scaling Threshold<a class="headerlink" href="#scaling-threshold_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Default bounds: 64 nodes, 256 edges</li>
+<li>Realistic enterprise: 500+ endpoints × 4 states = 2000+ nodes</li>
+<li>Unbounded: 10K+ nodes, 50K+ edges</li>
+</ul>
+<h3 id="architectural-risk_5">Architectural Risk<a class="headerlink" href="#architectural-risk_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Graph traversal explosion:</strong> Pathfinding and cycle detection become O(V×E) or worse.</li>
+<li><strong>Serialization overhead:</strong> Saving FSM state for checkpointing requires serializing the entire graph.</li>
+<li><strong>Visualization impossibility:</strong> Human review of 2000-node FSMs is impractical.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_5">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_5" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Endpoint-partitioned FSMs:</strong> One FSM per endpoint, not one global FSM. Cross-endpoint dependencies tracked separately.</li>
+<li><strong>State abstraction:</strong> Collapse equivalent states (e.g., all 4xx/5xx into <code>ERROR</code> super-state) using deterministic rules, not clustering heuristics.</li>
+<li><strong>FSM pagination:</strong> Only keep active endpoints in memory. Archive endpoint FSMs after N days of inactivity.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_5">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_5" title="Permanent link">&para;</a></h3>
+<ul>
+<li>State equivalence determination (must be rule-based: status code ranges, not similarity scores)</li>
+<li>Transition legality (must be observed, not inferred)</li>
+<li>FSM partitioning (must be hash-based, not load-balanced)</li>
+</ul>
+<hr />
+<h2 id="bottleneck-7-semantic-quorum-fan-in-costs">BOTTLENECK 7: SEMANTIC QUORUM FAN-IN COSTS<a class="headerlink" href="#bottleneck-7-semantic-quorum-fan-in-costs" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_6">Failure Mode<a class="headerlink" href="#failure-mode_6" title="Permanent link">&para;</a></h3>
+<p><code>SemanticQuorum.execute()</code> intersects claims across all artifacts. Intersection is O(C × A) where C is claims per artifact and A is artifact count. With 512 claims and 100 artifacts, this is 51K operations. With 2048 claims and 500 artifacts, this is 1M+ operations.</p>
+<h3 id="scaling-threshold_6">Scaling Threshold<a class="headerlink" href="#scaling-threshold_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Default bounds: 512 claims, 256 intersections</li>
+<li>Degraded: 2048 claims, 1024 intersections</li>
+<li>Unusable: 8192 claims, 4096 intersections</li>
+</ul>
+<h3 id="architectural-risk_6">Architectural Risk<a class="headerlink" href="#architectural-risk_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Quorum latency:</strong> Large quorum executions block the entire pipeline.</li>
+<li><strong>Conflict set explosion:</strong> Many claims on the same property_path create large conflict sets that must be fully enumerated.</li>
+<li><strong>Memory pressure:</strong> Each intersection produces intermediate sets that must be held in memory.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_6">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_6" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Property-path sharding:</strong> Group claims by property_path hash. Execute quorum per property_path shard in parallel.</li>
+<li><strong>Claim deduplication:</strong> Before intersection, deduplicate identical (property_path, inferred_type) claims with deterministic identity hashing.</li>
+<li><strong>Bounded conflict enumeration:</strong> Conflict sets larger than max_entropy_semantic_conflicts are truncated with <code>CONFLICT_SET_OVERFLOW</code> violation.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_6">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Intersection algorithm (strict type consensus, not majority voting)</li>
+<li>Conflict resolution (no confidence-weighted blending)</li>
+<li>Claim identity (must be hash-based on exact content)</li>
+</ul>
+<hr />
+<h2 id="bottleneck-8-cross-shard-replay-consistency">BOTTLENECK 8: CROSS-SHARD REPLAY CONSISTENCY<a class="headerlink" href="#bottleneck-8-cross-shard-replay-consistency" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_7">Failure Mode<a class="headerlink" href="#failure-mode_7" title="Permanent link">&para;</a></h3>
+<p>When traces are sharded across workers, replay validation may execute against the same endpoint from different workers concurrently. The endpoint's state changes between replays, causing divergent classifications for the same packet across shards.</p>
+<h3 id="scaling-threshold_7">Scaling Threshold<a class="headerlink" href="#scaling-threshold_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Appears at: &gt;1 worker with replay enabled</li>
+<li>Critical at: &gt;10 workers replaying against stateful endpoints</li>
+<li>Disaster at: workers replay against endpoints with rate-limiting or anti-replay protections</li>
+</ul>
+<h3 id="architectural-risk_7">Architectural Risk<a class="headerlink" href="#architectural-risk_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Classification inconsistency:</strong> Same packet gets <code>REPLAY_EQUIVALENT</code> from Worker A and <code>NON_EQUIVALENT</code> from Worker B.</li>
+<li><strong>Quorum corruption:</strong> Inconsistent replay results fed into quorum produce unstable intersection outputs.</li>
+<li><strong>Provenance forks:</strong> A single artifact with conflicting replay evidence has ambiguous ancestry.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_7">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_7" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Replay authority centralization:</strong> One dedicated replay worker (or serialized replay queue) handles ALL replays. Results are broadcast to all shards.</li>
+<li><strong>Replay snapshot isolation:</strong> Before replaying a batch, capture endpoint state fingerprint (e.g., health check response). Replay batch uses the same state context.</li>
+<li><strong>Deterministic replay scheduling:</strong> Replays scheduled at deterministic intervals (e.g., every 60s), not on-demand. Reduces temporal variance.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_7">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_7" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Replay result classification</li>
+<li>Which worker performs replay</li>
+<li>Replay ordering</li>
+</ul>
+<hr />
+<h2 id="bottleneck-9-artifact-lineage-amplification">BOTTLENECK 9: ARTIFACT LINEAGE AMPLIFICATION<a class="headerlink" href="#bottleneck-9-artifact-lineage-amplification" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_8">Failure Mode<a class="headerlink" href="#failure-mode_8" title="Permanent link">&para;</a></h3>
+<p>Every artifact stores <code>parent_ids</code> referencing prior artifacts. In a long-running session, artifact N references artifacts N-1, N-2, ... N-k. Provenance validation walks this chain. The chain length grows linearly with session duration. Amortized cost per validation is O(k), where k grows without bound.</p>
+<h3 id="scaling-threshold_8">Scaling Threshold<a class="headerlink" href="#scaling-threshold_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Acceptable: k &lt; 32 (current max_provenance_depth)</li>
+<li>Degraded: 32 &lt; k &lt; 128</li>
+<li>Unusable: k &gt; 128 (deep recursion, memory blow-up)</li>
+</ul>
+<h3 id="architectural-risk_8">Architectural Risk<a class="headerlink" href="#architectural-risk_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Validation latency:</strong> Each new artifact triggers full provenance walk. Linear growth means linearly-slower validation.</li>
+<li><strong>Circular reference potential:</strong> Bugs in artifact creation could create cycles. Cycle detection is O(k) per validation.</li>
+<li><strong>Serialization bloat:</strong> Saving artifacts includes saving all parent references.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_8">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_8" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Checkpoint artifacts:</strong> Every N artifacts, create a <code>CHECKPOINT</code> artifact that compresses ancestry into a single hash. Subsequent artifacts reference the checkpoint, not the full chain.</li>
+<li><strong>Ancestry truncation:</strong> Provenance validation truncates at <code>max_provenance_depth</code>. Deeper ancestry is opaque but hash-verifiable.</li>
+<li><strong>Deterministic archival:</strong> Archive artifacts older than time threshold (e.g., 30 days). Archive includes full chain hash for verification, but chain is not traversed.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_8">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Ancestry chain integrity</li>
+<li>Checkpoint hashing</li>
+<li>Archive/restore decisions</li>
+</ul>
+<hr />
+<h2 id="bottleneck-10-distributed-provenance-synchronization">BOTTLENECK 10: DISTRIBUTED PROVENANCE SYNCHRONIZATION<a class="headerlink" href="#bottleneck-10-distributed-provenance-synchronization" title="Permanent link">&para;</a></h2>
+<h3 id="failure-mode_9">Failure Mode<a class="headerlink" href="#failure-mode_9" title="Permanent link">&para;</a></h3>
+<p>In a distributed deployment, artifacts created on Worker A must be visible to Worker B for quorum and provenance validation. Distributed artifact registry introduces CAP theorem trade-offs. Consistency requires coordination; availability requires partitioning.</p>
+<h3 id="scaling-threshold_9">Scaling Threshold<a class="headerlink" href="#scaling-threshold_9" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Appears at: 2+ workers with shared registry</li>
+<li>Critical at: 10+ workers across availability zones</li>
+<li>Disaster at: network partitions between workers</li>
+</ul>
+<h3 id="architectural-risk_9">Architectural Risk<a class="headerlink" href="#architectural-risk_9" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Split-brain artifact creation:</strong> Workers A and B create artifacts with the same logical identity but different content during a partition.</li>
+<li><strong>Stale quorum inputs:</strong> Quorum on Worker B uses artifacts from Worker A that are 30 seconds old. Newer artifacts exist but haven't propagated.</li>
+<li><strong>Provenance gaps:</strong> An artifact references a parent that exists on Worker A but not yet on Worker B. Validation fails with <code>ORPHANED_ARTIFACT</code>.</li>
+</ul>
+<h3 id="deterministic-mitigation-path_9">Deterministic Mitigation Path<a class="headerlink" href="#deterministic-mitigation-path_9" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Event-sourced artifact log:</strong> All artifact creation events append to a distributed log (Kafka, NATS JetStream, or Raft-backed log). Workers consume the log in order. Deterministic replay of the log reproduces the exact registry state.</li>
+<li><strong>Artifact batching:</strong> Workers batch artifact creation (e.g., every 5 seconds). Batches are atomic. Quorum validation uses complete batches, not partially-propagated artifacts.</li>
+<li><strong>Deterministic conflict resolution:</strong> If split-brain occurs, deterministic rule resolves (e.g., lower worker_id wins, or lexicographically-first artifact_id wins). NEVER probabilistic merge.</li>
+</ol>
+<h3 id="what-must-never-become-probabilistic_9">What Must NEVER Become Probabilistic<a class="headerlink" href="#what-must-never-become-probabilistic_9" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Artifact total ordering</li>
+<li>Conflict resolution rules</li>
+<li>Log replay semantics</li>
+<li>Quorum input completeness</li>
+</ul>
+<hr />
+<h2 id="summary-matrix">SUMMARY MATRIX<a class="headerlink" href="#summary-matrix" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Bottleneck</th>
+<th>First Failure</th>
+<th>Deterministic Mitigation</th>
+<th>Governance Impact</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>SQLite contention</td>
+<td>500 pkt/s</td>
+<td>Shard by execution_id</td>
+<td>None</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Single-threaded validation</td>
+<td>100 pkt/trace</td>
+<td>Phase/trace parallelism</td>
+<td>Phase ordering preserved</td>
+</tr>
+<tr>
+<td>3</td>
+<td>In-memory artifacts</td>
+<td>10K artifacts</td>
+<td>Tiered storage</td>
+<td>Hash integrity preserved</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Replay serialization</td>
+<td>50 replays/trace</td>
+<td>Batch + identity hash</td>
+<td>Classification preserved</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Entropy computation</td>
+<td>128 snapshots</td>
+<td>Incremental updates</td>
+<td>Monotonicity preserved</td>
+</tr>
+<tr>
+<td>6</td>
+<td>FSM growth</td>
+<td>64 nodes</td>
+<td>Endpoint-partitioned FSMs</td>
+<td>Transition legality preserved</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Quorum fan-in</td>
+<td>512 claims</td>
+<td>Property-path sharding</td>
+<td>Intersection preserved</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Cross-shard replay</td>
+<td>2+ workers</td>
+<td>Centralized replay worker</td>
+<td>Authority preserved</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Lineage depth</td>
+<td>32 ancestors</td>
+<td>Checkpoint artifacts</td>
+<td>Chain integrity preserved</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Provenance sync</td>
+<td>2+ workers</td>
+<td>Event-sourced log</td>
+<td>Total ordering preserved</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="what-was-explicitly-rejected">WHAT WAS EXPLICITLY REJECTED<a class="headerlink" href="#what-was-explicitly-rejected" title="Permanent link">&para;</a></h2>
+<p>These approaches were considered and rejected because they introduce probabilistic or autonomous behavior:</p>
+<table>
+<thead>
+<tr>
+<th>Approach</th>
+<th>Rejection Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Autonomous worker scaling</strong></td>
+<td>Workers must be replaceable pure functions, not self-spawning agents</td>
+</tr>
+<tr>
+<td><strong>Probabilistic cache eviction</strong></td>
+<td>Artifact storage decisions must be deterministic (time-based or hash-based)</td>
+</tr>
+<tr>
+<td><strong>Majority-vote conflict resolution</strong></td>
+<td>Semantic intersection requires strict consensus, not probabilistic blending</td>
+</tr>
+<tr>
+<td><strong>Adaptive timeout tuning</strong></td>
+<td>Timeouts must be configuration-bound, not learned from historical patterns</td>
+</tr>
+<tr>
+<td><strong>Self-modifying execution graph</strong></td>
+<td>Pipeline topology is constitutional, not adaptive</td>
+</tr>
+<tr>
+<td><strong>Recursive quorum-of-quorums</strong></td>
+<td>Prohibited by governance topology. Shards do not form nested quorums.</td>
+</tr>
+<tr>
+<td><strong>LLM-driven bottleneck prediction</strong></td>
+<td>Infrastructure scaling must be rule-based, not inferred</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="conclusion">CONCLUSION<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>All ten bottlenecks have deterministic mitigation paths. None require weakening governance guarantees. The next phase (async/distributed execution migration) will operationalize these mitigations into a concrete architecture.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tooltips", "search.suggest", "search.highlight", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

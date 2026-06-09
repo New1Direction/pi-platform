@@ -1,0 +1,2273 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Deterministic semantic execution kernel with governance-first architecture">
+      
+      
+      
+        <link rel="canonical" href="https://new1direction.github.io/pi-platform/architecture/pi-agent-chain/ASYNC_DISTRIBUTED_EXECUTION/">
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>pi-semantic-recon — Async/Distributed Execution Plan - PI Platform</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Space+Grotesk:300,300i,400,400i,700,700i%7CJetBrains+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Space Grotesk";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#pi-semantic-recon-asyncdistributed-execution-plan" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="PI Platform" class="md-header__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PI Platform
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              pi-semantic-recon — Async/Distributed Execution Plan
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to blueprint (light)"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to blueprint (light)" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="custom"  aria-label="Switch to control room (dark)"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to control room (dark)" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="PI Platform" class="md-nav__button md-logo" aria-label="PI Platform" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m7 17 3.2-6.8L17 7l-3.2 6.8zm5-5.9a.9.9 0 0 0-.9.9.9.9 0 0 0 .9.9.9.9 0 0 0 .9-.9.9.9 0 0 0-.9-.9M12 2a10 10 0 0 1 10 10 10 10 0 0 1-10 10A10 10 0 0 1 2 12 10 10 0 0 1 12 2m0 2a8 8 0 0 0-8 8 8 8 0 0 0 8 8 8 8 0 0 0 8-8 8 8 0 0 0-8-8"/></svg>
+
+    </a>
+    PI Platform
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/New1Direction/pi-platform" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    New1Direction/pi-platform
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../getting-started/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../console/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Desktop Console
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Desktop Console
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/agents/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agentdex
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Party (Builder)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/ledger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Battle Log (Ledger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/forge/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent Forge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../console/compass/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governance Compass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../orchestrator-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Orchestrator & Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../trust-tiers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Trust Tiers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ledger-replay/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ledger & Replay
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../repo-mapping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Repo Mapping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../PI-RUNTIME-SPEC-v1.4/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Runtime Spec (v1.4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EXECUTIVE SUMMARY
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#1-centralized-governance-kernel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. CENTRALIZED GOVERNANCE KERNEL
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. CENTRALIZED GOVERNANCE KERNEL">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kernel-architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#kernel-responsibilities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kernel Responsibilities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#communication-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Communication Model
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-async-worker-execution-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. ASYNC WORKER EXECUTION MODEL
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. ASYNC WORKER EXECUTION MODEL">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#worker-taxonomy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Taxonomy
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Worker Taxonomy">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-acquisition-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Acquisition Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-normalization-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Normalization Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-replay-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Replay Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-quorum-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Quorum Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-fsm-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 FSM Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-entropy-workers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Entropy Workers
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#worker-pool-sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Worker Pool Sizing
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-distributed-sharding-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. DISTRIBUTED SHARDING MODEL
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. DISTRIBUTED SHARDING MODEL">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#sharding-dimensions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sharding Dimensions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Sharding Dimensions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-trace-partitioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Trace Partitioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-endpoint-partitioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Endpoint Partitioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-replay-partitioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Replay Partitioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#prohibited-patterns" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prohibited Patterns
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-replay-semantics-in-distributed-mode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. REPLAY SEMANTICS IN DISTRIBUTED MODE
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. REPLAY SEMANTICS IN DISTRIBUTED MODE">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principle_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Requirements">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-deterministic-replay" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Deterministic Replay
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-mutation-aware-classification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Mutation-Aware Classification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-provenance-chains" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Provenance Chains
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-exact-replay-lineage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Exact Replay Lineage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#replay-coordinator-design" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Replay Coordinator Design
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-failure-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. FAILURE MODEL
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. FAILURE MODEL">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principle_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#failure-scenarios-and-responses" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Failure Scenarios and Responses
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Failure Scenarios and Responses">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-worker-crash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 Worker Crash
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-network-partition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 Network Partition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-kernel-crash" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 Kernel Crash
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54-replay-endpoint-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 Replay Endpoint Failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55-entropy-threshold-breach" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 Entropy Threshold Breach
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-event-sourced-artifact-log" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. EVENT-SOURCED ARTIFACT LOG
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. EVENT-SOURCED ARTIFACT LOG">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#principle_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Principle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#event-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Event Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#log-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Log Properties
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#implementation-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Implementation Options
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-target-end-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. TARGET END STATE
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. TARGET END STATE">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-this-is" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What This Is
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-this-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What This Is NOT
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-migration-phases" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. MIGRATION PHASES
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. MIGRATION PHASES">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#phase-1-event-log-foundation-week-1-2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: Event Log Foundation (Week 1-2)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-2-worker-pool-extraction-week-3-4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: Worker Pool Extraction (Week 3-4)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-3-phase-parallel-validation-week-5-6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 3: Phase-Parallel Validation (Week 5-6)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-4-distributed-sharding-week-7-8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 4: Distributed Sharding (Week 7-8)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-5-replay-coordination-week-9-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 5: Replay Coordination (Week 9-10)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#phase-6-entropy-hardening-week-11-12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 6: Entropy Hardening (Week 11-12)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-invariant-checklist" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. INVARIANT CHECKLIST
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-conclusion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. CONCLUSION
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="pi-semantic-recon-asyncdistributed-execution-plan">pi-semantic-recon — Async/Distributed Execution Plan<a class="headerlink" href="#pi-semantic-recon-asyncdistributed-execution-plan" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Version:</strong> 1.0
+<strong>Date:</strong> 2026-05-18
+<strong>Scope:</strong> Migrate from single-threaded sequential pipeline to bounded async distributed execution
+<strong>Constraint:</strong> Governance guarantees are preserved. Workers are replaceable pure functions. No autonomous orchestration.</p>
+</blockquote>
+<hr />
+<h2 id="executive-summary">EXECUTIVE SUMMARY<a class="headerlink" href="#executive-summary" title="Permanent link">&para;</a></h2>
+<p>The current runtime executes sequentially: acquire → parse → extract → type → map → synthesize → verify (×6 phases). At scale, this creates the ten bottlenecks documented in <code>PRODUCTION_SCALE_ANALYSIS.md</code>.</p>
+<p>This plan describes a migration to <strong>bounded asynchronous distributed execution</strong> without weakening any governance guarantee. The core principle remains:</p>
+<blockquote>
+<p><strong>Semantic cognition assists infrastructure. Infrastructure remains authoritative.</strong></p>
+</blockquote>
+<p><strong>Target end state:</strong>
+- Distributed semantic extraction infrastructure
+- Replay-governed protocol analysis fabric
+- Deterministic topology governance system</p>
+<p><strong>NOT target:</strong>
+- Autonomous AI swarm
+- Self-evolving agent mesh
+- Probabilistic orchestration runtime</p>
+<hr />
+<h2 id="1-centralized-governance-kernel">1. CENTRALIZED GOVERNANCE KERNEL<a class="headerlink" href="#1-centralized-governance-kernel" title="Permanent link">&para;</a></h2>
+<h3 id="principle">Principle<a class="headerlink" href="#principle" title="Permanent link">&para;</a></h3>
+<p>The <code>GovernanceKernel</code> remains the sole authority for:
+- Transition legality
+- Replay authority
+- Artifact promotion
+- Provenance integrity
+- Entropy thresholds
+- Epistemic promotion</p>
+<p><strong>Workers NEVER:</strong>
+- Self-route
+- Self-spawn
+- Self-modify
+- Mutate policies
+- Bypass replay gates
+- Make governance decisions</p>
+<h3 id="kernel-architecture">Kernel Architecture<a class="headerlink" href="#kernel-architecture" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────┐
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│         GOVERNANCE KERNEL (single)          │
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│  ┌─────────────┐  ┌─────────────────────┐  │
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│  │  Policy     │  │  Promotion Logic    │  │
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│  │  Registry   │  │  (monotonic rules)  │  │
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│  └─────────────┘  └─────────────────────┘  │
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│  ┌─────────────┐  ┌─────────────────────┐  │
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│  │  Entropy    │  │  Artifact Registry  │  │
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│  │  Monitor    │  │  (event-sourced)    │  │
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│  └─────────────┘  └─────────────────────┘  │
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>└─────────────────────────────────────────────┘
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                    │
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>     ┌──────────────┼──────────────┐
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>     ▼              ▼              ▼
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>┌─────────┐  ┌──────────┐  ┌──────────┐
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>│ Worker 1│  │ Worker 2 │  │ Worker N │
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>│ (pure)  │  │ (pure)   │  │ (pure)   │
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>└─────────┘  └──────────┘  └──────────┘
+</code></pre></div>
+<h3 id="kernel-responsibilities">Kernel Responsibilities<a class="headerlink" href="#kernel-responsibilities" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Ownership</th>
+<th>Worker Access</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Epistemic promotion</td>
+<td>Kernel only</td>
+<td>Read-only (workers query state)</td>
+</tr>
+<tr>
+<td>Transition legality</td>
+<td>Kernel only</td>
+<td>Workers request, kernel approves</td>
+</tr>
+<tr>
+<td>Replay scheduling</td>
+<td>Kernel only</td>
+<td>Workers receive replay assignments</td>
+</tr>
+<tr>
+<td>Entropy threshold enforcement</td>
+<td>Kernel only</td>
+<td>Workers report metrics</td>
+</tr>
+<tr>
+<td>Artifact registry</td>
+<td>Kernel owns event log</td>
+<td>Workers append events, never modify</td>
+</tr>
+<tr>
+<td>Policy mutation</td>
+<td>Kernel only</td>
+<td>Workers are policy-agnostic</td>
+</tr>
+<tr>
+<td>HALT decisions</td>
+<td>Kernel only</td>
+<td>Workers stop on HALT signal</td>
+</tr>
+</tbody>
+</table>
+<h3 id="communication-model">Communication Model<a class="headerlink" href="#communication-model" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Worker → Kernel:</strong> Report-only (results, metrics, violations). No request for exception.</li>
+<li><strong>Kernel → Worker:</strong> Assignments (packets to process, replay tasks, shard boundaries). Commands are idempotent.</li>
+<li><strong>Async, bounded queues:</strong> Workers pull from bounded assignment queues. Backpressure propagates to acquisition.</li>
+</ul>
+<hr />
+<h2 id="2-async-worker-execution-model">2. ASYNC WORKER EXECUTION MODEL<a class="headerlink" href="#2-async-worker-execution-model" title="Permanent link">&para;</a></h2>
+<h3 id="worker-taxonomy">Worker Taxonomy<a class="headerlink" href="#worker-taxonomy" title="Permanent link">&para;</a></h3>
+<p>Six bounded worker types. Each is a replaceable pure function.</p>
+<h4 id="21-acquisition-workers">2.1 Acquisition Workers<a class="headerlink" href="#21-acquisition-workers" title="Permanent link">&para;</a></h4>
+<p><strong>Function:</strong> Ingest raw traffic, normalize payloads, produce <code>NormalizedTrafficPacket</code>s.</p>
+<p><strong>Constraints:</strong>
+- Stateless: no memory of prior packets
+- Bounded queue: max 1000 pending packets per worker
+- Lease-based: each packet assigned with <code>acquisition_lease_expiry</code>. Expired packets reassigned deterministically.
+- Compression/format detection only — no semantic extraction</p>
+<p><strong>Overflow behavior:</strong>
+- Queue full → backpressure to traffic source (drop or buffer externally)
+- Lease expiry → deterministic reassignment (<code>packet_id % num_workers</code>)
+- Format unsupported → emit <code>UNSUPPORTED_PAYLOAD</code> event to kernel, packet tagged <code>OBSERVED</code> with error</p>
+<h4 id="22-normalization-workers">2.2 Normalization Workers<a class="headerlink" href="#22-normalization-workers" title="Permanent link">&para;</a></h4>
+<p><strong>Function:</strong> Run <code>PayloadNormalizer</code> on raw packets. Produce decompressed, format-tagged payloads.</p>
+<p><strong>Constraints:</strong>
+- Stateless transformation: <code>raw_bytes → PayloadNormalization</code>
+- Deterministic: same input always produces same output
+- Byte-exact envelope preservation: <code>raw_bytes</code> never mutated</p>
+<p><strong>Overflow behavior:</strong>
+- Decompression failure → <code>DECOMPRESSION_FAILED</code> event, packet continues with raw bytes
+- Malformed payload → <code>PARSING_FAILED</code> event, packet tagged with <code>decoding_errors</code>
+- Unsupported format → <code>UNSUPPORTED_FORMAT</code> event, packet proceeds as binary</p>
+<h4 id="23-replay-workers">2.3 Replay Workers<a class="headerlink" href="#23-replay-workers" title="Permanent link">&para;</a></h4>
+<p><strong>Function:</strong> Execute replay requests against observed endpoints. Produce <code>ReplayValidationResult</code>s.</p>
+<p><strong>Constraints:</strong>
+- <strong>Single replay authority:</strong> One replay coordinator (can have multiple executors, but coordinator serializes assignments)
+- Identity-hash grouping: identical packets replayed once, result propagated
+- Bounded concurrency: max 10 concurrent replays
+- Timeout: deterministic (e.g., 30s), never adaptive
+- Mutation-aware: uses mutation-class taxonomy for classification</p>
+<p><strong>Overflow behavior:</strong>
+- Rate-limited by endpoint → <code>REPLAY_DEFERRED</code> state, rescheduled at deterministic interval
+- Endpoint unavailable → <code>REPLAY_FAILED</code> with <code>ENDPOINT_UNAVAILABLE</code>, not speculative classification
+- Auth token expiry → <code>REPLAY_FAILED</code> with <code>AUTH_EXPIRED</code>, triggers re-auth (external to worker)</p>
+<h4 id="24-quorum-workers">2.4 Quorum Workers<a class="headerlink" href="#24-quorum-workers" title="Permanent link">&para;</a></h4>
+<p><strong>Function:</strong> Execute <code>SemanticQuorum</code> over artifact sets. Produce <code>SemanticQuorumReport</code>s.</p>
+<p><strong>Constraints:</strong>
+- Property-path sharding: each worker handles a deterministic shard of property paths
+- Claim deduplication before intersection
+- Bounded conflict set size (from <code>ValidationBoundsConfig</code>)
+- Independent per shard: no cross-worker quorum communication</p>
+<p><strong>Overflow behavior:</strong>
+- Conflict set exceeds <code>max_entropy_semantic_conflicts</code> → truncate with <code>CONFLICT_SET_OVERFLOW</code>
+- Claims exceed <code>max_quorum_claims</code> → truncate with <code>CLAIM_OVERFLOW</code>, emit violation
+- Intersections exceed <code>max_quorum_intersections</code> → halt shard with <code>INTERSECTION_OVERFLOW</code></p>
+<h4 id="25-fsm-workers">2.5 FSM Workers<a class="headerlink" href="#25-fsm-workers" title="Permanent link">&para;</a></h4>
+<p><strong>Function:</strong> Build and validate <code>ProtocolStateMachine</code>s per endpoint.</p>
+<p><strong>Constraints:</strong>
+- One FSM per endpoint: no global FSM
+- State abstraction: deterministic rules (status code ranges → super-states)
+- Bounded size: <code>max_fsm_nodes</code>, <code>max_fsm_edges</code>, <code>max_fsm_fanout</code>, <code>max_fsm_depth</code>
+- Cycle detection on every update</p>
+<p><strong>Overflow behavior:</strong>
+- Nodes exceed <code>max_fsm_nodes</code> → <code>NODE_OVERFLOW</code> violation, FSM truncated
+- Edges exceed <code>max_fsm_edges</code> → <code>EDGE_OVERFLOW</code> violation, new edges rejected
+- Cycle detected → <code>CYCLE_DETECTED</code> violation, offending transition rejected</p>
+<h4 id="26-entropy-workers">2.6 Entropy Workers<a class="headerlink" href="#26-entropy-workers" title="Permanent link">&para;</a></h4>
+<p><strong>Function:</strong> Compute entropy metrics across snapshots, structural nodes, semantic conflicts, auth bindings, FSM nodes.</p>
+<p><strong>Constraints:</strong>
+- Incremental computation: delta between snapshots, not full re-computation
+- Hierarchical: endpoint-level first, detail-level only on change
+- Snapshot decimation: deterministic power-of-2 interval retention
+- Bounded window: <code>max_entropy_window_size</code></p>
+<p><strong>Overflow behavior:</strong>
+- Window exceeds <code>max_entropy_window_size</code> → drop oldest snapshot (FIFO)
+- Structural nodes exceed <code>max_entropy_structural_nodes</code> → cap at bound, emit <code>STRUCTURAL_OVERFLOW</code>
+- Semantic conflicts exceed <code>max_entropy_semantic_conflicts</code> → cap at bound, emit <code>CONFLICT_OVERFLOW</code>
+- Monotonicity violation → report to kernel, kernel decides HALT</p>
+<hr />
+<h3 id="worker-pool-sizing">Worker Pool Sizing<a class="headerlink" href="#worker-pool-sizing" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Worker Type</th>
+<th>Min</th>
+<th>Max</th>
+<th>Scaling Trigger</th>
+<th>Scaling Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acquisition</td>
+<td>2</td>
+<td>16</td>
+<td>Queue depth &gt; 80%</td>
+<td>Add worker deterministically (round-robin)</td>
+</tr>
+<tr>
+<td>Normalization</td>
+<td>2</td>
+<td>8</td>
+<td>Queue depth &gt; 80%</td>
+<td>Add worker deterministically</td>
+</tr>
+<tr>
+<td>Replay</td>
+<td>1 coordinator + 2 executors</td>
+<td>1 coordinator + 10 executors</td>
+<td>Deferred replays &gt; 100</td>
+<td>Add executor deterministically</td>
+</tr>
+<tr>
+<td>Quorum</td>
+<td>2</td>
+<td>16</td>
+<td>Shard latency &gt; 5s</td>
+<td>Add worker for new shard split</td>
+</tr>
+<tr>
+<td>FSM</td>
+<td>2</td>
+<td>8</td>
+<td>Endpoint count &gt; 50/worker</td>
+<td>Rehash endpoints deterministically</td>
+</tr>
+<tr>
+<td>Entropy</td>
+<td>2</td>
+<td>8</td>
+<td>Snapshot backlog &gt; 32</td>
+<td>Add worker deterministically</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Critical constraint:</strong> Pool max is hardcoded. NEVER auto-scale beyond max. Workers are replaceable; exceeding max means human operator intervention or configuration change.</p>
+<hr />
+<h2 id="3-distributed-sharding-model">3. DISTRIBUTED SHARDING MODEL<a class="headerlink" href="#3-distributed-sharding-model" title="Permanent link">&para;</a></h2>
+<h3 id="sharding-dimensions">Sharding Dimensions<a class="headerlink" href="#sharding-dimensions" title="Permanent link">&para;</a></h3>
+<p>Three independent sharding axes. A worker is assigned a deterministic <code>(trace_shard, endpoint_shard, property_shard)</code> tuple.</p>
+<h4 id="31-trace-partitioning">3.1 Trace Partitioning<a class="headerlink" href="#31-trace-partitioning" title="Permanent link">&para;</a></h4>
+<p><strong>Key:</strong> <code>execution_id</code> (or hash of trace identifier)
+<strong>Purpose:</strong> All packets in a single execution trace stay together for provenance integrity.
+<strong>Assignment:</strong> <code>worker_index = hash(execution_id) % num_acquisition_workers</code></p>
+<p><strong>Invariant:</strong> Packets from the same trace never split across workers. Prevents cross-worker provenance races.</p>
+<h4 id="32-endpoint-partitioning">3.2 Endpoint Partitioning<a class="headerlink" href="#32-endpoint-partitioning" title="Permanent link">&para;</a></h4>
+<p><strong>Key:</strong> <code>endpoint_template</code> (e.g., <code>/api/v1/users/{id}</code>)
+<strong>Purpose:</strong> FSM and replay state is endpoint-local.
+<strong>Assignment:</strong> <code>worker_index = hash(endpoint_template) % num_fsm_workers</code></p>
+<p><strong>Invariant:</strong> Same endpoint always routes to same FSM worker. FSM state is sticky per endpoint.</p>
+<h4 id="33-replay-partitioning">3.3 Replay Partitioning<a class="headerlink" href="#33-replay-partitioning" title="Permanent link">&para;</a></h4>
+<p><strong>Key:</strong> <code>packet_identity_hash</code> (method + normalized path + normalized payload hash)
+<strong>Purpose:</strong> Identical packets replay once, result shared.
+<strong>Assignment:</strong> Deterministic grouping before replay. Coordinator owns grouping table.</p>
+<p><strong>Invariant:</strong> Identical packets always get the same replay result. No redundant replays.</p>
+<h3 id="prohibited-patterns">Prohibited Patterns<a class="headerlink" href="#prohibited-patterns" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Status</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Quorum-of-quorums</td>
+<td><strong>PROHIBITED</strong></td>
+<td>Violates deterministic intersection semantics</td>
+</tr>
+<tr>
+<td>Recursive worker spawning</td>
+<td><strong>PROHIBITED</strong></td>
+<td>Violates bounded execution guarantee</td>
+</tr>
+<tr>
+<td>Dynamic shard splits mid-execution</td>
+<td><strong>PROHIBITED</strong></td>
+<td>Causes non-deterministic routing</td>
+</tr>
+<tr>
+<td>Cross-shard FSM merges</td>
+<td><strong>PROHIBITED</strong></td>
+<td>FSMs are endpoint-local</td>
+</tr>
+<tr>
+<td>Cross-shard replay sharing without coordinator</td>
+<td><strong>PROHIBITED</strong></td>
+<td>Violates replay authority centrality</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="4-replay-semantics-in-distributed-mode">4. REPLAY SEMANTICS IN DISTRIBUTED MODE<a class="headerlink" href="#4-replay-semantics-in-distributed-mode" title="Permanent link">&para;</a></h2>
+<h3 id="principle_1">Principle<a class="headerlink" href="#principle_1" title="Permanent link">&para;</a></h3>
+<p>Replay remains the highest authority. Distributed execution must not weaken replay determinism.</p>
+<h3 id="requirements">Requirements<a class="headerlink" href="#requirements" title="Permanent link">&para;</a></h3>
+<h4 id="41-deterministic-replay">4.1 Deterministic Replay<a class="headerlink" href="#41-deterministic-replay" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Same packet + same endpoint state → same result</li>
+<li>Replay assignments are deterministic (coordinator serializes)</li>
+<li>Replay results are broadcast to all shards via event log</li>
+</ul>
+<h4 id="42-mutation-aware-classification">4.2 Mutation-Aware Classification<a class="headerlink" href="#42-mutation-aware-classification" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Mutation class is computed BEFORE replay</li>
+<li>Replay result is interpreted through mutation class lens</li>
+<li>Auth drift is independent dimension</li>
+</ul>
+<h4 id="43-provenance-chains">4.3 Provenance Chains<a class="headerlink" href="#43-provenance-chains" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Every replay result is an artifact in the event log</li>
+<li>Ancestry: <code>original_packet_artifact → replay_assignment_artifact → replay_result_artifact</code></li>
+<li>All three are globally ordered in the event log</li>
+</ul>
+<h4 id="44-exact-replay-lineage">4.4 Exact Replay Lineage<a class="headerlink" href="#44-exact-replay-lineage" title="Permanent link">&para;</a></h4>
+<ul>
+<li>Replay lineage is traceable through artifact registry</li>
+<li><code>ReplayValidationResult</code> contains <code>replay_artifact_id</code> for audit</li>
+<li>Replays are reproducible: re-executing the same assignment produces the same result (assuming endpoint state is frozen)</li>
+</ul>
+<h3 id="replay-coordinator-design">Replay Coordinator Design<a class="headerlink" href="#replay-coordinator-design" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>┌────────────────────────────────────┐
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>│      REPLAY COORDINATOR            │
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>│  ┌──────────────────────────────┐  │
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>│  │  Assignment Queue            │  │
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>│  │  (bounded, FIFO)             │  │
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>│  └──────────────────────────────┘  │
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>│  ┌──────────────────────────────┐  │
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>│  │  Identity Hash Table         │  │
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>│  │  (packet_hash → result_ref)  │  │
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>│  └──────────────────────────────┘  │
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>│  ┌──────────────────────────────┐  │
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>│  │  Broadcast Outbox            │  │
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>│  │  (to all workers)            │  │
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>│  └──────────────────────────────┘  │
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>└────────────────────────────────────┘
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>         │           │
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>         ▼           ▼
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>┌─────────────┐ ┌─────────────┐
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>│ Executor 1  │ │ Executor 2  │
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>│ (max 10)    │ │ (max 10)    │
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>└─────────────┘ └─────────────┘
+</code></pre></div>
+<p><strong>Coordinator rules:</strong>
+1. Receive replay request from any worker
+2. Check identity hash table. If exists, return cached result.
+3. If not, assign to least-loaded executor.
+4. Executor sends request, receives response.
+5. Coordinator stores result in identity hash table.
+6. Coordinator broadcasts result to requesting worker(s).
+7. All assignments and results append to event log.</p>
+<hr />
+<h2 id="5-failure-model">5. FAILURE MODEL<a class="headerlink" href="#5-failure-model" title="Permanent link">&para;</a></h2>
+<h3 id="principle_2">Principle<a class="headerlink" href="#principle_2" title="Permanent link">&para;</a></h3>
+<p>The system remains <strong>fail-closed</strong>. Distributed execution must not introduce degraded continuation, partial truth, or speculative behavior.</p>
+<h3 id="failure-scenarios-and-responses">Failure Scenarios and Responses<a class="headerlink" href="#failure-scenarios-and-responses" title="Permanent link">&para;</a></h3>
+<h4 id="51-worker-crash">5.1 Worker Crash<a class="headerlink" href="#51-worker-crash" title="Permanent link">&para;</a></h4>
+<p><strong>Detection:</strong> Heartbeat timeout (e.g., 30s no response)
+<strong>Response:</strong>
+1. Kernel marks worker as <code>FAILED</code>
+2. Kernel reassigns in-flight assignments deterministically
+3. Kernel emits <code>WORKER_CRASH</code> violation
+4. Replay coordinator invalidates identity hash entries from crashed worker (they will be recomputed)
+5. Quorum shards from crashed worker are reassigned</p>
+<p><strong>What is NOT done:</strong>
+- NO speculative continuation of partial results
+- NO assumption that crashed worker's results were valid
+- NO autonomous spawn of replacement worker</p>
+<h4 id="52-network-partition">5.2 Network Partition<a class="headerlink" href="#52-network-partition" title="Permanent link">&para;</a></h4>
+<p><strong>Detection:</strong> Worker reachable but kernel unreachable (or vice versa)
+<strong>Response:</strong>
+1. Partitioned worker stops processing new assignments (fail-closed)
+2. Worker completes in-flight tasks if kernel timeout permits
+3. If partition persists &gt; lease expiry, kernel reassigns all worker's leases
+4. Post-recovery: worker re-syncs from event log, discards any uncommitted local state</p>
+<p><strong>What is NOT done:</strong>
+- NO split-brain artifact creation
+- NO probabilistic merge of divergent worker states
+- NO "last writer wins" without deterministic rule</p>
+<h4 id="53-kernel-crash">5.3 Kernel Crash<a class="headerlink" href="#53-kernel-crash" title="Permanent link">&para;</a></h4>
+<p><strong>Detection:</strong> Workers detect kernel heartbeat timeout
+<strong>Response:</strong>
+1. All workers enter <code>GOVERNANCE_SUSPENDED</code> state
+2. Workers complete in-flight pure transformations (no promotion, no replay)
+3. Workers buffer results locally (bounded)
+4. New kernel instance recovers from event log
+5. Workers replay buffered results to new kernel</p>
+<p><strong>What is NOT done:</strong>
+- NO worker assumes governance authority
+- NO autonomous promotion during kernel outage
+- NO probabilistic recovery from partial log</p>
+<h4 id="54-replay-endpoint-failure">5.4 Replay Endpoint Failure<a class="headerlink" href="#54-replay-endpoint-failure" title="Permanent link">&para;</a></h4>
+<p><strong>Detection:</strong> Executor timeout or 5xx response
+<strong>Response:</strong>
+1. Result tagged <code>REPLAY_FAILED</code> with <code>ENDPOINT_UNAVAILABLE</code>
+2. Packet epistemic state stays at <code>OBSERVED</code> or <code>INFERRED</code> (never promoted to <code>VERIFIED</code>)
+3. Coordinator schedules retry at deterministic interval (e.g., 60s)
+4. Max retries: configurable (default 3). After max retries, <code>REPLAY_FAILED</code> becomes permanent.</p>
+<p><strong>What is NOT done:</strong>
+- NO speculative classification of unreplayed packet
+- NO adaptive timeout tuning
+- NO "probably equivalent" fallback</p>
+<h4 id="55-entropy-threshold-breach">5.5 Entropy Threshold Breach<a class="headerlink" href="#55-entropy-threshold-breach" title="Permanent link">&para;</a></h4>
+<p><strong>Detection:</strong> Entropy worker reports monotonicity violation or threshold exceedance
+<strong>Response:</strong>
+1. Entropy worker reports to kernel
+2. Kernel evaluates whether breach is local (single trace) or global
+3. Local breach: HALT the trace, other traces continue
+4. Global breach: HALT entire pipeline, emit <code>GLOBAL_ENTROPY_VIOLATION</code></p>
+<p><strong>What is NOT done:</strong>
+- NO probabilistic continuation with "reduced confidence"
+- NO degradation to partial truth
+- NO autonomous adjustment of thresholds</p>
+<hr />
+<h2 id="6-event-sourced-artifact-log">6. EVENT-SOURCED ARTIFACT LOG<a class="headerlink" href="#6-event-sourced-artifact-log" title="Permanent link">&para;</a></h2>
+<h3 id="principle_3">Principle<a class="headerlink" href="#principle_3" title="Permanent link">&para;</a></h3>
+<p>All state changes are events. The log is the source of truth. Workers reconstruct local state by replaying events.</p>
+<h3 id="event-types">Event Types<a class="headerlink" href="#event-types" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Producer</th>
+<th>Consumers</th>
+<th>Determinism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PACKET_ACQUIRED</code></td>
+<td>Acquisition worker</td>
+<td>Normalization workers</td>
+<td>Hash-based routing</td>
+</tr>
+<tr>
+<td><code>PACKET_NORMALIZED</code></td>
+<td>Normalization worker</td>
+<td>Extraction workers</td>
+<td>Trace-shard sticky</td>
+</tr>
+<tr>
+<td><code>EXTRACTION_COMPLETE</code></td>
+<td>Extraction worker</td>
+<td>FSM, Quorum workers</td>
+<td>Endpoint-shard sticky</td>
+</tr>
+<tr>
+<td><code>FSM_UPDATED</code></td>
+<td>FSM worker</td>
+<td>Entropy worker</td>
+<td>Endpoint-shard sticky</td>
+</tr>
+<tr>
+<td><code>REPLAY_ASSIGNED</code></td>
+<td>Replay coordinator</td>
+<td>Replay executors</td>
+<td>Coordinator serializes</td>
+</tr>
+<tr>
+<td><code>REPLAY_COMPLETE</code></td>
+<td>Replay executor</td>
+<td>All workers</td>
+<td>Broadcast</td>
+</tr>
+<tr>
+<td><code>QUORUM_SHARD_COMPLETE</code></td>
+<td>Quorum worker</td>
+<td>Kernel</td>
+<td>Shard aggregation</td>
+</tr>
+<tr>
+<td><code>ENTROPY_SNAPSHOT</code></td>
+<td>Entropy worker</td>
+<td>Kernel</td>
+<td>Stream</td>
+</tr>
+<tr>
+<td><code>ARTIFACT_PROMOTED</code></td>
+<td>Kernel</td>
+<td>All workers</td>
+<td>Centralized</td>
+</tr>
+<tr>
+<td><code>GOVERNANCE_HALT</code></td>
+<td>Kernel</td>
+<td>All workers</td>
+<td>Centralized</td>
+</tr>
+</tbody>
+</table>
+<h3 id="log-properties">Log Properties<a class="headerlink" href="#log-properties" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Append-only:</strong> Events are never deleted or modified</li>
+<li><strong>Totally ordered:</strong> All workers see events in the same order</li>
+<li><strong>Deterministic replay:</strong> Replaying events 1..N reproduces exact state at N</li>
+<li><strong>Bounded retention:</strong> Hot log (last hour) in memory. Warm log (last 24h) on disk. Cold log in object storage.</li>
+<li><strong>Validation:</strong> Each event carries hash of previous event. Chain integrity verifiable.</li>
+</ul>
+<h3 id="implementation-options">Implementation Options<a class="headerlink" href="#implementation-options" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Pros</th>
+<th>Cons</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>NATS JetStream</strong></td>
+<td>Lightweight, exactly-once delivery, native Go</td>
+<td>Single-node throughput limit</td>
+</tr>
+<tr>
+<td><strong>Apache Kafka</strong></td>
+<td>Battle-tested, massive throughput, partitioning</td>
+<td>Heavy operational overhead</td>
+</tr>
+<tr>
+<td><strong>Raft (etcd/bbolt)</strong></td>
+<td>Strong consistency, embedded, no external deps</td>
+<td>Leader bottleneck, complex failover</td>
+</tr>
+<tr>
+<td><strong>SQLite WAL + fsync</strong></td>
+<td>Simplest, zero external dependencies</td>
+<td>Single-writer limit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Recommendation:</strong> Start with NATS JetStream (embedded). Migrate to Kafka only if throughput exceeds JetStream limits (theoretical: ~1M events/sec, practical: ~100K events/sec).</p>
+<hr />
+<h2 id="7-target-end-state">7. TARGET END STATE<a class="headerlink" href="#7-target-end-state" title="Permanent link">&para;</a></h2>
+<h3 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>│                      TRAFFIC SOURCES                            │
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>│  (pcap, proxy, API gateway, synthetic generator)                │
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>└─────────────────────────────────────────────────────────────────┘
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>                              │
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>                              ▼
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>│              ACQUISITION WORKER POOL (2-16)                     │
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>│  ┌─────────┐ ┌─────────┐ ┌─────────┐        ┌─────────┐       │
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>│  │ Worker  │ │ Worker  │ │ Worker  │  ...   │ Worker  │       │
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>│  │   1     │ │   2     │ │   3     │        │   N     │       │
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>│  └─────────┘ └─────────┘ └─────────┘        └─────────┘       │
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>└─────────────────────────────────────────────────────────────────┘
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>                              │
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>                              ▼
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>│           NORMALIZATION WORKER POOL (2-8)                       │
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a>│  Decompression, format detection, parsing, error tagging        │
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a>└─────────────────────────────────────────────────────────────────┘
+<a id="__codelineno-2-20" name="__codelineno-2-20" href="#__codelineno-2-20"></a>                              │
+<a id="__codelineno-2-21" name="__codelineno-2-21" href="#__codelineno-2-21"></a>                              ▼
+<a id="__codelineno-2-22" name="__codelineno-2-22" href="#__codelineno-2-22"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-23" name="__codelineno-2-23" href="#__codelineno-2-23"></a>│         EXTRACTION WORKER POOL (2-8, node 2-5)                  │
+<a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>│  Structural extraction, semantic typing, flow mapping           │
+<a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>└─────────────────────────────────────────────────────────────────┘
+<a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a>                              │
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a>                              ▼
+<a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a>│              GOVERNANCE KERNEL (single)                         │
+<a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a>│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐     │
+<a id="__codelineno-2-31" name="__codelineno-2-31" href="#__codelineno-2-31"></a>│  │  Event Log  │  │  Artifact   │  │  Promotion Logic    │     │
+<a id="__codelineno-2-32" name="__codelineno-2-32" href="#__codelineno-2-32"></a>│  │  (append)   │  │  Registry   │  │  (monotonic rules)  │     │
+<a id="__codelineno-2-33" name="__codelineno-2-33" href="#__codelineno-2-33"></a>│  └─────────────┘  └─────────────┘  └─────────────────────┘     │
+<a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>└─────────────────────────────────────────────────────────────────┘
+<a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a>                              │
+<a id="__codelineno-2-36" name="__codelineno-2-36" href="#__codelineno-2-36"></a>              ┌───────────────┼───────────────┐
+<a id="__codelineno-2-37" name="__codelineno-2-37" href="#__codelineno-2-37"></a>              ▼               ▼               ▼
+<a id="__codelineno-2-38" name="__codelineno-2-38" href="#__codelineno-2-38"></a>┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+<a id="__codelineno-2-39" name="__codelineno-2-39" href="#__codelineno-2-39"></a>│ REPLAY COORDINATOR│ │  FSM WORKER     │ │  QUORUM WORKER  │
+<a id="__codelineno-2-40" name="__codelineno-2-40" href="#__codelineno-2-40"></a>│ (1 + 2-10 exec)  │ │  POOL (2-8)     │ │  POOL (2-16)    │
+<a id="__codelineno-2-41" name="__codelineno-2-41" href="#__codelineno-2-41"></a>│ Identity-hash    │ │  Per-endpoint   │ │  Per-property   │
+<a id="__codelineno-2-42" name="__codelineno-2-42" href="#__codelineno-2-42"></a>│ grouping         │ │  FSM state      │ │  path shard     │
+<a id="__codelineno-2-43" name="__codelineno-2-43" href="#__codelineno-2-43"></a>└─────────────────┘ └─────────────────┘ └─────────────────┘
+<a id="__codelineno-2-44" name="__codelineno-2-44" href="#__codelineno-2-44"></a>              │               │               │
+<a id="__codelineno-2-45" name="__codelineno-2-45" href="#__codelineno-2-45"></a>              └───────────────┼───────────────┘
+<a id="__codelineno-2-46" name="__codelineno-2-46" href="#__codelineno-2-46"></a>                              ▼
+<a id="__codelineno-2-47" name="__codelineno-2-47" href="#__codelineno-2-47"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-48" name="__codelineno-2-48" href="#__codelineno-2-48"></a>│         ENTROPY WORKER POOL (2-8)                               │
+<a id="__codelineno-2-49" name="__codelineno-2-49" href="#__codelineno-2-49"></a>│  Incremental computation, hierarchical analysis, drift detection│
+<a id="__codelineno-2-50" name="__codelineno-2-50" href="#__codelineno-2-50"></a>└─────────────────────────────────────────────────────────────────┘
+<a id="__codelineno-2-51" name="__codelineno-2-51" href="#__codelineno-2-51"></a>                              │
+<a id="__codelineno-2-52" name="__codelineno-2-52" href="#__codelineno-2-52"></a>                              ▼
+<a id="__codelineno-2-53" name="__codelineno-2-53" href="#__codelineno-2-53"></a>┌─────────────────────────────────────────────────────────────────┐
+<a id="__codelineno-2-54" name="__codelineno-2-54" href="#__codelineno-2-54"></a>│              OUTPUT: SYNTHESIZED SPEC                           │
+<a id="__codelineno-2-55" name="__codelineno-2-55" href="#__codelineno-2-55"></a>│  OpenAPI 3.1, protobuf schema, or custom protocol spec          │
+<a id="__codelineno-2-56" name="__codelineno-2-56" href="#__codelineno-2-56"></a>└─────────────────────────────────────────────────────────────────┘
+</code></pre></div>
+<h3 id="what-this-is">What This Is<a class="headerlink" href="#what-this-is" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Distributed semantic extraction infrastructure</li>
+<li>Replay-governed protocol analysis fabric</li>
+<li>Deterministic topology governance system</li>
+</ul>
+<h3 id="what-this-is-not">What This Is NOT<a class="headerlink" href="#what-this-is-not" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Autonomous AI swarm</li>
+<li>Self-evolving agent mesh</li>
+<li>Probabilistic orchestration runtime</li>
+<li>Self-modifying execution graph</li>
+<li>Recursive quorum-of-quorums</li>
+</ul>
+<hr />
+<h2 id="8-migration-phases">8. MIGRATION PHASES<a class="headerlink" href="#8-migration-phases" title="Permanent link">&para;</a></h2>
+<h3 id="phase-1-event-log-foundation-week-1-2">Phase 1: Event Log Foundation (Week 1-2)<a class="headerlink" href="#phase-1-event-log-foundation-week-1-2" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Implement event-sourced artifact log</li>
+<li>Convert <code>ArtifactRegistry</code> to append-only event log</li>
+<li>All artifact operations emit events</li>
+<li>No workers yet — still single-threaded</li>
+</ul>
+<h3 id="phase-2-worker-pool-extraction-week-3-4">Phase 2: Worker Pool Extraction (Week 3-4)<a class="headerlink" href="#phase-2-worker-pool-extraction-week-3-4" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Extract acquisition → normalization → extraction into sequential worker pools</li>
+<li>Pools are fixed-size, assign work via bounded queues</li>
+<li>Kernel still single-threaded, but workers run in threads</li>
+<li>Validation remains sequential for now</li>
+</ul>
+<h3 id="phase-3-phase-parallel-validation-week-5-6">Phase 3: Phase-Parallel Validation (Week 5-6)<a class="headerlink" href="#phase-3-phase-parallel-validation-week-5-6" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Split verification into parallel phases where independent</li>
+<li>Provenance + Replay + Auth in parallel</li>
+<li>State Transition depends on Auth output</li>
+<li>Quorum depends on all prior</li>
+<li>Entropy depends on all prior</li>
+</ul>
+<h3 id="phase-4-distributed-sharding-week-7-8">Phase 4: Distributed Sharding (Week 7-8)<a class="headerlink" href="#phase-4-distributed-sharding-week-7-8" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Implement trace partitioning, endpoint partitioning</li>
+<li>Multiple worker machines (if needed)</li>
+<li>Event log becomes distributed (NATS JetStream)</li>
+<li>Kernel remains single instance</li>
+</ul>
+<h3 id="phase-5-replay-coordination-week-9-10">Phase 5: Replay Coordination (Week 9-10)<a class="headerlink" href="#phase-5-replay-coordination-week-9-10" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Implement centralized replay coordinator</li>
+<li>Identity-hash grouping</li>
+<li>Deterministic broadcast</li>
+<li>Quorum shards consume replay results</li>
+</ul>
+<h3 id="phase-6-entropy-hardening-week-11-12">Phase 6: Entropy Hardening (Week 11-12)<a class="headerlink" href="#phase-6-entropy-hardening-week-11-12" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Incremental entropy computation</li>
+<li>Snapshot decimation</li>
+<li>Hierarchical endpoint-level analysis</li>
+<li>Drift detection with bounded false-positive rate</li>
+</ul>
+<hr />
+<h2 id="9-invariant-checklist">9. INVARIANT CHECKLIST<a class="headerlink" href="#9-invariant-checklist" title="Permanent link">&para;</a></h2>
+<p>After migration, verify:</p>
+<ul>
+<li>[ ] Workers are replaceable pure functions</li>
+<li>[ ] Workers never self-route, self-spawn, or self-modify</li>
+<li>[ ] GovernanceKernel is sole promotion authority</li>
+<li>[ ] Event log is append-only and totally ordered</li>
+<li>[ ] Replay remains deterministic and authoritative</li>
+<li>[ ] Epistemic monotonicity is preserved</li>
+<li>[ ] Entropy monotonicity is preserved</li>
+<li>[ ] Fail-closed behavior is preserved</li>
+<li>[ ] No probabilistic governance decisions exist</li>
+<li>[ ] No recursive quorum-of-quorums exist</li>
+<li>[ ] No autonomous worker scaling exists</li>
+<li>[ ] All overflow modes are configuration-bound</li>
+<li>[ ] Cross-shard replay is coordinated centrally</li>
+<li>[ ] Artifact lineage is globally consistent</li>
+<li>[ ] Semantic intersection remains strict consensus</li>
+</ul>
+<hr />
+<h2 id="10-conclusion">10. CONCLUSION<a class="headerlink" href="#10-conclusion" title="Permanent link">&para;</a></h2>
+<p>This plan transforms the runtime from a single-threaded sequential pipeline into a bounded asynchronous distributed system. The transformation preserves every governance guarantee:</p>
+<ul>
+<li>Deterministic</li>
+<li>Observational-only</li>
+<li>Governance-centralized</li>
+<li>Replay-authoritative</li>
+<li>Fail-closed</li>
+<li>Epistemically monotonic</li>
+</ul>
+<p><strong>Workers assist infrastructure. Infrastructure governs truth.</strong></p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.sections", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tooltips", "search.suggest", "search.highlight", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

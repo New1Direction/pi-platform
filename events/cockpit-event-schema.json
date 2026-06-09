@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pi-platform/schemas/cockpit-event.json",
+  "title": "PI Platform Cockpit Event",
+  "description": "Shared event schema for the PI Execution Cockpit. The Python bridge (src/pi_runtime/tui/event_bus.py) emits events conforming to this schema. The Rust TUI (pi_cockpit/src/models.rs) deserializes against generated types. If you add or remove a field here, update both consumers — the schema is the contract.",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": ["artifact_started", "step_progress", "execution_complete"]
+    },
+    "data": {
+      "oneOf": [
+        { "$ref": "#/$defs/ArtifactStarted" },
+        { "$ref": "#/$defs/StepProgress" },
+        { "$ref": "#/$defs/ExecutionComplete" }
+      ]
+    }
+  },
+  "required": ["type", "data"],
+  "$defs": {
+    "ArtifactStarted": {
+      "type": "object",
+      "properties": {
+        "artifact_id": { "type": "string", "description": "Unique artifact identifier" },
+        "domain": { "type": "string", "description": "Capability domain (e.g. browser_recon, code_execution)" },
+        "objective": { "type": "string", "description": "Natural language task description" }
+      },
+      "required": ["artifact_id", "domain", "objective"]
+    },
+    "SnapshotMetrics": {
+      "type": "object",
+      "description": "Snapshot pruning metrics from the browser agent pipeline. See src/pi_runtime/browser/snapshot_pruning.py",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": ["FULL", "DIFF", "FULL_FALLBACK", "PASSTHROUGH"],
+          "description": "Snapshot decision mode. PASSTHROUGH means the pipeline was bypassed (e.g. browser-use internal snapshots)."
+        },
+        "cut_ratio": {
+          "type": "number",
+          "minimum": 0.0,
+          "maximum": 1.0,
+          "description": "Fraction of snapshot size saved by pruning. 0.0 = no savings, 0.5 = half size. Null when mode is PASSTHROUGH."
+        }
+      },
+      "required": ["mode"]
+    },
+    "StepProgress": {
+      "type": "object",
+      "properties": {
+        "artifact_id": { "type": "string" },
+        "step": { "type": "integer", "minimum": 1, "maximum": 255 },
+        "action": { "type": "string", "description": "Current agent action (e.g. navigate_and_snapshot, click_element)" },
+        "evidence": { "type": "string", "description": "Human-readable step result or error" },
+        "snapshot_metrics": {
+          "$ref": "#/$defs/SnapshotMetrics",
+          "description": "Present when the step involved a browser snapshot. Null/absent for non-browser steps."
+        }
+      },
+      "required": ["artifact_id", "step", "action", "evidence"]
+    },
+    "ExecutionComplete": {
+      "type": "object",
+      "properties": {
+        "artifact_id": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["VERIFIED", "INFERRED", "SUSPENDED", "ABORTED"],
+          "description": "Final artifact status after execution"
+        },
+        "telemetry": {
+          "type": "object",
+          "description": "Arbitrary execution metadata. Structure is artifact-domain-specific."
+        }
+      },
+      "required": ["artifact_id", "status"]
+    }
+  }
+}

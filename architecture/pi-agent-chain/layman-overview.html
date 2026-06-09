@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>pi-semantic-recon — What It Does (Plain English)</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      min-height: 100vh;
+      padding: 2rem;
+      color: white;
+    }
+    .container { max-width: 1100px; margin: 0 auto; }
+    .header { margin-bottom: 2rem; }
+    .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+    .pulse-dot {
+      width: 12px; height: 12px; background: #34d399; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+    .diagram-container {
+      background: rgba(15, 23, 42, 0.5); border-radius: 1rem;
+      border: 1px solid #1e293b; padding: 1.5rem; overflow-x: auto;
+    }
+    svg { width: 100%; min-width: 900px; display: block; }
+    .cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .card {
+      background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem;
+      border: 1px solid #1e293b; padding: 1.25rem;
+    }
+    .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.rose { background: #fb7185; }
+    .card-dot.amber { background: #fbbf24; }
+    .card h3 { font-size: 0.875rem; font-weight: 600; }
+    .card p, .card ul { color: #94a3b8; font-size: 0.8rem; line-height: 1.5; }
+    .card ul { list-style: none; }
+    .card li { margin-bottom: 0.375rem; }
+    .footer { text-align: center; margin-top: 1.5rem; color: #475569; font-size: 0.75rem; }
+    .problem-box {
+      background: rgba(136, 19, 55, 0.2);
+      border: 1px solid #fb7185;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .problem-box h3 { color: #fb7185; font-size: 0.9rem; margin-bottom: 0.5rem; }
+    .solution-box {
+      background: rgba(6, 78, 59, 0.2);
+      border: 1px solid #34d399;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .solution-box h3 { color: #34d399; font-size: 0.9rem; margin-bottom: 0.5rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="header-row">
+        <div class="pulse-dot"></div>
+        <h1>What is pi-semantic-recon?</h1>
+      </div>
+      <p class="subtitle">A plain-English explanation of the deterministic API reverse-engineering runtime</p>
+    </div>
+
+    <div class="problem-box">
+      <h3>🚨 The Problem: Reverse-Engineering APIs Is Full of Guesswork</h3>
+      <p>When you try to figure out how an undocumented API works by watching its network traffic, most tools just <strong>guess</strong>:</p>
+      <ul style="margin-top: 0.5rem;">
+        <li>• "This looks like a user ID" — but what if it's a session token?</li>
+        <li>• "This endpoint returns JSON" — but what if it only returns JSON sometimes?</li>
+        <li>• "These two requests are the same" — but what if the server response depends on your login state?</li>
+      </ul>
+      <p style="margin-top: 0.5rem;">Guesswork leads to broken clients, security holes, and wasted time.</p>
+    </div>
+
+    <div class="solution-box">
+      <h3>✅ The Solution: Prove Everything, Guess Nothing</h3>
+      <p>This system <strong>refuses to guess</strong>. Every claim about the API must pass through 6 layers of verification before it becomes a "fact." If the system can't prove it, the claim stays marked "unverified" — forever.</p>
+    </div>
+
+    <div class="diagram-container">
+      <svg viewBox="0 0 1000 580">
+        <defs>
+          <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+          </marker>
+          <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grid)" />
+
+        <!-- INPUT -->
+        <rect x="40" y="30" width="200" height="70" rx="6" fill="rgba(30, 41, 59, 0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+        <text x="140" y="52" fill="white" font-size="11" font-weight="600" text-anchor="middle">Raw Network Traffic</text>
+        <text x="140" y="70" fill="#94a3b8" font-size="8" text-anchor="middle">HTTP requests & responses</text>
+        <text x="140" y="86" fill="#64748b" font-size="7" text-anchor="middle">pcap • proxy • browser capture</text>
+
+        <!-- Arrow -->
+        <line x1="240" y1="65" x2="290" y2="65" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- THE SYSTEM -->
+        <rect x="300" y="20" width="400" height="100" rx="8" fill="rgba(8, 51, 68, 0.2)" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="4,4"/>
+        <text x="500" y="40" fill="#22d3ee" font-size="10" font-weight="600" text-anchor="middle">THE SYSTEM: Reads & Understands Traffic</text>
+        <text x="340" y="60" fill="#94a3b8" font-size="8">• Parses HTTP headers & bodies</text>
+        <text x="340" y="74" fill="#94a3b8" font-size="8">• Extracts JSON field paths</text>
+        <text x="340" y="88" fill="#94a3b8" font-size="8">• Detects semantic types (UUID, JWT, email)</text>
+        <text x="340" y="102" fill="#94a3b8" font-size="8">• Maps endpoint dependencies</text>
+
+        <!-- Arrow -->
+        <line x1="700" y1="65" x2="760" y2="65" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- OUTPUT (but not yet verified) -->
+        <rect x="770" y="30" width="200" height="70" rx="6" fill="rgba(251, 191, 36, 0.15)" stroke="#fbbf24" stroke-width="1.5"/>
+        <text x="870" y="52" fill="white" font-size="11" font-weight="600" text-anchor="middle">Draft API Spec</text>
+        <text x="870" y="70" fill="#94a3b8" font-size="8" text-anchor="middle">OpenAPI format</text>
+        <text x="870" y="86" fill="#fbbf24" font-size="7" text-anchor="middle">BUT: every field is "OBSERVED" only</text>
+
+        <!-- VERIFICATION LABEL -->
+        <text x="500" y="150" fill="#fb7185" font-size="11" font-weight="600" text-anchor="middle">▼ NOW THE GOVERNANCE LAYER KICKS IN ▼</text>
+
+        <!-- 6 verification boxes -->
+        <rect x="40" y="170" width="140" height="80" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="110" y="192" fill="white" font-size="10" font-weight="600" text-anchor="middle">1. Trace the Source</text>
+        <text x="110" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">Does every claim</text>
+        <text x="110" y="224" fill="#94a3b8" font-size="8" text-anchor="middle">lead back to raw traffic?</text>
+        <text x="110" y="238" fill="#fb7185" font-size="7" text-anchor="middle">No orphan claims allowed</text>
+
+        <rect x="200" y="170" width="140" height="80" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="270" y="192" fill="white" font-size="10" font-weight="600" text-anchor="middle">2. Replay It</text>
+        <text x="270" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">Can we replay the</text>
+        <text x="270" y="224" fill="#94a3b8" font-size="8" text-anchor="middle">request and get same structure?</text>
+        <text x="270" y="238" fill="#fb7185" font-size="7" text-anchor="middle">4-class equivalence test</text>
+
+        <rect x="360" y="170" width="140" height="80" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="430" y="192" fill="white" font-size="10" font-weight="600" text-anchor="middle">3. Check Auth</text>
+        <text x="430" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">How do tokens rotate?</text>
+        <text x="430" y="224" fill="#94a3b8" font-size="8" text-anchor="middle">Are sessions consistent?</text>
+        <text x="430" y="238" fill="#fb7185" font-size="7" text-anchor="middle">5-class rotation taxonomy</text>
+
+        <rect x="520" y="170" width="140" height="80" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="590" y="192" fill="white" font-size="10" font-weight="600" text-anchor="middle">4. Map Protocol</text>
+        <text x="590" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">What endpoint must happen</text>
+        <text x="590" y="224" fill="#94a3b8" font-size="8" text-anchor="middle">before another?</text>
+        <text x="590" y="238" fill="#fb7185" font-size="7" text-anchor="middle">Bounded state machine</text>
+
+        <rect x="680" y="170" width="140" height="80" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="750" y="192" fill="white" font-size="10" font-weight="600" text-anchor="middle">5. Resolve Conflicts</text>
+        <text x="750" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">If two traces disagree</text>
+        <text x="750" y="224" fill="#94a3b8" font-size="8" text-anchor="middle">on a field type...</text>
+        <text x="750" y="238" fill="#fb7185" font-size="7" text-anchor="middle">...don't vote. INTERSECT.</text>
+
+        <rect x="840" y="170" width="140" height="80" rx="6" fill="rgba(136, 19, 55, 0.3)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="910" y="192" fill="white" font-size="10" font-weight="600" text-anchor="middle">6. Measure Stability</text>
+        <text x="910" y="210" fill="#94a3b8" font-size="8" text-anchor="middle">Is the system getting</text>
+        <text x="910" y="224" fill="#94a3b8" font-size="8" text-anchor="middle">more certain or less?</text>
+        <text x="910" y="238" fill="#fb7185" font-size="7" text-anchor="middle">5-dim entropy analysis</text>
+
+        <!-- Arrows between verification -->
+        <line x1="180" y1="210" x2="198" y2="210" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="340" y1="210" x2="358" y2="210" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="500" y1="210" x2="518" y2="210" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="660" y1="210" x2="678" y2="210" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="820" y1="210" x2="838" y2="210" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- DOWN to result -->
+        <line x1="910" y1="250" x2="910" y2="290" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="750" y1="250" x2="750" y2="290" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="590" y1="250" x2="590" y2="290" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="430" y1="250" x2="430" y2="290" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="270" y1="250" x2="270" y2="290" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <line x1="110" y1="250" x2="110" y2="290" stroke="#fb7185" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+
+        <!-- TWO OUTPUT PATHS -->
+        <rect x="40" y="310" width="440" height="100" rx="6" fill="rgba(34, 211, 238, 0.1)" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="260" y="335" fill="#22d3ee" font-size="12" font-weight="600" text-anchor="middle">✅ VERIFIED API SPEC</text>
+        <text x="260" y="355" fill="#94a3b8" font-size="9" text-anchor="middle">Every field traced to raw traffic</text>
+        <text x="260" y="370" fill="#94a3b8" font-size="9" text-anchor="middle">Every endpoint replay-confirmed</text>
+        <text x="260" y="385" fill="#94a3b8" font-size="9" text-anchor="middle">Every auth pattern observed, not guessed</text>
+        <text x="260" y="400" fill="#22d3ee" font-size="8" text-anchor="middle">This is what you ship to production.</text>
+
+        <rect x="520" y="310" width="460" height="100" rx="6" fill="rgba(251, 113, 133, 0.1)" stroke="#fb7185" stroke-width="1.5"/>
+        <text x="750" y="335" fill="#fb7185" font-size="12" font-weight="600" text-anchor="middle">⚠️ CONTESTED / REJECTED CLAIMS</text>
+        <text x="750" y="355" fill="#94a3b8" font-size="9" text-anchor="middle">These claims stay in the "uncertain" bucket</text>
+        <text x="750" y="370" fill="#94a3b8" font-size="9" text-anchor="middle">They are NOT included in the final spec</text>
+        <text x="750" y="385" fill="#94a3b8" font-size="9" text-anchor="middle">They can be promoted later with new evidence</text>
+        <text x="750" y="400" fill="#fb7185" font-size="8" text-anchor="middle">The system admits what it doesn't know.</text>
+
+        <!-- Key principle -->
+        <rect x="40" y="440" width="940" height="110" rx="6" fill="rgba(251, 191, 36, 0.08)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="4,4"/>
+        <text x="510" y="466" fill="#fbbf24" font-size="12" font-weight="600" text-anchor="middle">The Core Principle</text>
+        <text x="510" y="490" fill="#94a3b8" font-size="9" text-anchor="middle">"Inference may expand possibility space.</text>
+        <text x="510" y="506" fill="#94a3b8" font-size="9" text-anchor="middle">Governance must continuously collapse possibility space</text>
+        <text x="510" y="522" fill="#94a3b8" font-size="9" text-anchor="middle">back toward replay-validated truth."</text>
+        <text x="510" y="542" fill="#64748b" font-size="8" text-anchor="middle">This system is NOT trying to be "more intelligent." It is trying to be more reproducible, more explainable, and more honest.</text>
+
+      </svg>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>What Goes In</h3></div>
+        <ul>
+          <li>• Raw HTTP traffic captures (pcap, proxy logs, browser dev tools)</li>
+          <li>• Request/response pairs with headers and bodies</li>
+          <li>• No documentation, no prior knowledge of the API</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot emerald"></div><h3>What Comes Out</h3></div>
+        <ul>
+          <li>• A typed OpenAPI 3.0 specification</li>
+          <li>• Every field typed (UUID, JWT, email, timestamp...)</li>
+          <li>• Every endpoint with methods and status codes</li>
+          <li>• Auth patterns documented (token rotation, CSRF coupling)</li>
+          <li>• A list of what the system <em>couldn't</em> verify</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot rose"></div><h3>Why It's Different</h3></div>
+        <ul>
+          <li>• Most tools <strong>guess</strong> field types and blend conflicting observations</li>
+          <li>• This system <strong>refuses to guess</strong> — unverified claims stay CONTESTED</li>
+          <li>• Most tools collapse conflicts into a "best guess"</li>
+          <li>• This system preserves conflicts as explicit structures for human review</li>
+        </ul>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-dot amber"></div><h3>Analogy: Courtroom vs. Polling</h3></div>
+        <p>Imagine two witnesses disagree on what color a car was. Most tools take a poll: "2 people said blue, 1 said red, so it's probably blue." This system says: "We have a conflict. Both testimonies are preserved. We need more evidence — maybe surveillance footage — before we declare a fact."</p>
+      </div>
+    </div>
+
+    <p class="footer">pi-semantic-recon • Plain-English Overview • No guesses. Only proof.</p>
+  </div>
+</body>
+</html>
