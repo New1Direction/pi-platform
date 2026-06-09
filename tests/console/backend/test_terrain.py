@@ -16,7 +16,7 @@ from fastapi.testclient import TestClient
 
 from pi_console import main as console_main
 from pi_console.routers import ledger_router
-from pi_console.terrain import classify_terrain, stamp_terrain
+from pi_console.terrain import CLASSIFIER_ID, classify_terrain, stamp_terrain
 
 
 # ── unit: classifier ────────────────────────────────────────────────────────
@@ -38,11 +38,17 @@ def test_classify_terrain(content, expected):
 
 
 # ── unit: stamp helper ──────────────────────────────────────────────────────
-def test_stamp_terrain_merges_key():
+def test_stamp_terrain_is_provenance_object():
     out = stamp_terrain('{"risk_score": 50, "routed_agent": "X"}', "web")
     data = json.loads(out)
-    assert data["terrain"] == "web"
-    assert data["risk_score"] == 50  # siblings preserved
+    # Structured interpretation, not a bare scalar masquerading as ground truth.
+    assert data["terrain"] == {"class": "web", "by": CLASSIFIER_ID, "at": "submit"}
+    assert data["risk_score"] == 50  # ground-truth siblings preserved
+
+
+def test_stamp_terrain_records_stage():
+    out = stamp_terrain("{}", "web", stage="replay")
+    assert json.loads(out)["terrain"]["at"] == "replay"
 
 
 def test_stamp_terrain_passes_through_malformed():
@@ -75,20 +81,38 @@ def _seed(path: str, raw_output: str) -> None:
     conn.close()
 
 
-@pytest.fixture
-def client(monkeypatch, tmp_path):
-    db = str(tmp_path / "ledger.db")
-    _seed(db, json.dumps({"routed_agent": "PiReentrancySentry", "risk_score": 90, "terrain": "contract"}))
+def _client(monkeypatch, db: str) -> TestClient:
     monkeypatch.setattr(ledger_router, "DB_PATH", db)
     monkeypatch.setenv("PI_CONSOLE_ALLOW_UNAUTHENTICATED", "1")
     return TestClient(console_main.create_app())
 
 
-def test_router_surfaces_terrain(client):
-    r = client.get("/api/v1/ledger/traces?limit=10", headers={"X-Tenant-ID": "default"})
+def test_router_surfaces_terrain_object(monkeypatch, tmp_path):
+    db = str(tmp_path / "ledger.db")
+    _seed(
+        db,
+        json.dumps(
+            {
+                "routed_agent": "PiReentrancySentry",
+                "risk_score": 90,
+                "terrain": {"class": "contract", "by": CLASSIFIER_ID, "at": "submit"},
+            }
+        ),
+    )
+    r = _client(monkeypatch, db).get("/api/v1/ledger/traces?limit=10", headers={"X-Tenant-ID": "default"})
     assert r.status_code == 200
     t = r.json()["traces"][0]
-    assert t["terrain"] == "contract"
+    assert t["terrain"]["class"] == "contract"
+    assert t["terrain"]["by"] == CLASSIFIER_ID  # provenance surfaced
+
+
+def test_router_normalizes_legacy_string_terrain(monkeypatch, tmp_path):
+    # Pre-provenance traces stored a bare string; the read surface must coerce it.
+    db = str(tmp_path / "ledger.db")
+    _seed(db, json.dumps({"routed_agent": "X", "terrain": "web"}))
+    r = _client(monkeypatch, db).get("/api/v1/ledger/traces?limit=10", headers={"X-Tenant-ID": "default"})
+    t = r.json()["traces"][0]
+    assert t["terrain"] == {"class": "web", "by": "legacy", "at": "submit"}
 
 
 # ── write path: submit stamps terrain on the written trace ──────────────────
@@ -129,4 +153,6 @@ def test_submit_stamps_terrain(monkeypatch, tmp_path):
     row = conn.execute("SELECT raw_output FROM execution_trace ORDER BY id DESC LIMIT 1").fetchone()
     conn.close()
     assert row is not None, "submit wrote no trace"
-    assert json.loads(row[0]).get("terrain") == "contract"
+    terrain = json.loads(row[0]).get("terrain")
+    assert terrain["class"] == "contract"
+    assert terrain["by"] == CLASSIFIER_ID  # provenance stamped at write time

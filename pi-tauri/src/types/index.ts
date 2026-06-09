@@ -132,7 +132,9 @@ export interface TraceListItem {
   risk_score?: number;
   output_summary?: string;
   anomalies_detected: string[];
-  terrain?: string; // dominant content-type of the scanned input (Migration-Map conditioning var)
+  // Interpretation layer: the content-class a classifier *inferred* for the input
+  // (fallible, versioned) — not a property of the input. `by` = classifier id.
+  terrain?: { class?: string; by?: string; at?: string };
 }
 
 export interface PaginatedTracesResponse {

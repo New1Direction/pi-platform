@@ -42,12 +42,18 @@ The **stats are real**, aggregated live from the [Battle Log](ledger.md):
 Agents that haven't run yet read **"no ledger runs yet"** — truth over flavor; a fresh
 ledger genuinely has nothing to show.
 
-!!! note "Not shown yet: concentration / terrain"
-    A *specialist* (fires on one terrain) and a *generalist* (fires everywhere) can have
-    identical find-rates — the difference is **concentration across terrain.** That needs
-    a terrain label recorded per run, which the ledger doesn't store yet, so it is
-    deliberately **not** computed: a faithful concentration score can't be faked from data
-    we don't have. It's the next step toward the Migration Map, not this slice.
+!!! note "Recorded now: terrain (an interpretation). Not shown yet: concentration"
+    Each run now records its **terrain** — the content-class a classifier *infers* for
+    the input, stamped with provenance (`{class, by, at}`). It is an **interpretation,
+    not a property of the input**: a different classifier could assign a different class,
+    so it lives in the fallible interpretation layer, never as ground truth, and never
+    conditions the gate.
+
+    What's still **not** shown is **concentration**: a *specialist* (fires on one terrain)
+    and a *generalist* (fires everywhere) can share a find-rate — the difference is
+    concentration across terrain. That needs enough terrain-tagged history to accrue
+    first; computing it on today's thin data would be fiction. It's the next step toward
+    the Migration Map, not this slice.
 
 ## What a capability looks like
 
