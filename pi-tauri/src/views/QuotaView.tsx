@@ -70,10 +70,10 @@ export function QuotaView() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
         <h2 style={{ fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 18, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-          Tenant Quota
+          ⚡ Energy
         </h2>
         {quota?.quota_exceeded && (
-          <span className="chip chip-red"><AlertTriangle size={10} style={{ marginRight: 4 }} /> QUOTA EXCEEDED</span>
+          <span className="chip chip-red"><AlertTriangle size={10} style={{ marginRight: 4 }} /> OUT OF ENERGY</span>
         )}
         <button className="btn btn-sm" onClick={load} style={{ display: 'flex', alignItems: 'center', gap: 5, marginLeft: 'auto' }}>
           <RefreshCw size={12} /> REFRESH

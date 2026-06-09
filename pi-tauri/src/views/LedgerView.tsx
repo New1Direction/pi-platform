@@ -224,14 +224,14 @@ export function LedgerView() {
                       fontFamily: 'var(--font-ui)', fontSize: 14, fontWeight: 700,
                       color: 'var(--text)', marginBottom: 10, letterSpacing: '0.01em',
                     }}>
-                      No traces yet
+                      No battles yet
                     </div>
                     <div style={{
                       fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text)',
                       lineHeight: 1.8, maxWidth: 420, margin: '0 auto',
                     }}>
-                      Open <strong>Compose</strong>, configure an agent node, click <strong>Simulate</strong> then <strong>Approve &amp; Submit</strong>.<br />
-                      Each execution creates a hash-chained trace entry here.
+                      Head to the <strong>Party</strong> tab, pick a team, drop in a file, and <strong>Run</strong>.<br />
+                      Every scan your agents run shows up here as a hash-chained trace.
                     </div>
                   </div>
                 </td></tr>
