@@ -26,9 +26,9 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   {
-    id: 'ledger', label: 'Ledger',
+    id: 'ledger', label: 'Battle Log',
     icon: <Database size={14} />, color: '#1133aa', tabColor: '#2244cc', titleClass: '',
-    tip: 'Ledger\nHash-chained audit log of every agent execution.\nView traces, risk scores, and anomaly alerts.',
+    tip: 'Battle Log\nEvery scan your agents have run — and what they caught.\nRisk scores, anomalies, and the full audit trail.',
   },
   {
     id: 'agents', label: 'Agentdex',
@@ -36,24 +36,24 @@ const NAV: NavItem[] = [
     tip: 'Agentdex\nBrowse all 248 agents, grouped by type (like a Pokédex).\nEach one scans for a specific kind of vulnerability.',
   },
   {
-    id: 'builder', label: 'Builder',
+    id: 'builder', label: 'Party',
     icon: <Zap size={14} />, color: '#006677', tabColor: '#0088aa', titleClass: 'ai',
-    tip: 'Builder — your scan team\nPick agents, drop in a file, and run them together.\nSee exactly what each one catches.',
+    tip: 'Party — your scan team\nPick agents, drop in a file, and run them together.\nStart with a ready-made party or build your own.',
   },
   {
-    id: 'compose', label: 'Compose',
+    id: 'compose', label: 'Workshop',
     icon: <Wrench size={13} />, color: '#994400', tabColor: '#bb5500', titleClass: 'compose',
-    tip: 'Compose\nAdvanced raw DAG editor.\nManually configure runtimes, operations, and multi-node pipelines.',
+    tip: 'Workshop\nAdvanced pipeline editor — hand-wire multi-step scans.\nManual runtimes, operations, and dependencies.',
   },
   {
-    id: 'quota', label: 'Quota',
+    id: 'quota', label: 'Energy',
     icon: <Activity size={14} />, color: '#660099', tabColor: '#7733bb', titleClass: 'quota',
-    tip: 'Quota\nMonitor API usage, rate limits,\nand resource consumption across tenants.',
+    tip: 'Energy\nYour API usage and limits — how much you\'ve spent.\nRate limits and resource consumption across tenants.',
   },
   {
     id: 'forge', label: 'Forge',
     icon: <Hammer size={13} />, color: '#7a2900', tabColor: '#aa3a00', titleClass: 'forge',
-    tip: 'Agent Forge\nAI-assisted micro-agent generator.\nDescribe what you need — Claude writes the code.\nAgents land in pending/ as UNVERIFIED.',
+    tip: 'Forge\nCreate a brand-new agent — describe what it should catch,\nClaude builds & tests it, then add it to your dex.',
   },
 ];
 
