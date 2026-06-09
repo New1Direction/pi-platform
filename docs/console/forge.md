@@ -1,5 +1,7 @@
 # Agent Forge
 
+<div class="pi-eyebrow">Forge · generate → audit → test → promote</div>
+
 The Agent Forge is an AI-assisted generator for new micro-agents. You describe what
 you want, Claude drafts a module that follows the platform pattern, the code is
 **statically audited**, and only audit-passing code can be saved — as `UNVERIFIED`,
@@ -19,6 +21,15 @@ into a quarantined `pending/` directory.
 | `POST /api/v1/forge/generate` | Description + keywords → Claude generates agent code (BYOK). |
 | `POST /api/v1/forge/audit` | Static analysis of the code (no key required). |
 | `POST /api/v1/forge/save` | Re-audits, then writes to `pending/` as `UNVERIFIED`. |
+| `GET /api/v1/forge/pending` | Lists quarantined agents awaiting review. |
+| `POST /api/v1/forge/test` | Runs the agent against labelled samples in an isolated subprocess (audit-gated). |
+| `POST /api/v1/forge/promote` | Atomic promote: file move + router/consensus edits + import-validation, with rollback. |
+
+!!! tip "Test bench"
+    Before promoting, the **Test bench** runs a pending agent against your own
+    labelled samples (expect-finding / expect-clean) plus perturbations, in a sandboxed
+    subprocess that never touches the live orchestrator. It reports caught/total and a
+    robustness verdict so you only wire in agents that actually detect what they claim.
 
 ## The audit gate
 

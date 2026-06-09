@@ -7,31 +7,44 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  icon:
+    logo: material/compass-outline
+    repo: fontawesome/brands/github
+  font:
+    text: Space Grotesk
+    code: JetBrains Mono
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
-      primary: teal
-      accent: teal
-      toggle:
-        icon: material/weather-night
-        name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
-      primary: teal
-      accent: teal
+      primary: custom
+      accent: custom
       toggle:
         icon: material/weather-sunny
-        name: Switch to light mode
+        name: Switch to blueprint (light)
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Switch to control room (dark)
   features:
     - navigation.sections
     - navigation.top
     - navigation.tracking
     - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.footer
     - content.code.copy
     - content.code.annotate
+    - content.tooltips
     - search.suggest
     - search.highlight
     - toc.follow
+
+extra_css:
+  - stylesheets/extra.css
 
 markdown_extensions:
   - admonition
@@ -61,10 +74,11 @@ nav:
   - Getting Started: getting-started.md
   - Desktop Console:
       - console/index.md
-      - Builder: console/builder.md
-      - Agents (Registry): console/agents.md
-      - Ledger: console/ledger.md
+      - Agentdex: console/agents.md
+      - Party (Builder): console/builder.md
+      - Battle Log (Ledger): console/ledger.md
       - Agent Forge: console/forge.md
+      - Governance Compass: console/compass.md
   - Architecture:
       - Orchestrator & Routing: architecture/orchestrator-routing.md
       - Trust Tiers: architecture/trust-tiers.md
