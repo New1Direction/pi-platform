@@ -349,6 +349,13 @@ export function LedgerView({ govMode = 'gate' }: { govMode?: 'gate' | 'compass' 
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                         <Creature seed={t.routed_agent} color={agentTypeOf(humanizeAgentName(t.routed_agent), []).color} size={18} />
                         {humanizeAgentName(t.routed_agent)}
+                        {t.terrain && t.terrain !== 'none' && TYPE_META[t.terrain] && (
+                          <Tooltip tip={`Terrain — the scanned input looked like ${TYPE_META[t.terrain].label}. The conditioning variable for the Migration Map.`}>
+                            <span style={{ fontSize: 10, color: TYPE_META[t.terrain].color, fontWeight: 700, cursor: 'help' }}>
+                              {TYPE_META[t.terrain].emoji}
+                            </span>
+                          </Tooltip>
+                        )}
                       </span>
                     ) : '—'}
                   </td>

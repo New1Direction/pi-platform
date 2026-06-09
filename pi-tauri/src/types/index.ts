@@ -132,6 +132,7 @@ export interface TraceListItem {
   risk_score?: number;
   output_summary?: string;
   anomalies_detected: string[];
+  terrain?: string; // dominant content-type of the scanned input (Migration-Map conditioning var)
 }
 
 export interface PaginatedTracesResponse {
