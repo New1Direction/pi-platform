@@ -5,6 +5,7 @@ import { getLedgerTraces, getLedgerSummary, getLedgerTraceDetail } from '../lib/
 import { agentTypeOf } from '../lib/agentdex';
 import { humanizeAgentName } from '../lib/humanize';
 import { Creature } from '../components/Creature';
+import { GovernanceCompass } from '../components/GovernanceCompass';
 import type { TraceListItem, LedgerSummaryResponse, TraceDetailResponse } from '../types';
 import { format } from 'date-fns';
 
@@ -144,7 +145,7 @@ function TraceDetail({ traceId }: { traceId: string }) {
   );
 }
 
-export function LedgerView() {
+export function LedgerView({ govMode = 'gate' }: { govMode?: 'gate' | 'compass' }) {
   const [traces, setTraces] = useState<TraceListItem[]>([]);
   const [summary, setSummary] = useState<LedgerSummaryResponse | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -170,8 +171,22 @@ export function LedgerView() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
 
-      {/* ── KPI Row ── */}
-      {summary && (
+      {/* ── Top panel: Gate KPIs (default) or the Governance Compass (lens) ── */}
+      {summary && govMode === 'compass' && (
+        <div style={{ padding: '12px 16px', borderBottom: 'var(--bw)', flexShrink: 0 }}>
+          <GovernanceCompass
+            title="Fleet heading — governance as navigation"
+            signals={{
+              risk: summary.avg_risk_score,
+              anomaly: Math.min(1, summary.anomalies_count / Math.max(1, summary.total_traces)),
+              unstable: Math.min(1, (100 - summary.success_rate) / 100 + summary.consensus_divergence_alerts / Math.max(1, summary.total_traces)),
+              trust: 1,
+            }}
+            caption="North = Safe. The needle is the resultant pull across every run. A lens only — the gate still enforces pass/fail underneath."
+          />
+        </div>
+      )}
+      {summary && govMode === 'gate' && (
         <div style={{ display: 'flex', padding: '12px 16px', borderBottom: 'var(--bw)', flexShrink: 0, gap: 12 }}>
           <Tooltip tip="Total number of agent execution traces recorded in the ledger." wrapStyle={{ flex: 1 }}>
             <KpiCard label="Total Traces" value={summary.total_traces} />
@@ -324,6 +339,24 @@ export function LedgerView() {
               <button className="btn btn-sm" style={{ marginLeft: 'auto', color: 'var(--ink)', background: 'var(--white)' }} onClick={() => setSelected(null)}>CLOSE ×</button>
             </div>
             <div style={{ flex: 1, overflow: 'auto' }}>
+              {govMode === 'compass' && (() => {
+                const t = traces.find(tr => tr.trace_id === selected);
+                if (!t) return null;
+                return (
+                  <div style={{ padding: '12px 14px', borderBottom: 'var(--bw)', background: 'var(--surface-2)' }}>
+                    <GovernanceCompass
+                      title="This run's heading"
+                      signals={{
+                        risk: t.risk_score ?? 0,
+                        anomaly: Math.min(1, (t.anomalies_detected?.length ?? 0) / 3),
+                        unstable: t.success === false ? 0.7 : t.is_valid_type === false ? 0.4 : 0,
+                        trust: 1,
+                      }}
+                      caption="Where this single action pulled the system. The gate verdict (above) is what actually enforced."
+                    />
+                  </div>
+                );
+              })()}
               <TraceDetail traceId={selected} />
             </div>
           </div>

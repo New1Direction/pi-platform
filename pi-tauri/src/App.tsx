@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Activity, Database, Grid3x3, Hammer, Shield, Zap, Bot, Wifi, WifiOff, Wrench, Sun, Moon } from 'lucide-react';
+import { Activity, Database, Grid3x3, Hammer, Shield, Zap, Bot, Wifi, WifiOff, Wrench, Sun, Moon, Compass } from 'lucide-react';
 import { Tooltip } from './components/Tooltip';
 import { createSession, getTenantId, getLedgerSummary, listCapabilities } from './lib/api';
 import type { LedgerSummaryResponse } from './types';
@@ -183,6 +183,14 @@ export default function App() {
   }, [theme]);
   const toggleTheme = useCallback(() => setTheme(t => (t === 'dark' ? 'light' : 'dark')), []);
 
+  // Governance view mode — 'gate' (existing pass/fail, default) vs 'compass'
+  // (navigation lens). A view-only switch: enforcement is unchanged either way.
+  const [govMode, setGovMode] = useState<'gate' | 'compass'>(
+    () => (localStorage.getItem('pi_gov_mode') === 'compass' ? 'compass' : 'gate')
+  );
+  useEffect(() => { localStorage.setItem('pi_gov_mode', govMode); }, [govMode]);
+  const toggleGov = useCallback(() => setGovMode(m => (m === 'compass' ? 'gate' : 'compass')), []);
+
   useEffect(() => {
     let cancelled = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -301,7 +309,7 @@ export default function App() {
 
           {/* Content */}
           <div className="win-content">
-            {tab === 'ledger'   && <LedgerView />}
+            {tab === 'ledger'   && <LedgerView govMode={govMode} />}
             {tab === 'agents'   && <RegistryView />}
             {tab === 'builder'  && <BuilderView sessionId={sessionId} />}
             {tab === 'compose' && composeMode === 'builder' && <ComposeView sessionId={sessionId} />}
@@ -361,6 +369,12 @@ export default function App() {
             ? <span style={{ color: '#1a6633', display: 'flex', gap: 3, alignItems: 'center' }}><Wifi size={10} /> Online</span>
             : <span style={{ color: '#aa5500', display: 'flex', gap: 3, alignItems: 'center' }}><WifiOff size={10} /> Reconnecting…</span>}
         </div>
+        <Tooltip tip={'Governance view (Battle Log)\nGate = pass/fail. Compass = navigation lens.\nView only — enforcement is unchanged.'} pos="top">
+          <button className="start-btn" onClick={toggleGov} style={{ marginRight: 4 }}>
+            {govMode === 'compass' ? <Compass size={11} /> : <Shield size={11} />}
+            <span style={{ fontFamily: 'var(--font-ui)', fontSize: 10 }}>{govMode === 'compass' ? 'Compass' : 'Gate'}</span>
+          </button>
+        </Tooltip>
         <Tooltip tip={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} pos="top">
           <button className="start-btn" onClick={toggleTheme} style={{ marginRight: 4 }}>
             {theme === 'dark' ? <Sun size={11} /> : <Moon size={11} />}
