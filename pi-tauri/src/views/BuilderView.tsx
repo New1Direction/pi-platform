@@ -603,7 +603,7 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
                             : s.found.length > 0
                               ? `found: ${s.found[0]}`
                               : s.status === 'done'
-                                ? 'clean'
+                                ? 'no finding' /* this agent flagged nothing — NOT a claim the input is safe */
                                 : s.reason}
                         </span>
                       </div>
@@ -611,10 +611,15 @@ export function BuilderView({ sessionId, govMode = 'gate' }: { sessionId: string
                   })}
                   {liveStatus === 'done' && (
                     <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px dashed var(--paper-3)', fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text)' }}>
-                      Route complete — ran {done.length} agent{done.length !== 1 ? 's' : ''},
-                      {' '}<strong style={{ color: foundCount > 0 ? '#cc2200' : '#2a9d4a' }}>{foundCount} found risk</strong>
-                      {peak > 0 ? `, peak ${peak.toFixed(0)}` : ''}. Each run is hash-chained in the Battle Log.
-                      <button className="btn btn-sm" onClick={reset} style={{ marginLeft: 10 }}>Clear</button>
+                      <div>
+                        Route complete — ran {done.length} agent{done.length !== 1 ? 's' : ''},
+                        {' '}<strong style={{ color: foundCount > 0 ? '#cc2200' : 'var(--text-muted)' }}>{foundCount} found risk</strong>
+                        {peak > 0 ? `, peak ${peak.toFixed(0)}` : ''}. Each run is hash-chained in the Battle Log.
+                        <button className="btn btn-sm" onClick={reset} style={{ marginLeft: 10 }}>Clear</button>
+                      </div>
+                      <div style={{ marginTop: 5, fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        No finding ≠ safe — this shows only what these {done.length} agent{done.length !== 1 ? 's' : ''} check, on this input.
+                      </div>
                     </div>
                   )}
                 </div>
