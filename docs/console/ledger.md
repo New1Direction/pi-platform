@@ -1,8 +1,21 @@
-# Ledger
+# Battle Log *(Ledger)*
 
-The Ledger tab is the audit trail: every node execution is written as a hash-chained
-`execution_trace` row and surfaced here with its routed agent, risk score, and
-anomalies.
+<div class="pi-eyebrow">Was: Ledger</div>
+
+The **Battle Log** is the audit trail: every node execution is written as a hash-chained
+`execution_trace` row and surfaced here with its routed agent (creature + name), risk
+score, and anomalies.
+
+## Reading the log
+
+- **Battle History** — a bar per run, oldest→newest; height is risk, color is severity
+  (green safe · amber elevated · red critical), with an average-risk line. Click a bar to
+  open that trace.
+- **Trace table** — each row shows the routed agent's creature, risk chip, node, and
+  timestamp; click to expand the full hash-chained detail.
+- **Compass mode** swaps the KPI strip for the [Governance Compass](compass.md) — a fleet
+  *heading* across every run — and adds the **Migratory instincts** readout: the agent
+  Types history has taught the field to watch hardest.
 
 ## Data sources
 

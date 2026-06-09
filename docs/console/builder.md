@@ -1,21 +1,36 @@
-# Builder
+# Party *(Builder)*
 
-The Builder lets you assemble micro-agents into an execution pipeline, simulate it,
-and run it — all without writing a raw DAG.
+<div class="pi-eyebrow">Was: Builder</div>
+
+The **Party** tab is where you assemble a team of micro-agents, give it something to
+scan, simulate, and run — all without writing a raw DAG.
+
+## Start with a playbook
+
+A newcomer shouldn't face 248 agents cold. The empty state offers **ready-made parties**
+— curated teams (Solidity Audit, Secrets Sweep, LLM Safety, Web & API, Supply Chain,
+Container & Infra) that one click loads, matched against the live registry so a missing
+agent is simply skipped. Or build your own from the Agentdex panel on the left.
 
 ## How it works
 
-1. **Browse the registry** (left panel). All 248 live agents load from
-   `POST /api/v1/capabilities/list`. Search by name or keyword.
-2. **Click an agent** to add it as a pipeline node. Each node is created with the
-   correct runtime/operation and a **goal pre-filled with the agent's first
-   keyword**.
-3. **Edit the goal** if needed — the goal text is what routes the node to a specific
+1. **Pick agents** (left panel). All 248 live agents load from
+   `POST /api/v1/capabilities/list`. Search by name or keyword, click to add to the party.
+2. Each agent joins as a node with the correct runtime/operation and a **goal pre-filled
+   with the agent's first keyword**.
+3. **Give it content** — pick a file or paste code/config into each node (see
+   [Passing content](#passing-content-to-an-agent)).
+4. **Edit the goal** if needed — the goal text is what routes the node to a specific
    agent (see below).
-4. **Simulate** — a dry run that validates the DAG, bounds, policy, and risk without
+5. **Simulate** — a dry run that validates the DAG, bounds, policy, and risk without
    executing any agent.
-5. **Approve & Run** — executes the pipeline; results are hash-chained into the
-   [Ledger](ledger.md).
+6. **Approve & Run** — executes the party; results are hash-chained into the
+   [Battle Log](ledger.md).
+
+!!! tip "Let the route emerge"
+    In **Compass** mode the Party gains a **Navigate** panel that orders the team by
+    where the file's risk actually points — and a **Run live** mode where the route
+    adapts to each agent's realized finding. See the [Governance Compass](compass.md).
 
 ## Every node uses the same runtime
 
@@ -32,7 +47,7 @@ keyword**, which the orchestrator matches against each agent's registered keywor
 ## Keyword dispatch
 
 When you run a node, the backend routes on the node's **artifact goal** — the
-keyword you set in the Builder. For example:
+keyword you set in the Party. For example:
 
 | Goal keyword | Routes to | Example finding |
 |--------------|-----------|-----------------|
@@ -41,7 +56,7 @@ keyword you set in the Builder. For example:
 | `leak scan` | `PiPromptLeakBuster` | credential/egress leak |
 
 If the goal matches no registered keyword, the orchestrator falls back to
-`PiMasterGeneralistFallback` (a no-op pass at risk 0). Because the Builder pre-fills
+`PiMasterGeneralistFallback` (a no-op pass at risk 0). Because the Party pre-fills
 each node's goal with the agent's own keyword, the default flow always routes
 correctly.
 

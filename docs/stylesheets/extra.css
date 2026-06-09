@@ -1,0 +1,361 @@
+/* ============================================================================
+   PI Platform docs — "governance terminal / blueprint"
+   A deliberate design layer over MkDocs Material: signal-cyan over graphite
+   (dark) / blueprint paper (light), governance traffic-light semantics, and
+   the Agentdex type palette. Space Grotesk + JetBrains Mono.
+   ========================================================================== */
+
+/* ---- Tokens: governance + Agentdex palette (shared) ---------------------- */
+:root {
+  --pi-safe: #16a34a;
+  --pi-elevated: #d29200;
+  --pi-critical: #e23d5a;
+
+  /* Agentdex types — mirror lib/agentdex.ts so docs & app agree */
+  --t-contract: #a368ff; --t-zk: #13c2b0; --t-ai: #ff6ec7; --t-secrets: #ffb400;
+  --t-web: #3aa0ff; --t-infra: #5fd38a; --t-supply: #ff8a3a; --t-privacy: #c79bff;
+  --t-quality: #9aa6b0; --t-runtime: #ff5a6a;
+
+  --pi-radius: 14px;
+  --pi-radius-sm: 9px;
+  --md-text-font: "Space Grotesk", -apple-system, system-ui, sans-serif;
+  --md-code-font: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* ---- DARK: control room -------------------------------------------------- */
+[data-md-color-scheme="slate"] {
+  --md-hue: 222;
+  --pi-bg: #0a0d12;
+  --pi-bg-2: #11151c;
+  --pi-surface: #141a23;
+  --pi-surface-2: #181f29;
+  --pi-line: rgba(255, 255, 255, 0.09);
+  --pi-line-strong: rgba(255, 255, 255, 0.16);
+  --pi-accent: #21e6cf;
+  --pi-accent-2: #4ad6ff;
+  --pi-glow: rgba(33, 230, 207, 0.22);
+  --pi-ink: #e8eef5;
+  --pi-muted: #93a1b0;
+
+  --md-default-bg-color: var(--pi-bg);
+  --md-default-fg-color: var(--pi-ink);
+  --md-default-fg-color--light: var(--pi-muted);
+  --md-default-fg-color--lighter: rgba(147, 161, 176, 0.5);
+  --md-primary-fg-color: var(--pi-bg-2);
+  --md-primary-bg-color: var(--pi-ink);
+  --md-accent-fg-color: var(--pi-accent);
+  --md-typeset-a-color: var(--pi-accent);
+  --md-code-bg-color: #0c1118;
+  --md-code-fg-color: #cdd7e2;
+  --md-typeset-mark-color: rgba(33, 230, 207, 0.28);
+}
+
+/* ---- LIGHT: blueprint paper --------------------------------------------- */
+[data-md-color-scheme="default"] {
+  --pi-bg: #f3f1ea;
+  --pi-bg-2: #ece9df;
+  --pi-surface: #ffffff;
+  --pi-surface-2: #faf8f2;
+  --pi-line: rgba(20, 24, 29, 0.12);
+  --pi-line-strong: rgba(20, 24, 29, 0.22);
+  --pi-accent: #0a8f86;
+  --pi-accent-2: #1577b8;
+  --pi-glow: rgba(10, 143, 134, 0.16);
+  --pi-ink: #14181d;
+  --pi-muted: #56636e;
+
+  --md-default-bg-color: var(--pi-bg);
+  --md-default-fg-color: var(--pi-ink);
+  --md-default-fg-color--light: var(--pi-muted);
+  --md-primary-fg-color: #0e1217;
+  --md-primary-bg-color: #ffffff;
+  --md-accent-fg-color: var(--pi-accent);
+  --md-typeset-a-color: var(--pi-accent);
+  --md-code-bg-color: #f0ede4;
+  --md-code-fg-color: #1d2733;
+}
+
+/* ---- Base typography ----------------------------------------------------- */
+.md-typeset {
+  font-feature-settings: "ss01", "cv01", "tnum";
+  line-height: 1.66;
+}
+.md-typeset h1,
+.md-typeset h2,
+.md-typeset h3 {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+}
+.md-typeset h1 {
+  font-size: 2.1rem;
+  color: var(--pi-ink);
+}
+.md-typeset h2 {
+  margin-top: 2.6em;
+  padding-top: 0.7em;
+  border-top: 1px solid var(--pi-line);
+  font-size: 1.5rem;
+}
+.md-typeset h2::before {
+  content: "";
+  display: block;
+  width: 34px;
+  height: 3px;
+  margin-bottom: 0.7rem;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--pi-accent), var(--pi-accent-2));
+}
+.md-typeset h3 { font-size: 1.18rem; margin-top: 1.8em; }
+
+/* mono eyebrow label */
+.pi-eyebrow {
+  font-family: var(--md-code-font);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--pi-accent);
+  margin-bottom: 0.8rem;
+}
+
+/* ---- Header / nav polish ------------------------------------------------- */
+.md-header {
+  background: color-mix(in srgb, var(--md-default-bg-color) 82%, transparent);
+  backdrop-filter: saturate(140%) blur(12px);
+  border-bottom: 1px solid var(--pi-line);
+  box-shadow: none;
+}
+.md-tabs {
+  background: transparent;
+  border-bottom: 1px solid var(--pi-line);
+}
+[data-md-color-scheme="slate"] .md-header,
+[data-md-color-scheme="slate"] .md-tabs { color: var(--pi-ink); }
+.md-nav__link--active,
+.md-nav__link:hover { color: var(--pi-accent) !important; }
+.md-nav__item .md-nav__link--active { font-weight: 700; }
+
+/* ---- HERO ---------------------------------------------------------------- */
+.pi-hero {
+  position: relative;
+  margin: -1.2rem 0 2.4rem;
+  padding: clamp(2rem, 1rem + 5vw, 4.2rem) clamp(1.3rem, 0.5rem + 3vw, 3rem);
+  border: 1px solid var(--pi-line-strong);
+  border-radius: var(--pi-radius);
+  overflow: hidden;
+  background:
+    radial-gradient(120% 140% at 88% -10%, var(--pi-glow), transparent 55%),
+    radial-gradient(90% 120% at 0% 110%, color-mix(in srgb, var(--pi-accent-2) 14%, transparent), transparent 50%),
+    var(--pi-surface);
+  isolation: isolate;
+}
+/* blueprint grid texture */
+.pi-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(var(--pi-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--pi-line) 1px, transparent 1px);
+  background-size: 46px 46px;
+  mask-image: radial-gradient(120% 100% at 80% 0%, #000 35%, transparent 78%);
+  opacity: 0.7;
+}
+.pi-hero__title {
+  font-size: clamp(2.4rem, 1.2rem + 5.4vw, 4.4rem);
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  margin: 0 0 1rem;
+  color: var(--pi-ink);
+}
+.pi-hero__title .pi-grad {
+  background: linear-gradient(96deg, var(--pi-accent), var(--pi-accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.pi-hero__lede {
+  max-width: 46ch;
+  font-size: clamp(1rem, 0.95rem + 0.4vw, 1.2rem);
+  color: var(--pi-muted);
+  margin: 0 0 1.8rem;
+}
+.pi-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-bottom: 2rem;
+}
+.md-typeset .pi-hero__cta .md-button {
+  border-radius: 999px;
+  border-width: 1px;
+  border-color: var(--pi-line-strong);
+  color: var(--pi-ink);
+  background: color-mix(in srgb, var(--pi-surface) 55%, transparent);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  transition: transform 0.16s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.16s, background 0.16s, border-color 0.16s, color 0.16s;
+}
+.md-typeset .pi-hero__cta .md-button:not(.md-button--primary):hover {
+  border-color: var(--pi-accent);
+  color: var(--pi-accent);
+  background: color-mix(in srgb, var(--pi-accent) 10%, transparent);
+}
+.md-typeset .pi-hero__cta .md-button--primary {
+  background: linear-gradient(96deg, var(--pi-accent), var(--pi-accent-2));
+  border-color: transparent;
+  color: #04121a;
+}
+.md-typeset .pi-hero__cta .md-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px -12px var(--pi-glow);
+}
+/* determinism status strip */
+.pi-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.6rem;
+  padding-top: 1.3rem;
+  border-top: 1px dashed var(--pi-line);
+  font-family: var(--md-code-font);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pi-muted);
+}
+.pi-strip b { color: var(--pi-ink); font-weight: 700; }
+.pi-strip .dot { color: var(--pi-accent); }
+
+/* ---- Grid cards (Material .grid.cards) ----------------------------------- */
+.md-typeset .grid.cards > ul > li,
+.md-typeset .grid > .pi-card {
+  border: 1px solid var(--pi-line);
+  border-radius: var(--pi-radius-sm);
+  background: var(--pi-surface);
+  padding: 1.1rem 1.15rem;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s, border-color 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+.md-typeset .grid.cards > ul > li::after {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(var(--pi-accent), var(--pi-accent-2));
+  opacity: 0.0;
+  transition: opacity 0.18s;
+}
+.md-typeset .grid.cards > ul > li:hover {
+  transform: translateY(-3px);
+  border-color: var(--pi-line-strong);
+  box-shadow: 0 16px 40px -22px var(--pi-glow), 0 2px 0 var(--pi-line);
+}
+.md-typeset .grid.cards > ul > li:hover::after { opacity: 1; }
+.md-typeset .grid.cards > ul > li > hr {
+  margin: 0.6rem 0;
+  border-color: var(--pi-line);
+}
+.md-typeset .grid.cards .twemoji,
+.md-typeset .grid.cards svg { color: var(--pi-accent); }
+
+/* ---- Governance chips ---------------------------------------------------- */
+.pi-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
+.pi-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--md-code-font);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 0.28rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.pi-chip.safe { color: var(--pi-safe); }
+.pi-chip.elevated { color: var(--pi-elevated); }
+.pi-chip.critical { color: var(--pi-critical); }
+.pi-chip.accent { color: var(--pi-accent); }
+
+/* ---- Compass phase stepper ----------------------------------------------- */
+.pi-phases { margin: 1.6rem 0; display: grid; gap: 0.8rem; }
+.pi-phase {
+  position: relative;
+  border: 1px solid var(--pi-line);
+  border-left: 3px solid var(--pi-accent);
+  border-radius: var(--pi-radius-sm);
+  background: var(--pi-surface);
+  padding: 1rem 1.15rem 1rem 1.2rem;
+}
+.pi-phase__n {
+  font-family: var(--md-code-font);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pi-accent);
+}
+.pi-phase__h { font-weight: 700; font-size: 1.05rem; margin: 0.15rem 0 0.35rem; color: var(--pi-ink); }
+.pi-phase__b { color: var(--pi-muted); font-size: 0.92rem; margin: 0; }
+
+/* ---- Code blocks --------------------------------------------------------- */
+.md-typeset pre > code {
+  border-radius: var(--pi-radius-sm);
+  border: 1px solid var(--pi-line);
+}
+.md-typeset .highlight > .filename,
+.md-typeset code { border-radius: 5px; }
+.md-typeset :not(pre) > code {
+  border: 1px solid var(--pi-line);
+  padding: 0.08em 0.42em;
+}
+
+/* ---- Admonitions: brand the key ones ------------------------------------- */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: var(--pi-radius-sm);
+  border-width: 1px 1px 1px 3px;
+  font-size: 0.84rem;
+}
+.md-typeset .admonition.note { border-left-color: var(--pi-accent); }
+.md-typeset .note > .admonition-title { background: color-mix(in srgb, var(--pi-accent) 12%, transparent); }
+.md-typeset .warning > .admonition-title { background: color-mix(in srgb, var(--pi-elevated) 14%, transparent); }
+.md-typeset .danger > .admonition-title { background: color-mix(in srgb, var(--pi-critical) 14%, transparent); }
+
+/* ---- Tables -------------------------------------------------------------- */
+.md-typeset table:not([class]) {
+  border: 1px solid var(--pi-line);
+  border-radius: var(--pi-radius-sm);
+  overflow: hidden;
+}
+.md-typeset table:not([class]) th {
+  background: var(--pi-surface-2);
+  font-family: var(--md-code-font);
+  font-size: 0.74rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--pi-muted);
+}
+.md-typeset table:not([class]) tr:hover td { background: var(--pi-surface-2); }
+
+/* ---- Footer -------------------------------------------------------------- */
+.md-footer { background: var(--pi-bg-2); }
+.md-footer-meta { background: var(--pi-bg); border-top: 1px solid var(--pi-line); }
+
+/* ---- Section divider helper ---------------------------------------------- */
+.pi-rule {
+  height: 1px;
+  border: 0;
+  margin: 2.4rem 0;
+  background: linear-gradient(90deg, var(--pi-line-strong), transparent);
+}
+
+@media (max-width: 44.9em) {
+  .md-typeset h2 { margin-top: 2em; }
+  .pi-hero { margin-top: 0; }
+}
